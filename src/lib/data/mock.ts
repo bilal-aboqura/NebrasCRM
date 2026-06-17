@@ -91,6 +91,22 @@ export const offers: Offer[] = [
     total: 16100,
     validUntil: "2026-07-15",
     lineItems: [{ id: "li-1", description: "استشارات اعتماد CBAHI", quantity: 1, unitPrice: 15000 }]
+  },
+  {
+    id: "off-expired",
+    companyId: "company-a",
+    facilityId: "fac-1",
+    contactId: "con-2",
+    ownerId: "u-sales-a",
+    title: "عرض منتهي الصلاحية",
+    status: "sent",
+    version: 1,
+    subtotal: 5000,
+    discount: 0,
+    tax: 750,
+    total: 5750,
+    validUntil: "2026-01-01",
+    lineItems: [{ id: "li-expired-1", description: "مراجعة تحضيرية", quantity: 1, unitPrice: 5000 }]
   }
 ];
 

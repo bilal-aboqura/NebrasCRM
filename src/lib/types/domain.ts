@@ -5,6 +5,7 @@ export type FacilityStatus = "new" | "contacted" | "qualified" | "proposal" | "c
 export type FollowUpStatus = "pending" | "done" | "cancelled";
 export type OfferStatus = "draft" | "sent" | "accepted" | "rejected" | "superseded" | "archived";
 export type ContractStatus = "draft" | "active" | "completed" | "terminated" | "archived";
+export type DiscountType = "fixed" | "percentage";
 
 export interface Company {
   id: string;
@@ -90,6 +91,7 @@ export interface OfferLineItem {
   description: string;
   quantity: number;
   unitPrice: number;
+  amount?: number;
 }
 
 export interface Offer {
@@ -98,14 +100,26 @@ export interface Offer {
   facilityId: string;
   contactId?: string;
   ownerId: string;
+  title?: string;
   status: OfferStatus;
   version: number;
+  rootOfferId?: string;
   parentOfferId?: string;
+  isSuperseded?: boolean;
+  isActive?: boolean;
+  discountType?: DiscountType;
+  discountValue?: number;
+  taxRate?: number;
   subtotal: number;
   discount: number;
   tax: number;
   total: number;
   validUntil: string;
+  notes?: string;
+  sentAt?: string;
+  decisionAt?: string;
+  decisionNote?: string;
+  archivedAt?: string;
   lineItems: OfferLineItem[];
 }
 
@@ -121,4 +135,9 @@ export interface Contract {
   startDate?: string;
   endDate?: string;
   documentPath?: string;
+  parentContractId?: string;
+  isActive?: boolean;
+  title?: string;
+  terminationReason?: string;
+  archivedAt?: string;
 }

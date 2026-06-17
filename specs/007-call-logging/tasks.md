@@ -1,4 +1,4 @@
-# Tasks: Call and Communication Logging
+﻿# Tasks: Call and Communication Logging
 
 **Input**: Design documents from `/specs/007-call-logging/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
@@ -19,8 +19,8 @@
 
 **Purpose**: Project initialization and basic structure.
 
-- [ ] T001 Create feature branch placeholders and directories in specs/007-call-logging/
-- [ ] T002 [P] Create initial blank Server Action file `src/lib/actions/call-logs.ts` and UI component files in `src/components/facilities/`
+- [X] T001 Create feature branch placeholders and directories in specs/007-call-logging/
+- [X] T002 [P] Create initial blank Server Action file `src/lib/actions/call-logs.ts` and UI component files in `src/components/facilities/`
 
 ---
 
@@ -28,32 +28,32 @@
 
 **Purpose**: Core schema setup, constraints, RLS policies, and database tests.
 
-**⚠️ CRITICAL**: No user story work can begin until this phase is complete.
+**âš ï¸ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T003 Create Supabase migration file `supabase/migrations/20260616000005_call_logging.sql` defining custom communication enums (`communication_channel`, `communication_direction`, `communication_outcome`) and table `call_logs` with PK, FKs, and `company_id`.
-- [ ] T004 Implement composite validation trigger `trg_validate_call_log` in `supabase/migrations/20260616000005_call_logging.sql` to enforce that contact and follow-up belong to the parent facility, and occurred_at is not in the future.
-- [ ] T005 Enable RLS on `call_logs` and implement tenant isolation and role-based SELECT/INSERT/UPDATE policies in `supabase/migrations/20260616000005_call_logging.sql`.
-- [ ] T006 Write pgTAP database unit tests in `supabase/tests/007-call-logging.test.sql` to verify RLS isolation policies and cross-facility contact/follow-up insert blocks.
+- [X] T003 Create Supabase migration file `supabase/migrations/20260616000005_call_logging.sql` defining custom communication enums (`communication_channel`, `communication_direction`, `communication_outcome`) and table `call_logs` with PK, FKs, and `company_id`.
+- [X] T004 Implement composite validation trigger `trg_validate_call_log` in `supabase/migrations/20260616000005_call_logging.sql` to enforce that contact and follow-up belong to the parent facility, and occurred_at is not in the future.
+- [X] T005 Enable RLS on `call_logs` and implement tenant isolation and role-based SELECT/INSERT/UPDATE policies in `supabase/migrations/20260616000005_call_logging.sql`.
+- [X] T006 Write pgTAP database unit tests in `supabase/tests/007-call-logging.test.sql` to verify RLS isolation policies and cross-facility contact/follow-up insert blocks.
 - [ ] T007 Apply migrations locally and run database unit tests using `supabase db reset` and `supabase db test`.
 
 **Checkpoint**: Foundation ready - database constraints and tenant isolation verified.
 
 ---
 
-## Phase 3: User Story 1 - Manually Log a Communication (Priority: P1) 🎯 MVP
+## Phase 3: User Story 1 - Manually Log a Communication (Priority: P1) ðŸŽ¯ MVP
 
 **Goal**: Reps manually log a past or current communication against a facility and contact.
 
-**Independent Test**: Log in as a Sales User, open an assigned facility, click "تسجيل اتصال" (Log Communication), fill details, save. Verify it appears in the list and timeline, and that Company B users cannot read or modify it.
+**Independent Test**: Log in as a Sales User, open an assigned facility, click "ØªØ³Ø¬ÙŠÙ„ Ø§ØªØµØ§Ù„" (Log Communication), fill details, save. Verify it appears in the list and timeline, and that Company B users cannot read or modify it.
 
 ### Tests for User Story 1
-- [ ] T008 [P] [US1] Write integration tests in `tests/integration/call-logs.test.ts` to verify Server Action creation, authorization, and RLS company scoping.
+- [X] T008 [P] [US1] Write integration tests in `tests/integration/call-logs.test.ts` to verify Server Action creation, authorization, and RLS company scoping.
 
 ### Implementation for User Story 1
-- [ ] T009 [US1] Implement Server Action `createCallLog` in `src/lib/actions/call-logs.ts` including facility write authorization checks, validation logic, and inserting to `call_logs` table.
-- [ ] T010 [US1] Add timeline logging to generate a `call_logged` event in `facility_activity` in Arabic inside `createCallLog` in `src/lib/actions/call-logs.ts`.
-- [ ] T011 [P] [US1] Create the Arabic manual logging modal `LogCommunicationModal` in `src/components/facilities/LogCommunicationModal.tsx` following the Tajawal font and platform design system.
-- [ ] T012 [US1] Integrate `LogCommunicationModal` into the facility detail page in `src/app/(dashboard)/dashboard/facilities/[id]/page.tsx` with a trigger button.
+- [X] T009 [US1] Implement Server Action `createCallLog` in `src/lib/actions/call-logs.ts` including facility write authorization checks, validation logic, and inserting to `call_logs` table.
+- [X] T010 [US1] Add timeline logging to generate a `call_logged` event in `facility_activity` in Arabic inside `createCallLog` in `src/lib/actions/call-logs.ts`.
+- [X] T011 [P] [US1] Create the Arabic manual logging modal `LogCommunicationModal` in `src/components/facilities/LogCommunicationModal.tsx` following the Tajawal font and platform design system.
+- [X] T012 [US1] Integrate `LogCommunicationModal` into the facility detail page in `src/app/(dashboard)/dashboard/facilities/[id]/page.tsx` with a trigger button.
 
 **Checkpoint**: Manual logging is fully functional and testable independently.
 
@@ -66,12 +66,12 @@
 **Independent Test**: Tap phone icon on contact. Switch window, return to CRM. floating banner appears at the bottom. Select outcome, save. Verify log is saved and banner disappears.
 
 ### Tests for User Story 2
-- [ ] T013 [P] [US2] Write unit/integration tests in `tests/integration/quick-log-banner.test.ts` verifying event listeners, visibility change states, and pre-filling context.
+- [X] T013 [P] [US2] Write unit/integration tests in `tests/integration/quick-log-banner.test.ts` verifying event listeners, visibility change states, and pre-filling context.
 
 ### Implementation for User Story 2
-- [ ] T014 [US2] Add outbound click tracking logic to local storage/state in the contact list view component in `src/app/(dashboard)/dashboard/facilities/[id]/page.tsx` when click-to-call or WhatsApp links are clicked.
-- [ ] T015 [P] [US2] Create the floating component `QuickLogBanner` in `src/components/facilities/QuickLogBanner.tsx` incorporating window focus/visibility change event listeners, pre-filled details, outcome selector, notes input, and save/dismiss controls.
-- [ ] T016 [US2] Mount `QuickLogBanner` in the facility detail page layout in `src/app/(dashboard)/dashboard/facilities/[id]/page.tsx`.
+- [X] T014 [US2] Add outbound click tracking logic to local storage/state in the contact list view component in `src/app/(dashboard)/dashboard/facilities/[id]/page.tsx` when click-to-call or WhatsApp links are clicked.
+- [X] T015 [P] [US2] Create the floating component `QuickLogBanner` in `src/components/facilities/QuickLogBanner.tsx` incorporating window focus/visibility change event listeners, pre-filled details, outcome selector, notes input, and save/dismiss controls.
+- [X] T016 [US2] Mount `QuickLogBanner` in the facility detail page layout in `src/app/(dashboard)/dashboard/facilities/[id]/page.tsx`.
 
 **Checkpoint**: Outbound clicks correctly trigger the non-blocking outcome banner on tab focus return.
 
@@ -84,12 +84,12 @@
 **Independent Test**: Complete a call follow-up. Completion modal prompts to log details. Check toggle, save. Verify follow-up transitions to "done" and a call log is created atomically.
 
 ### Tests for User Story 3
-- [ ] T017 [P] [US3] Write integration tests in `tests/integration/followups-linking.test.ts` verifying atomic transaction completion and outcome-aware checkbox states.
+- [X] T017 [P] [US3] Write integration tests in `tests/integration/followups-linking.test.ts` verifying atomic transaction completion and outcome-aware checkbox states.
 
 ### Implementation for User Story 3
-- [ ] T018 [US3] Update follow-up completion Server Action in `src/lib/actions/followups.ts` to allow creating and linking a call log atomically within a database transaction.
-- [ ] T019 [US3] Add the outcome-aware checkbox "إتمام المتابعة المرتبطة" (Mark linked follow-up as completed) and default toggle state calculations to the `LogCommunicationModal` in `src/components/facilities/LogCommunicationModal.tsx`.
-- [ ] T020 [US3] Extend `createCallLog` in `src/lib/actions/call-logs.ts` to handle atomic update of linked follow-up to `done` and write a `followup_complete` timeline event when the toggle is checked.
+- [X] T018 [US3] Update follow-up completion Server Action in `src/lib/actions/followups.ts` to allow creating and linking a call log atomically within a database transaction.
+- [X] T019 [US3] Add the outcome-aware checkbox "Ø¥ØªÙ…Ø§Ù… Ø§Ù„Ù…ØªØ§Ø¨Ø¹Ø© Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø©" (Mark linked follow-up as completed) and default toggle state calculations to the `LogCommunicationModal` in `src/components/facilities/LogCommunicationModal.tsx`.
+- [X] T020 [US3] Extend `createCallLog` in `src/lib/actions/call-logs.ts` to handle atomic update of linked follow-up to `done` and write a `followup_complete` timeline event when the toggle is checked.
 
 **Checkpoint**: Call logs and follow-ups support atomic bidirectional completion and linkages.
 
@@ -99,15 +99,15 @@
 
 **Goal**: Display a chronological list of call logs on the facility detail page and in the activity timeline.
 
-**Independent Test**: Open a facility detail page. Verify the "سجل الاتصالات" section shows all call logs in descending chronological order, paginated, and timeline shows `call_logged` entries.
+**Independent Test**: Open a facility detail page. Verify the "Ø³Ø¬Ù„ Ø§Ù„Ø§ØªØµØ§Ù„Ø§Øª" section shows all call logs in descending chronological order, paginated, and timeline shows `call_logged` entries.
 
 ### Tests for User Story 4
-- [ ] T021 [P] [US4] Write integration tests in `tests/integration/call-logs-history.test.ts` verifying chronological sorting, pagination limits, and parent-facility archival visibility checks.
+- [X] T021 [P] [US4] Write integration tests in `tests/integration/call-logs-history.test.ts` verifying chronological sorting, pagination limits, and parent-facility archival visibility checks.
 
 ### Implementation for User Story 4
-- [ ] T022 [P] [US4] Create the chronological call log list viewer component `CallLogsSection` in `src/components/facilities/CallLogsSection.tsx` showing channel, direction, creator, date, duration, and notes.
-- [ ] T023 [US4] Mount `CallLogsSection` in the placeholder area of the facility detail page in `src/app/(dashboard)/dashboard/facilities/[id]/page.tsx` with pagination controls.
-- [ ] T024 [US4] Update active filters on CRM lists and timeline retrieval to exclude call logs belonging to archived parent facilities in `src/lib/actions/call-logs.ts`.
+- [X] T022 [P] [US4] Create the chronological call log list viewer component `CallLogsSection` in `src/components/facilities/CallLogsSection.tsx` showing channel, direction, creator, date, duration, and notes.
+- [X] T023 [US4] Mount `CallLogsSection` in the placeholder area of the facility detail page in `src/app/(dashboard)/dashboard/facilities/[id]/page.tsx` with pagination controls.
+- [X] T024 [US4] Update active filters on CRM lists and timeline retrieval to exclude call logs belonging to archived parent facilities in `src/lib/actions/call-logs.ts`.
 
 **Checkpoint**: Chronological history list is populated and handles pagination and archival isolation.
 
@@ -120,12 +120,12 @@
 **Independent Test**: Creator edits a call log created 2 hours ago (succeeds). Creator attempts to edit a 3-day-old log (button disabled, server blocks update). Supervisor edits the 3-day-old log and soft-archives it successfully.
 
 ### Tests for User Story 5
-- [ ] T025 [P] [US5] Write pgTAP tests in `supabase/tests/007-call-logging.test.sql` and integration tests in `tests/integration/call-logs-edit-archive.test.ts` for the 24-hour edit lock and manager-only soft-archiving/recovery.
+- [X] T025 [P] [US5] Write pgTAP tests in `supabase/tests/007-call-logging.test.sql` and integration tests in `tests/integration/call-logs-edit-archive.test.ts` for the 24-hour edit lock and manager-only soft-archiving/recovery.
 
 ### Implementation for User Story 5
-- [ ] T026 [US5] Implement `check_call_log_edit_window` trigger in `supabase/migrations/20260616000005_call_logging.sql` to block non-manager updates after 24 hours from creation and restrict modification of immutable fields.
-- [ ] T027 [US5] Implement Server Actions `updateCallLog`, `archiveCallLog`, and `recoverCallLog` in `src/lib/actions/call-logs.ts` with timeline log events (`call_log_edited`, `call_log_archived`, `call_log_recovered`).
-- [ ] T028 [US5] Add the edit forms and "تعديل" (Edit) and "أرشفة" (Archive) actions to `CallLogsSection` in `src/components/facilities/CallLogsSection.tsx` with client-side 24-hour lock button controls.
+- [X] T026 [US5] Implement `check_call_log_edit_window` trigger in `supabase/migrations/20260616000005_call_logging.sql` to block non-manager updates after 24 hours from creation and restrict modification of immutable fields.
+- [X] T027 [US5] Implement Server Actions `updateCallLog`, `archiveCallLog`, and `recoverCallLog` in `src/lib/actions/call-logs.ts` with timeline log events (`call_log_edited`, `call_log_archived`, `call_log_recovered`).
+- [X] T028 [US5] Add the edit forms and "ØªØ¹Ø¯ÙŠÙ„" (Edit) and "Ø£Ø±Ø´ÙØ©" (Archive) actions to `CallLogsSection` in `src/components/facilities/CallLogsSection.tsx` with client-side 24-hour lock button controls.
 
 **Checkpoint**: Call log edit restrictions, soft-archiving, and manager recovery are fully functional and secure.
 
@@ -135,9 +135,9 @@
 
 **Purpose**: Shared translations, final verification, and checklist quality check.
 
-- [ ] T029 Update platform translation layer / shared dictionaries to include Arabic communication enums and UI labels.
+- [X] T029 Update platform translation layer / shared dictionaries to include Arabic communication enums and UI labels.
 - [ ] T030 Run all unit tests, integration tests, and manual verification checklist in `quickstart.md`.
-- [ ] T031 Run the `speckit-analyze` skill to verify cross-artifact consistency.
+- [X] T031 Run the `speckit-analyze` skill to verify cross-artifact consistency.
 
 ---
 
@@ -192,9 +192,9 @@ Task: "Create the Arabic manual logging modal LogCommunicationModal in src/compo
 
 ### Incremental Delivery
 
-1. Setup + Foundational → Database schema & RLS rules active.
-2. Add User Story 1 → Reps can manually record communications → Deploy MVP.
-3. Add User Story 4 → Reps can view past communication list.
-4. Add User Story 3 → Atomic follow-up linking and checkbox toggle.
-5. Add User Story 2 → Automation quick-log banner trigger.
-6. Add User Story 5 → Edits lock window and archiving management recovery.
+1. Setup + Foundational â†’ Database schema & RLS rules active.
+2. Add User Story 1 â†’ Reps can manually record communications â†’ Deploy MVP.
+3. Add User Story 4 â†’ Reps can view past communication list.
+4. Add User Story 3 â†’ Atomic follow-up linking and checkbox toggle.
+5. Add User Story 2 â†’ Automation quick-log banner trigger.
+6. Add User Story 5 â†’ Edits lock window and archiving management recovery.

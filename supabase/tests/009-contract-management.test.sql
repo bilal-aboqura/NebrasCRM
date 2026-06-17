@@ -1,0 +1,10 @@
+begin;
+select plan(6);
+select has_table('public', 'contracts', 'contracts table exists');
+select has_table('public', 'contract_sequence_counters', 'sequence counter table exists');
+select has_type('public', 'contract_status', 'contract status enum exists');
+select has_trigger('public', 'contracts', 'trg_generate_contract_reference_number', 'reference trigger exists');
+select has_trigger('public', 'contracts', 'trg_validate_contract_rules_and_immutability', 'contract validation trigger exists');
+select has_column('public', 'contracts', 'document_path', 'secure document path exists');
+select * from finish();
+rollback;

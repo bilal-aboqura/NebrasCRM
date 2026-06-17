@@ -23,9 +23,17 @@ export function canManageCompanyWide(role: Role) {
 }
 
 export async function getAuthContext(): Promise<AuthContext> {
-  const cookieStore = cookies();
-  const userId = cookieStore.get("nebras_user")?.value ?? "u-super";
-  const activeCompanyId = cookieStore.get("nebras_active_company")?.value;
+  let userId = "u-super";
+  let activeCompanyId: string | undefined;
+
+  try {
+    const cookieStore = cookies();
+    userId = cookieStore.get("nebras_user")?.value ?? userId;
+    activeCompanyId = cookieStore.get("nebras_active_company")?.value;
+  } catch {
+    // Tests and static rendering do not always have a request store.
+  }
+
   const user = profiles.find((profile) => profile.id === userId) ?? profiles[0];
   const companyId = activeCompanyId ?? user.companyId ?? companies[0].id;
   const activeCompany = companies.find((company) => company.id === companyId) ?? companies[0];

@@ -1,4 +1,4 @@
-# Tasks: Facility Management
+﻿# Tasks: Facility Management
 
 **Input**: Design documents from `/specs/003-facility-management/`  
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/facility-actions.md  
@@ -13,8 +13,8 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create page directories under `src/app/(dashboard)/dashboard/facilities` and components directory under `src/components/facilities`
-- [ ] T002 Create phone normalization utility file `src/lib/utils/phone.ts` and test file `src/lib/utils/phone.test.ts`
+- [X] T001 Create page directories under `src/app/(dashboard)/dashboard/facilities` and components directory under `src/components/facilities`
+- [X] T002 Create phone normalization utility file `src/lib/utils/phone.ts` and test file `src/lib/utils/phone.test.ts`
 
 ---
 
@@ -22,17 +22,17 @@
 
 **Purpose**: Core database tables, seeds, RLS policies, and triggers
 
-- [ ] T003 Create database migrations for regions, cities reference data tables, and seed scripts in `supabase/migrations/20260616000001_facility_management.sql`
-- [ ] T004 Create migrations for facilities, facility_activity tables, triggers for phone normalization, updated_at timestamps, and tenant unique indexes in `supabase/migrations/20260616000001_facility_management.sql`
-- [ ] T005 [P] Implement database security RLS validation tests in pgTAP at `supabase/tests/003-facility-management.test.sql`
-- [ ] T006 [P] Implement phone normalization helper in `src/lib/utils/phone.ts`
-- [ ] T007 Implement Server Action database initialization in `src/lib/actions/facilities.ts`
+- [X] T003 Create database migrations for regions, cities reference data tables, and seed scripts in `supabase/migrations/20260616000001_facility_management.sql`
+- [X] T004 Create migrations for facilities, facility_activity tables, triggers for phone normalization, updated_at timestamps, and tenant unique indexes in `supabase/migrations/20260616000001_facility_management.sql`
+- [X] T005 [P] Implement database security RLS validation tests in pgTAP at `supabase/tests/003-facility-management.test.sql`
+- [X] T006 [P] Implement phone normalization helper in `src/lib/utils/phone.ts`
+- [X] T007 Implement Server Action database initialization in `src/lib/actions/facilities.ts`
 
 **Checkpoint**: Foundation ready - database tables, seeds, and triggers are complete and verified.
 
 ---
 
-## Phase 3: User Story 1 - Create Facility with Scoped Assignment (Priority: P1) 🎯 MVP
+## Phase 3: User Story 1 - Create Facility with Scoped Assignment (Priority: P1) ðŸŽ¯ MVP
 
 **Goal**: Create facilities with tenant-scoped validation and role-scoped ownership assignment.
 
@@ -40,12 +40,12 @@
 Log in as a Sales User of Company A, add a facility, and verify that the owner is automatically set to yourself and the tenant is set to Company A. Log in as Admin/Supervisor, and verify that you can optionally select an owner from active Sales Users or leave it unassigned.
 
 ### Tests for User Story 1
-- [ ] T008 [P] [US1] Write integration tests in `tests/integration/facilities.test.ts` verifying that creating a facility validates role assignments and throws collision errors for duplicate phone numbers.
+- [X] T008 [P] [US1] Write integration tests in `tests/integration/facilities.test.ts` verifying that creating a facility validates role assignments and throws collision errors for duplicate phone numbers.
 
 ### Implementation for User Story 1
-- [ ] T009 [US1] Implement the `createFacility` Server Action in `src/lib/actions/facilities.ts` with normalization, tenant-scoping, and duplicate phone collision routing message.
-- [ ] T010 [US1] Create the `FacilityForm` component in `src/components/facilities/FacilityForm.tsx` with dependent Saudi regions/cities dropdowns and "Other" fallback.
-- [ ] T011 [US1] Integrate `FacilityForm` modal triggering on the main layout page.
+- [X] T009 [US1] Implement the `createFacility` Server Action in `src/lib/actions/facilities.ts` with normalization, tenant-scoping, and duplicate phone collision routing message.
+- [X] T010 [US1] Create the `FacilityForm` component in `src/components/facilities/FacilityForm.tsx` with dependent Saudi regions/cities dropdowns and "Other" fallback.
+- [X] T011 [US1] Integrate `FacilityForm` modal triggering on the main layout page.
 
 **Checkpoint**: At this point, facility creation is fully functional and testable independently.
 
@@ -59,11 +59,11 @@ Log in as a Sales User of Company A, add a facility, and verify that the owner i
 Log in as a Sales User and search/filter. Verify that only facilities assigned to you are returned, and unassigned/other-owned records are excluded. Log in as Admin/Supervisor and verify all company facilities are visible.
 
 ### Tests for User Story 2
-- [ ] T012 [P] [US2] Write integration tests in `tests/integration/facilities.test.ts` for directory search, status filtering, and pagination limits.
+- [X] T012 [P] [US2] Write integration tests in `tests/integration/facilities.test.ts` for directory search, status filtering, and pagination limits.
 
 ### Implementation for User Story 2
-- [ ] T013 [US2] Implement the `getFacilitiesList` Server Action in `src/lib/actions/facilities.ts` supporting pagination, query search, and filters.
-- [ ] T014 [US2] Build the facilities list directory view page in `src/app/(dashboard)/dashboard/facilities/page.tsx` rendering data in an RTL Arabic table.
+- [X] T013 [US2] Implement the `getFacilitiesList` Server Action in `src/lib/actions/facilities.ts` supporting pagination, query search, and filters.
+- [X] T014 [US2] Build the facilities list directory view page in `src/app/(dashboard)/dashboard/facilities/page.tsx` rendering data in an RTL Arabic table.
 
 **Checkpoint**: At this point, the tenant-scoped paginated directory is fully functional and testable.
 
@@ -74,15 +74,15 @@ Log in as a Sales User and search/filter. Verify that only facilities assigned t
 **Goal**: Facility detail page displaying core details, click-to-call/WhatsApp affordances, and chronological history timeline.
 
 **Independent Test**:
-Open the detail page of a facility. Verify that the primary/secondary phone number click-to-call functions, and the WhatsApp link opens with a pre-filled template message replacing `[اسم الشركة]` with the active company's name.
+Open the detail page of a facility. Verify that the primary/secondary phone number click-to-call functions, and the WhatsApp link opens with a pre-filled template message replacing `[Ø§Ø³Ù… Ø§Ù„Ø´Ø±ÙƒØ©]` with the active company's name.
 
 ### Tests for User Story 3
-- [ ] T015 [P] [US3] Write integration tests in `tests/integration/facilities.test.ts` verifying that WhatsApp template text replaces company placeholders and phone numbers are normalized to digits-only.
+- [X] T015 [P] [US3] Write integration tests in `tests/integration/facilities.test.ts` verifying that WhatsApp template text replaces company placeholders and phone numbers are normalized to digits-only.
 
 ### Implementation for User Story 3
-- [ ] T016 [US3] Implement `getFacilityDetail` and `getFacilityActivity` Server Actions in `src/lib/actions/facilities.ts`.
-- [ ] T017 [US3] Create the timeline component `src/components/facilities/ActivityTimeline.tsx` displaying chronological update logs in Arabic.
-- [ ] T018 [US3] Build the facility detail page in `src/app/(dashboard)/dashboard/facilities/[id]/page.tsx` with tel links, wa.me redirection, and the timeline.
+- [X] T016 [US3] Implement `getFacilityDetail` and `getFacilityActivity` Server Actions in `src/lib/actions/facilities.ts`.
+- [X] T017 [US3] Create the timeline component `src/components/facilities/ActivityTimeline.tsx` displaying chronological update logs in Arabic.
+- [X] T018 [US3] Build the facility detail page in `src/app/(dashboard)/dashboard/facilities/[id]/page.tsx` with tel links, wa.me redirection, and the timeline.
 
 **Checkpoint**: Facility detail hub and communications are fully functional and testable.
 
@@ -96,11 +96,11 @@ Open the detail page of a facility. Verify that the primary/secondary phone numb
 Edit a facility's details and change status/owner. Verify changes are recorded in the `FacilityActivity` log table and displayed on the detail timeline.
 
 ### Tests for User Story 4
-- [ ] T019 [P] [US4] Write integration tests in `tests/integration/facilities.test.ts` verifying that only authorized roles can reassign ownership and update status.
+- [X] T019 [P] [US4] Write integration tests in `tests/integration/facilities.test.ts` verifying that only authorized roles can reassign ownership and update status.
 
 ### Implementation for User Story 4
-- [ ] T020 [US4] Implement the `updateFacility` Server Action in `src/lib/actions/facilities.ts` to edit profile details and ownership, writing `FacilityActivity` log entries.
-- [ ] T021 [US4] Add the edit form modal trigger on the facility detail page in `src/app/(dashboard)/dashboard/facilities/[id]/page.tsx`.
+- [X] T020 [US4] Implement the `updateFacility` Server Action in `src/lib/actions/facilities.ts` to edit profile details and ownership, writing `FacilityActivity` log entries.
+- [X] T021 [US4] Add the edit form modal trigger on the facility detail page in `src/app/(dashboard)/dashboard/facilities/[id]/page.tsx`.
 
 **Checkpoint**: Editing and owner reassignment are fully functional and logged to the timeline.
 
@@ -114,11 +114,11 @@ Edit a facility's details and change status/owner. Verify changes are recorded i
 Archive a facility. Verify that it disappears from default lists. Toggle the "Show Archived" filter, open the archived facility, click "Recover", and verify it is restored.
 
 ### Tests for User Story 5
-- [ ] T022 [P] [US5] Write integration tests in `tests/integration/facilities.test.ts` verifying that Sales Users cannot invoke archive/recover actions and that soft-deletes hide records from default views.
+- [X] T022 [P] [US5] Write integration tests in `tests/integration/facilities.test.ts` verifying that Sales Users cannot invoke archive/recover actions and that soft-deletes hide records from default views.
 
 ### Implementation for User Story 5
-- [ ] T023 [US5] Implement `archiveFacility` and `recoverFacility` Server Actions in `src/lib/actions/facilities.ts` restricting access to supervisor/admin roles and writing history logs.
-- [ ] T024 [US5] Add the "Archive" action to the detail page and the "Show Archived" toggle filter to the facilities directory page.
+- [X] T023 [US5] Implement `archiveFacility` and `recoverFacility` Server Actions in `src/lib/actions/facilities.ts` restricting access to supervisor/admin roles and writing history logs.
+- [X] T024 [US5] Add the "Archive" action to the detail page and the "Show Archived" toggle filter to the facilities directory page.
 
 **Checkpoint**: Archiving and recovery are fully functional and restricted.
 
@@ -129,8 +129,8 @@ Archive a facility. Verify that it disappears from default lists. Toggle the "Sh
 **Purpose**: Code quality, test execution, and quickstart verification
 
 - [ ] T025 Run local pgTAP unit tests: `supabase db test`
-- [ ] T026 Run local integration tests: `npm run test:integration`
-- [ ] T027 Perform final responsive UI checks and verify RTL alignment under `src/app/(dashboard)/dashboard/facilities`
+- [X] T026 Run local integration tests: `npm run test:integration`
+- [X] T027 Perform final responsive UI checks and verify RTL alignment under `src/app/(dashboard)/dashboard/facilities`
 - [ ] T028 Validate all steps in `quickstart.md` function as written
 
 ---

@@ -15,11 +15,17 @@ create table if not exists public.system_settings (
 -- RLS: Enabled. Readable by all authenticated users, writable only by super_admin.
 alter table public.system_settings enable row level security;
 
+drop policy if exists system_settings_select on public.system_settings;
 create policy system_settings_select on public.system_settings
   for select using (auth.role() = 'authenticated');
 
+drop policy if exists system_settings_modify on public.system_settings;
 create policy system_settings_modify on public.system_settings
-  for all using (public.is_super_admin()) with check (public.is_super_admin());
+  for all using (
+    coalesce(auth.jwt() -> 'app_metadata' ->> 'role', auth.jwt() ->> 'role', 'sales_user') = 'super_admin'
+  ) with check (
+    coalesce(auth.jwt() -> 'app_metadata' ->> 'role', auth.jwt() ->> 'role', 'sales_user') = 'super_admin'
+  );
 
 -- Default seed: max import rows limit
 insert into public.system_settings (key, value)
@@ -55,22 +61,29 @@ create table if not exists public.import_batches (
 -- RLS: Enabled. Scoped to user's company_id.
 alter table public.import_batches enable row level security;
 
+drop policy if exists import_batches_select on public.import_batches;
 create policy import_batches_select on public.import_batches
   for select using (
-    public.is_super_admin() or
-    company_id = public.current_company_id()
+    coalesce(auth.jwt() -> 'app_metadata' ->> 'role', auth.jwt() ->> 'role', 'sales_user') = 'super_admin'
+    or company_id = nullif(coalesce(auth.jwt() -> 'app_metadata' ->> 'company_id', auth.jwt() ->> 'company_id'), '')::uuid
   );
 
+drop policy if exists import_batches_insert on public.import_batches;
 create policy import_batches_insert on public.import_batches
   for insert with check (
-    (public.is_super_admin() or company_id = public.current_company_id()) and
-    (public.current_app_role() in ('super_admin', 'company_admin', 'supervisor'))
+    (
+      coalesce(auth.jwt() -> 'app_metadata' ->> 'role', auth.jwt() ->> 'role', 'sales_user') = 'super_admin'
+      or company_id = nullif(coalesce(auth.jwt() -> 'app_metadata' ->> 'company_id', auth.jwt() ->> 'company_id'), '')::uuid
+    ) and
+    coalesce(auth.jwt() -> 'app_metadata' ->> 'role', auth.jwt() ->> 'role', 'sales_user') in ('super_admin', 'company_admin', 'supervisor')
   );
 
+drop policy if exists import_batches_update on public.import_batches;
 create policy import_batches_update on public.import_batches
   for update using (
-    public.is_super_admin() or
-    company_id = public.current_company_id()
+    coalesce(auth.jwt() -> 'app_metadata' ->> 'role', auth.jwt() ->> 'role', 'sales_user') = 'super_admin'
+    or company_id = nullif(coalesce(auth.jwt() -> 'app_metadata' ->> 'company_id', auth.jwt() ->> 'company_id'), '')::uuid
   ) with check (
-    public.current_app_role() in ('super_admin', 'company_admin', 'supervisor')
+    coalesce(auth.jwt() -> 'app_metadata' ->> 'role', auth.jwt() ->> 'role', 'sales_user') in ('super_admin', 'company_admin', 'supervisor')
   );
+

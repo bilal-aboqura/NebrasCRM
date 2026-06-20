@@ -33,7 +33,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const buffer = generateExcelExport(FOLLOWUP_EXPORT_HEADERS, exportRows, "المتابعات");
 
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

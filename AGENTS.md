@@ -13,6 +13,7 @@ Auto-generated from all feature plans. Last updated: 2026-06-21
 - N/A (Static marketing page) (014-marketing-landing-page)
 - TypeScript / Node.js v20+ + Next.js 14 (App Router), React 18, TailwindCSS, Lucide React (015-public-lead-capture)
 - PostgreSQL / Supabase Memory Store (mock) in development; Server Action uses service role key to bypass client authentication RLS (015-public-lead-capture)
+- N/A (Ephemeral client-side React state, no database or localStorage) (016-cbahi-self-assessment)
 
 - [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION] + [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION] (011-bulk-import-export)
 
@@ -33,9 +34,9 @@ cd src; pytest; ruff check .
 [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]: Follow standard conventions
 
 ## Recent Changes
+- 016-cbahi-self-assessment: Added TypeScript / Node.js v20+ + Next.js 14 (App Router), React 18, TailwindCSS, Lucide React
+- 016-cbahi-self-assessment: Added [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION] + [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]
 - 015-public-lead-capture: Added TypeScript / Node.js v20+ + Next.js 14 (App Router), React 18, TailwindCSS, Lucide React
-- main: Added [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION] + [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]
-- 014-marketing-landing-page: Added Next.js 14 (App Router), TypeScript (Node.js v20+) + React 18, TailwindCSS, Lucide React, `next/font/google`
 
 
 <!-- MANUAL ADDITIONS START -->

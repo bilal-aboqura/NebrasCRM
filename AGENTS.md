@@ -8,6 +8,9 @@ Auto-generated from all feature plans. Last updated: 2026-06-21
 - Next.js 14 (App Router), TypeScript (Node v20+) + React 18, TailwindCSS, Lucide React, Recharts (012-kpi-dashboard)
 - Memory database (`db` in `@/lib/data/store`, backing local mocks) (012-kpi-dashboard)
 - Next.js 14 (App Router), TypeScript, Node.js v20+ + `recharts` (for visual reports), `xlsx` (SheetJS for Excel exports), `lucide-react` (icons) (013-reports-module)
+- [if applicable, e.g., PostgreSQL, CoreData, files or N/A] (014-marketing-landing-page)
+- Next.js 14 (App Router), TypeScript (Node.js v20+) + React 18, TailwindCSS, Lucide React, `next/font/google` (014-marketing-landing-page)
+- N/A (Static marketing page) (014-marketing-landing-page)
 
 - [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION] + [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION] (011-bulk-import-export)
 
@@ -28,9 +31,9 @@ cd src; pytest; ruff check .
 [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]: Follow standard conventions
 
 ## Recent Changes
+- 014-marketing-landing-page: Added Next.js 14 (App Router), TypeScript (Node.js v20+) + React 18, TailwindCSS, Lucide React, `next/font/google`
+- 014-marketing-landing-page: Added [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION] + [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]
 - 013-reports-module: Added Next.js 14 (App Router), TypeScript, Node.js v20+ + `recharts` (for visual reports), `xlsx` (SheetJS for Excel exports), `lucide-react` (icons)
-- 012-kpi-dashboard: Added Next.js 14 (App Router), TypeScript (Node v20+) + React 18, TailwindCSS, Lucide React, Recharts
-- 011-bulk-import-export: Added Next.js (App Router), TypeScript (Node.js v20+) + `xlsx` (SheetJS)
 
 
 <!-- MANUAL ADDITIONS START -->

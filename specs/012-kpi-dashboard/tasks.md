@@ -15,8 +15,8 @@
 
 **Purpose**: Project initialization and folder prep.
 
-- [ ] T001 Create dashboard components directory src/components/dashboard
-- [ ] T002 Verify recharts installation in package.json
+- [X] T001 Create dashboard components directory src/components/dashboard
+- [X] T002 Verify recharts installation in package.json
 
 ---
 
@@ -24,8 +24,8 @@
 
 **Purpose**: Core server actions and authorization scaffolding.
 
-- [ ] T003 [P] Create dashboard server action file src/lib/actions/dashboard.ts
-- [ ] T004 Implement authorization context helper in src/lib/actions/dashboard.ts
+- [X] T003 [P] Create dashboard server action file src/lib/actions/dashboard.ts
+- [X] T004 Implement authorization context helper in src/lib/actions/dashboard.ts
 
 **Checkpoint**: Foundation ready - user story implementation can now begin.
 
@@ -39,15 +39,15 @@
 
 ### Tests for User Story 1
 
-- [ ] T005 [P] [US1] Create integration tests for scoped KPI cards and pipeline funnel in tests/integration/012-kpi-dashboard.test.ts
+- [X] T005 [P] [US1] Create integration tests for scoped KPI cards and pipeline funnel in tests/integration/012-kpi-dashboard.test.ts
 
 ### Implementation for User Story 1
 
-- [ ] T006 [P] [US1] Implement server actions for KPI cards and stage count queries in src/lib/actions/dashboard.ts
-- [ ] T007 [P] [US1] Create KpiCards React component in src/components/dashboard/KpiCards.tsx
-- [ ] T008 [P] [US1] Create PipelineFunnel React component using Recharts in src/components/dashboard/PipelineFunnel.tsx
-- [ ] T009 [US1] Create main layout component DashboardClient in src/components/dashboard/DashboardClient.tsx
-- [ ] T010 [US1] Replace placeholder home page with dashboard controller in src/app/(dashboard)/page.tsx
+- [X] T006 [P] [US1] Implement server actions for KPI cards and stage count queries in src/lib/actions/dashboard.ts
+- [X] T007 [P] [US1] Create KpiCards React component in src/components/dashboard/KpiCards.tsx
+- [X] T008 [P] [US1] Create PipelineFunnel React component using Recharts in src/components/dashboard/PipelineFunnel.tsx
+- [X] T009 [US1] Create main layout component DashboardClient in src/components/dashboard/DashboardClient.tsx
+- [X] T010 [US1] Replace placeholder home page with dashboard controller in src/app/(dashboard)/page.tsx
 
 **Checkpoint**: At this point, User Story 1 (MVP) is fully functional and testable.
 
@@ -61,14 +61,14 @@
 
 ### Tests for User Story 2
 
-- [ ] T011 [P] [US2] Add integration tests for follow-up alerts and activity feed in tests/integration/012-kpi-dashboard.test.ts
+- [X] T011 [P] [US2] Add integration tests for follow-up alerts and activity feed in tests/integration/012-kpi-dashboard.test.ts
 
 ### Implementation for User Story 2
 
-- [ ] T012 [P] [US2] Implement server actions for overdue alerts and activity log feeds in src/lib/actions/dashboard.ts
-- [ ] T013 [P] [US2] Create FollowUpAlerts component in src/components/dashboard/FollowUpAlerts.tsx
-- [ ] T014 [P] [US2] Create RecentActivityFeed component in src/components/dashboard/RecentActivityFeed.tsx
-- [ ] T015 [US2] Integrate Alerts and Activity components into DashboardClient in src/components/dashboard/DashboardClient.tsx
+- [X] T012 [P] [US2] Implement server actions for overdue alerts and activity log feeds in src/lib/actions/dashboard.ts
+- [X] T013 [P] [US2] Create FollowUpAlerts component in src/components/dashboard/FollowUpAlerts.tsx
+- [X] T014 [P] [US2] Create RecentActivityFeed component in src/components/dashboard/RecentActivityFeed.tsx
+- [X] T015 [US2] Integrate Alerts and Activity components into DashboardClient in src/components/dashboard/DashboardClient.tsx
 
 **Checkpoint**: User Stories 1 and 2 work independently.
 
@@ -82,13 +82,13 @@
 
 ### Tests for User Story 3
 
-- [ ] T016 [P] [US3] Add integration tests for team performance visibility and period boundaries in tests/integration/012-kpi-dashboard.test.ts
+- [X] T016 [P] [US3] Add integration tests for team performance visibility and period boundaries in tests/integration/012-kpi-dashboard.test.ts
 
 ### Implementation for User Story 3
 
-- [ ] T017 [P] [US3] Implement getTeamPerformanceAction with week/month/quarter calculations in src/lib/actions/dashboard.ts
-- [ ] T018 [P] [US3] Create TeamPerformance component with period filter tabs/dropdown in src/components/dashboard/TeamPerformance.tsx
-- [ ] T019 [US3] Integrate TeamPerformance component conditionally in DashboardClient in src/components/dashboard/DashboardClient.tsx
+- [X] T017 [P] [US3] Implement getTeamPerformanceAction with week/month/quarter calculations in src/lib/actions/dashboard.ts
+- [X] T018 [P] [US3] Create TeamPerformance component with period filter tabs/dropdown in src/components/dashboard/TeamPerformance.tsx
+- [X] T019 [US3] Integrate TeamPerformance component conditionally in DashboardClient in src/components/dashboard/DashboardClient.tsx
 
 **Checkpoint**: All user stories are independently functional.
 
@@ -98,9 +98,9 @@
 
 **Purpose**: Fine-tuning layout, performance, and documentation.
 
-- [ ] T020 [P] Validate Arabic translations, RTL layouts, and responsive styling in src/components/dashboard/
-- [ ] T021 Run all tests using vitest in tests/integration/
-- [ ] T022 Document validation results and walkthrough in walkthrough.md
+- [X] T020 [P] Validate Arabic translations, RTL layouts, and responsive styling in src/components/dashboard/
+- [X] T021 Run all tests using vitest in tests/integration/
+- [X] T022 Document validation results and walkthrough in walkthrough.md
 
 ---
 

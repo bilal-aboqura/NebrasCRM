@@ -3,6 +3,7 @@ import { getOfferDisplayStatus, getOffers } from "@/lib/actions/offers";
 import { formatSar } from "@/lib/data/store";
 import { contacts, facilities, profiles } from "@/lib/data/mock";
 import { offerStatusLabels } from "@/lib/i18n";
+import ExportButton from "@/app/(dashboard)/dashboard/facilities/components/ExportButton";
 
 export default async function OffersPage({ searchParams }: { searchParams?: { status?: string; ownerId?: string } }) {
   const rows = await getOffers({ status: (searchParams?.status as never) ?? "all", ownerId: searchParams?.ownerId });
@@ -11,7 +12,10 @@ export default async function OffersPage({ searchParams }: { searchParams?: { st
     <section className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-nebras-green">العروض</h1>
-        <p className="rounded-lg border border-nebras-line bg-white px-4 py-2 font-bold">{formatSar(total)}</p>
+        <div className="flex items-center gap-2">
+          <p className="rounded-lg border border-nebras-line bg-white px-4 py-2 font-bold">{formatSar(total)}</p>
+          <ExportButton exportUrl="/api/offers/export" label="تصدير Excel" />
+        </div>
       </div>
       <form className="flex flex-wrap gap-2 rounded-lg border border-nebras-line bg-white p-3">
         <select name="status" defaultValue={searchParams?.status ?? "all"} className="rounded-md border border-nebras-line px-3 py-2">

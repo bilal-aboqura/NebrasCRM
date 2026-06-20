@@ -1,11 +1,15 @@
 import { getFollowUps } from "@/lib/actions/followups";
 import { followUpStatusLabels } from "@/lib/i18n";
+import ExportButton from "@/app/(dashboard)/dashboard/facilities/components/ExportButton";
 
 export default async function FollowUpsPage() {
   const rows = await getFollowUps();
   return (
     <section className="space-y-5">
-      <h1 className="text-2xl font-bold text-nebras-green">المتابعات</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold text-nebras-green">المتابعات</h1>
+        <ExportButton exportUrl="/api/followups/export" label="تصدير Excel" />
+      </div>
       <div className="grid gap-3">
         {rows.map((followUp) => {
           const overdue = followUp.status === "pending" && new Date(followUp.dueAt).getTime() < Date.now();

@@ -2,6 +2,7 @@ import { getContracts, getContractDisplayStatus } from "@/lib/actions/contracts"
 import { facilities, profiles } from "@/lib/data/mock";
 import { formatSar } from "@/lib/data/store";
 import { contractStatusLabels } from "@/lib/i18n";
+import ExportButton from "@/app/(dashboard)/dashboard/facilities/components/ExportButton";
 
 export default async function ContractsPage({ searchParams }: { searchParams?: { status?: string; ownerId?: string } }) {
   const rows = await getContracts({ status: (searchParams?.status as never) ?? "all", ownerId: searchParams?.ownerId });
@@ -10,7 +11,10 @@ export default async function ContractsPage({ searchParams }: { searchParams?: {
     <section className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-nebras-green">العقود</h1>
-        <p className="rounded-lg border border-nebras-line bg-white px-4 py-2 font-bold">{formatSar(total)}</p>
+        <div className="flex items-center gap-2">
+          <p className="rounded-lg border border-nebras-line bg-white px-4 py-2 font-bold">{formatSar(total)}</p>
+          <ExportButton exportUrl="/api/contracts/export" label="تصدير Excel" />
+        </div>
       </div>
       <form className="flex flex-wrap gap-2 rounded-lg border border-nebras-line bg-white p-3">
         <select name="status" defaultValue={searchParams?.status ?? "all"} className="rounded-md border border-nebras-line px-3 py-2"><option value="all">كل الحالات</option><option value="draft">مسودة</option><option value="active">نشط</option><option value="completed">مكتمل</option></select>

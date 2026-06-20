@@ -10,7 +10,7 @@ export default async function Header() {
     <header className="sticky top-0 z-20 border-b border-nebras-line bg-white/95 px-4 py-3 backdrop-blur shell:px-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Link href="/" className="font-bold text-nebras-green">{context.activeCompany.name}</Link>
+          <Link href="/dashboard" className="font-bold text-nebras-green">{context.activeCompany.name}</Link>
           <p className="text-xs text-slate-500">{context.user.displayName} · {roleLabels[context.role]}</p>
         </div>
         <div className="flex items-center gap-2">

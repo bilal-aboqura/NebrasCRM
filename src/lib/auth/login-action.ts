@@ -17,5 +17,5 @@ export async function loginAction(formData: FormData) {
     cookieStore.set("nebras_active_company", profile.companyId, { path: "/", httpOnly: true });
   }
 
-  redirect("/");
+  redirect("/dashboard");
 }

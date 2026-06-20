@@ -41,6 +41,8 @@ export interface Facility {
   statusChangedAt?: string;
   createdAt?: string;
   updatedAt: string;
+  lead_source?: string;
+  notes?: string;
 }
 
 export interface Contact {

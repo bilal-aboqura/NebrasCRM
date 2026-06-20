@@ -2,6 +2,7 @@
 
 import { RefreshCw, FileText } from "lucide-react";
 import type { ScoreBreakdown } from "@/hooks/use-cbahi-session";
+import SaveAssessmentButton from "./SaveAssessmentButton";
 
 interface ScoringSidebarProps {
   scoreBreakdown: ScoreBreakdown;
@@ -80,6 +81,8 @@ export default function ScoringSidebar({ scoreBreakdown, onReset, onGenerateRepo
       </div>
 
       <div className="flex flex-col gap-3">
+        <SaveAssessmentButton />
+        
         <button
           onClick={onGenerateReport}
           disabled={answeredCount === 0}

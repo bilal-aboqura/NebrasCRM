@@ -1,4 +1,4 @@
-import { activities, callLogs, companies, contacts, contracts, facilities, followUps, offers, profiles } from "@/lib/data/mock";
+import { activities, callLogs, companies, contacts, contracts, facilities, followUps, offers, profiles, assessments } from "@/lib/data/mock";
 import type { Activity, CallLog, Company, Contact, Contract, Facility, FollowUp, Offer, Profile } from "@/lib/types/domain";
 
 export const db = {
@@ -10,7 +10,8 @@ export const db = {
   facilities,
   followUps,
   offers,
-  profiles
+  profiles,
+  assessments
 };
 
 export type TableName = keyof typeof db;

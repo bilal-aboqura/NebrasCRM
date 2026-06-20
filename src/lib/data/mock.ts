@@ -1,4 +1,5 @@
 import type { Activity, CallLog, Company, Contact, Contract, Facility, FollowUp, Offer, Profile } from "@/lib/types/domain";
+import type { Assessment } from "@/lib/types/assessment";
 
 export const companies: Company[] = [
   { id: "company-a", name: "نبراس الجودة", status: "active", city: "الرياض" },
@@ -113,3 +114,5 @@ export const offers: Offer[] = [
 export const contracts: Contract[] = [
   { id: "ctr-1", companyId: "company-a", facilityId: "fac-1", offerId: "off-1", ownerId: "u-sales-a", referenceNumber: "CON-2026-0001", status: "active", value: 16100, startDate: "2026-06-20", endDate: "2027-06-19", documentPath: "company-a/ctr-1/signed.pdf" }
 ];
+
+export const assessments: Assessment[] = [];

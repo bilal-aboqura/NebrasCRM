@@ -3,6 +3,7 @@ import CallLogsSection from "@/components/facilities/CallLogsSection";
 import ContactsSection from "@/components/facilities/ContactsSection";
 import ContractsSection from "@/components/facilities/ContractsSection";
 import FacilityForm from "@/components/facilities/FacilityForm";
+import SelfAssessmentHistory from "@/components/facilities/SelfAssessmentHistory";
 import LogCommunicationModal from "@/components/facilities/LogCommunicationModal";
 import OffersSection from "@/components/facilities/OffersSection";
 import QuickLogBanner from "@/components/facilities/QuickLogBanner";
@@ -34,6 +35,10 @@ export default async function FacilityDetailPage({ params }: { params: { id: str
         </div>
       </div>
       <FacilityForm facility={facility} />
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold text-gray-800 px-1">سجل التقييم الذاتي (CBAHI)</h2>
+        <SelfAssessmentHistory facilityId={facility.id} />
+      </div>
       <ContactsSection contacts={facilityContacts} />
       <LogCommunicationModal />
       <CallLogsSection logs={logs} />

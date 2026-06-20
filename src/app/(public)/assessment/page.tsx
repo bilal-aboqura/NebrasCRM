@@ -1,23 +1,53 @@
 "use client";
 
 import { useCbahisession } from "@/hooks/use-cbahi-session";
-import FacilitySelector from "@/components/assessment/FacilitySelector";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import FacilityTypeSelector from "@/components/assessment/FacilityTypeSelector";
 import AssessmentPanel from "@/components/assessment/AssessmentPanel";
 import ScoringSidebar from "@/components/assessment/ScoringSidebar";
 import GapReportSection from "@/components/assessment/GapReportSection";
+import { getFacilityDetail } from "@/lib/actions/facilities";
+import type { Facility } from "@/lib/types/domain";
 
-export default function AssessmentPage() {
+function AssessmentContent() {
   const { state, setFacilityType, setAnswer, setNote, setChapterFilter, setShowReport, reset, scoreBreakdown } = useCbahisession();
+  const searchParams = useSearchParams();
+  const facilityId = searchParams.get("facility_id");
+  const [prelinkedFacility, setPrelinkedFacility] = useState<Facility | null>(null);
+
+  useEffect(() => {
+    if (facilityId) {
+      getFacilityDetail(facilityId)
+        .then(fac => {
+          setPrelinkedFacility(fac);
+          // If the facility has a type, we might auto-select it. 
+          // For now just general logic
+          if (fac.type.includes("أسنان")) setFacilityType("dental");
+          else setFacilityType("general");
+        })
+        .catch(console.error);
+    }
+  }, [facilityId, setFacilityType]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
+      {prelinkedFacility && (
+        <div className="mb-6 rounded-lg bg-blue-50 p-4 text-blue-800 border border-blue-100 flex items-center justify-between">
+          <div>
+            <span className="font-bold">تقييم مرتبط بمنشأة: </span>
+            {prelinkedFacility.name}
+          </div>
+        </div>
+      )}
+
       <div className="mb-8 text-center print:hidden">
         <h1 className="mb-2 text-3xl font-bold text-nebras-green">التقييم الذاتي لمتطلبات الاعتماد</h1>
         <p className="text-gray-600">اختر نوع المنشأة للبدء في تقييم جاهزيتك لمعايير سباهي (CBAHI)</p>
       </div>
 
       <div className="mb-8">
-        <FacilitySelector 
+        <FacilityTypeSelector 
           currentType={state.facilityType} 
           onChange={setFacilityType} 
           hasAnswers={scoreBreakdown.answeredCount > 0} 
@@ -62,5 +92,13 @@ export default function AssessmentPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function AssessmentPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center">جاري التحميل...</div>}>
+      <AssessmentContent />
+    </Suspense>
   );
 }

@@ -3,6 +3,8 @@ export type CompanyStatus = "active" | "inactive";
 export type UserStatus = "invited" | "active" | "inactive";
 export type FacilityStatus = "new" | "contacted" | "qualified" | "proposal" | "contract" | "lost";
 export type FollowUpStatus = "pending" | "done" | "cancelled";
+export type FollowUpType = "call" | "visit" | "send_offer" | "other";
+export type FacilityActivityType = "status_change" | "owner_change" | "archived" | "recovered" | "created" | "edited";
 export type OfferStatus = "draft" | "sent" | "accepted" | "rejected" | "superseded" | "archived";
 export type ContractStatus = "draft" | "active" | "completed" | "terminated" | "archived";
 export type DiscountType = "fixed" | "percentage";
@@ -35,6 +37,9 @@ export interface Facility {
   ownerId: string | null;
   status: FacilityStatus;
   isArchived: boolean;
+  lostReason?: string;
+  statusChangedAt?: string;
+  createdAt?: string;
   updatedAt: string;
 }
 
@@ -55,6 +60,10 @@ export interface Activity {
   companyId: string;
   facilityId: string;
   kind: string;
+  eventType?: FacilityActivityType;
+  actorId?: string;
+  oldValue?: string;
+  newValue?: string;
   message: string;
   createdAt: string;
 }
@@ -65,9 +74,12 @@ export interface FollowUp {
   facilityId: string;
   contactId?: string;
   ownerId: string;
-  type: "call" | "visit" | "email" | "whatsapp";
+  type: FollowUpType;
   status: FollowUpStatus;
   dueAt: string;
+  createdAt?: string;
+  updatedAt?: string;
+  completedAt?: string;
   outcome?: string;
   notes?: string;
 }

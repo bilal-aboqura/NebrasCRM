@@ -30,6 +30,10 @@ export function addActivity(input: Omit<Activity, "id" | "createdAt"> & { create
     companyId: input.companyId,
     facilityId: input.facilityId,
     kind: input.kind,
+    eventType: input.eventType,
+    actorId: input.actorId,
+    oldValue: input.oldValue,
+    newValue: input.newValue,
     message: input.message
   };
   activities.unshift(activity);

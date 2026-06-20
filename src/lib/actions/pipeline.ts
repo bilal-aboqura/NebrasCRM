@@ -21,11 +21,15 @@ export async function getPipelineAction(options: { query?: string; ownerId?: str
 }
 
 export async function updateFacilityStatusAction(facilityId: string, status: FacilityStatus, lostReason?: string) {
+  const previous = (await getFacilitiesList({ pageSize: 500 })).rows.find((row) => row.id === facilityId);
   const facility = await updateFacility(facilityId, { status });
   addActivity({
     companyId: facility.companyId,
     facilityId,
     kind: "status_change",
+    eventType: "status_change",
+    oldValue: previous?.status,
+    newValue: status,
     message: lostReason ? `تم تغيير المرحلة إلى ${status}: ${lostReason}` : `تم تغيير المرحلة إلى ${status}`
   });
   return facility;

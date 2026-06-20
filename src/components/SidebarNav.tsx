@@ -3,10 +3,11 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, CalendarClock, FileCheck2, FileText, LayoutDashboard, PhoneCall, Settings, Users } from "lucide-react";
+import { BarChart3, Building2, CalendarClock, FileCheck2, FileText, LayoutDashboard, PhoneCall, Settings, Users } from "lucide-react";
 import type { Role } from "@/lib/types/domain";
 
 const navItems = [
+  { href: "/reports", label: "التقارير", icon: BarChart3, roles: ["super_admin", "company_admin", "supervisor", "sales_user"] },
   { href: "/", label: "الرئيسية", icon: LayoutDashboard, roles: ["super_admin", "company_admin", "supervisor", "sales_user"] },
   { href: "/dashboard/facilities", label: "المنشآت", icon: Building2, roles: ["super_admin", "company_admin", "supervisor", "sales_user"] },
   { href: "/dashboard/pipeline", label: "لوحة المبيعات", icon: LayoutDashboard, roles: ["super_admin", "company_admin", "supervisor", "sales_user"] },

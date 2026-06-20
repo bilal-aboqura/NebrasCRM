@@ -2,7 +2,7 @@
 
 import { canManageCompanyWide, getAuthContext, isManagementRole } from "@/lib/auth/context";
 import { db } from "@/lib/data/store";
-import type { FacilityStatus, Role } from "@/lib/types/domain";
+import type { FacilityStatus, FollowUpType, Role } from "@/lib/types/domain";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -29,7 +29,7 @@ export interface DashboardData {
     id: string;
     facilityId: string;
     facilityName: string;
-    type: "call" | "visit" | "email" | "whatsapp";
+    type: FollowUpType;
     dueAt: string;
     status: string;
   }>;

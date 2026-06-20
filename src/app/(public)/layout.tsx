@@ -1,6 +1,5 @@
 import GtmPlaceholder from "@/components/GtmPlaceholder";
 
-import GtmPlaceholder from "@/components/GtmPlaceholder";
 import Link from "next/link";
 import { PhoneCall, Mail, MessageCircle, Menu, X } from "lucide-react";
 

@@ -4,7 +4,15 @@ export type UserStatus = "invited" | "active" | "inactive";
 export type FacilityStatus = "new" | "contacted" | "qualified" | "proposal" | "contract" | "lost";
 export type FollowUpStatus = "pending" | "done" | "cancelled";
 export type FollowUpType = "call" | "visit" | "send_offer" | "other";
-export type FacilityActivityType = "status_change" | "owner_change" | "archived" | "recovered" | "created" | "edited";
+export type FacilityActivityType =
+  | "status_change"
+  | "owner_change"
+  | "archived"
+  | "recovered"
+  | "created"
+  | "edited"
+  | "assessment_archived"
+  | "assessment_recovered";
 export type OfferStatus = "draft" | "sent" | "accepted" | "rejected" | "superseded" | "archived";
 export type ContractStatus = "draft" | "active" | "completed" | "terminated" | "archived";
 export type DiscountType = "fixed" | "percentage";

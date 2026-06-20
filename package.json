@@ -17,7 +17,11 @@
     "next": "^14.2.16",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+<<<<<<< HEAD
     "xlsx": "^0.18.5",
+=======
+    "recharts": "^3.8.1",
+>>>>>>> 57b17fdc585e10e9a3bb9cbc3a786ef60def15ed
     "zod": "^3.23.8"
   },
   "devDependencies": {

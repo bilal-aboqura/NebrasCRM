@@ -15,8 +15,8 @@
 
 **Purpose**: Project routing and menu entry setup
 
-- [X] T001 Create page files for the reports index and the 6 individual report routes in `src/app/(dashboard)/reports/`
-- [X] T002 Add the "التقارير" (Reports) navigation item to the dashboard menu in `src/components/SidebarNav.tsx`
+- [ ] T001 Create page files for the reports index and the 6 individual report routes in `src/app/(dashboard)/reports/`
+- [ ] T002 Add the "التقارير" (Reports) navigation item to the dashboard menu in `src/components/SidebarNav.tsx`
 
 ---
 
@@ -24,14 +24,14 @@
 
 **Purpose**: Core database schema corrections and shared utility components
 
-- [X] T003 Write SQL migration file at `supabase/migrations/20260621000000_reports_prerequisites.sql` to correct the `followup_type` enum and add structured fields (`event_type`, `old_value`, `new_value`) to `facility_activity`
-- [X] T004 Apply the migration file using `npx supabase db push` or direct execution
-- [X] T005 Update the follow-up and activity TypeScript type definitions in `src/lib/types/domain.ts`
-- [X] T006 Update the follow-up creation validation schema in `src/lib/types/followups.ts`
-- [X] T007 [P] Create the `DateRangePicker.tsx` component with Asia/Riyadh boundaries and presets in `src/components/reports/DateRangePicker.tsx`
-- [X] T008 [P] Create the `FilterBar.tsx` container component in `src/components/reports/FilterBar.tsx`
-- [X] T009 [P] Create the `ExportButton.tsx` SheetJS-based helper component in `src/components/reports/ExportButton.tsx`
-- [X] T010 Implement the main dashboard selection page in `src/app/(dashboard)/reports/page.tsx`
+- [ ] T003 Write SQL migration file at `supabase/migrations/20260621000001_reports_prerequisites.sql` to correct the `followup_type` enum and add structured fields (`event_type`, `old_value`, `new_value`) to `facility_activity`
+- [ ] T004 Apply the migration file using `npx supabase db push` or direct execution
+- [ ] T005 Update the follow-up and activity TypeScript type definitions in `src/lib/types/domain.ts`
+- [ ] T006 Update the follow-up creation validation schema in `src/lib/types/followups.ts`
+- [ ] T007 [P] Create the `DateRangePicker.tsx` component with Asia/Riyadh boundaries and presets in `src/components/reports/DateRangePicker.tsx`
+- [ ] T008 [P] Create the `FilterBar.tsx` container component in `src/components/reports/FilterBar.tsx`
+- [ ] T009 [P] Create the `ExportButton.tsx` SheetJS-based helper component in `src/components/reports/ExportButton.tsx`
+- [ ] T010 Implement the main dashboard selection page in `src/app/(dashboard)/reports/page.tsx`
 
 **Checkpoint**: Foundation ready - database corrected, shared pickers and exports functional, and landing page visible.
 
@@ -43,13 +43,13 @@
 
 **Independent Test**: Open reports index, select Sales Pipeline or Conversion & Loss, apply filters, and verify inflow/outflow charts and funnel numbers correctly isolate Company A vs Company B data.
 
-- [X] T011 [US1] Implement server-side aggregation for the Sales Pipeline Report (inflows, outflows, net change, stage duration) in `src/lib/actions/reports-actions.ts`
-- [X] T012 [US1] Implement server-side aggregation for the Conversion & Loss Report (funnel counts, lost reasons, win rate) in `src/lib/actions/reports-actions.ts`
-- [X] T013 [P] [US1] Create the Recharts-based `InflowOutflowChart.tsx` component in `src/components/reports/InflowOutflowChart.tsx`
-- [X] T014 [P] [US1] Create the Recharts-based `FunnelChart.tsx` component in `src/components/reports/FunnelChart.tsx`
-- [X] T015 [US1] Implement the Sales Pipeline report UI rendering inputs, metrics, chart, and detailed table in `src/app/(dashboard)/reports/pipeline/page.tsx`
-- [X] T016 [US1] Implement the Conversion & Loss report UI rendering inputs, funnel, win rate, and lost reasons pie/bar charts in `src/app/(dashboard)/reports/conversion-loss/page.tsx`
-- [X] T017 [US1] Write automated integration tests for pipeline calculations, conversion funnel, tenant isolation, and role restrictions in `src/tests/reports-us1.test.ts`
+- [ ] T011 [US1] Implement server-side aggregation for the Sales Pipeline Report (inflows, outflows, net change, stage duration) in `src/lib/actions/reports-actions.ts`
+- [ ] T012 [US1] Implement server-side aggregation for the Conversion & Loss Report (funnel counts, lost reasons, win rate) in `src/lib/actions/reports-actions.ts`
+- [ ] T013 [P] [US1] Create the Recharts-based `InflowOutflowChart.tsx` component in `src/components/reports/InflowOutflowChart.tsx`
+- [ ] T014 [P] [US1] Create the Recharts-based `FunnelChart.tsx` component in `src/components/reports/FunnelChart.tsx`
+- [ ] T015 [US1] Implement the Sales Pipeline report UI rendering inputs, metrics, chart, and detailed table in `src/app/(dashboard)/reports/pipeline/page.tsx`
+- [ ] T016 [US1] Implement the Conversion & Loss report UI rendering inputs, funnel, win rate, and lost reasons pie/bar charts in `src/app/(dashboard)/reports/conversion-loss/page.tsx`
+- [ ] T017 [US1] Write automated integration tests for pipeline calculations, conversion funnel, tenant isolation, and role restrictions in `src/tests/reports-us1.test.ts`
 
 **Checkpoint**: MVP scope complete. Pipeline and Conversion reports are functional and isolated.
 
@@ -61,13 +61,13 @@
 
 **Independent Test**: Verify follow-up on-time rates and call counts match list pages. Verify that Sales Users see their own aggregates while Managers see the per-rep table.
 
-- [X] T018 [US2] Implement server-side aggregation for the Follow-up Performance Report (created, completed, cancelled, overdue, averages) in `src/lib/actions/reports-actions.ts`
-- [X] T019 [US2] Implement server-side aggregation for the Communication Activity Report (calls/WhatsApp count, direction, outcome, rep list) in `src/lib/actions/reports-actions.ts`
-- [X] T020 [P] [US2] Create the Recharts-based `FollowupStackedChart.tsx` component in `src/components/reports/FollowupStackedChart.tsx`
-- [X] T021 [P] [US2] Create the Recharts-based `CommunicationBarChart.tsx` component in `src/components/reports/CommunicationBarChart.tsx`
-- [X] T022 [US2] Implement the Follow-up Performance report UI in `src/app/(dashboard)/reports/followup-performance/page.tsx`
-- [X] T023 [US2] Implement the Communication Activity report UI (with role-restricted rep breakdown) in `src/app/(dashboard)/reports/communication/page.tsx`
-- [X] T024 [US2] Write automated tests for follow-up aggregates, communication outcomes, and role-based rep tables in `src/tests/reports-us2.test.ts`
+- [ ] T018 [US2] Implement server-side aggregation for the Follow-up Performance Report (created, completed, cancelled, overdue, averages) in `src/lib/actions/reports-actions.ts`
+- [ ] T019 [US2] Implement server-side aggregation for the Communication Activity Report (calls/WhatsApp count, direction, outcome, rep list) in `src/lib/actions/reports-actions.ts`
+- [ ] T020 [P] [US2] Create the Recharts-based `FollowupStackedChart.tsx` component in `src/components/reports/FollowupStackedChart.tsx`
+- [ ] T021 [P] [US2] Create the Recharts-based `CommunicationBarChart.tsx` component in `src/components/reports/CommunicationBarChart.tsx`
+- [ ] T022 [US2] Implement the Follow-up Performance report UI in `src/app/(dashboard)/reports/followup-performance/page.tsx`
+- [ ] T023 [US2] Implement the Communication Activity report UI (with role-restricted rep breakdown) in `src/app/(dashboard)/reports/communication/page.tsx`
+- [ ] T024 [US2] Write automated tests for follow-up aggregates, communication outcomes, and role-based rep tables in `src/tests/reports-us2.test.ts`
 
 **Checkpoint**: Phase 4 complete. Productivity reports are functional and role-aware.
 
@@ -79,11 +79,11 @@
 
 **Independent Test**: Log in as a Sales User, verify Report 6 route is blocked. Log in as Manager, sort Team Comparison columns, toggle inactive reps, and verify revenue maps to active contracts.
 
-- [X] T025 [US3] Implement server-side aggregation for the Offers & Revenue Report (sent, accepted, rejected, expired values, decision times, contract activations) in `src/lib/actions/reports-actions.ts`
-- [X] T026 [US3] Implement server-side aggregation for the Team Comparison Report (rep metrics grid, filtering active/inactive reps) in `src/lib/actions/reports-actions.ts`
-- [X] T027 [US3] Implement the Offers & Revenue report UI in `src/app/(dashboard)/reports/offers-revenue/page.tsx`
-- [X] T028 [US3] Implement the Team Comparison report UI (grid with sorting, performance highlights, and inactive toggle) in `src/app/(dashboard)/reports/team-comparison/page.tsx`
-- [X] T029 [US3] Write automated tests for offer calculations, team grid sorting, inactive rep toggle, and page route access control in `src/tests/reports-us3.test.ts`
+- [ ] T025 [US3] Implement server-side aggregation for the Offers & Revenue Report (sent, accepted, rejected, expired values, decision times, contract activations) in `src/lib/actions/reports-actions.ts`
+- [ ] T026 [US3] Implement server-side aggregation for the Team Comparison Report (rep metrics grid, filtering active/inactive reps) in `src/lib/actions/reports-actions.ts`
+- [ ] T027 [US3] Implement the Offers & Revenue report UI in `src/app/(dashboard)/reports/offers-revenue/page.tsx`
+- [ ] T028 [US3] Implement the Team Comparison report UI (grid with sorting, performance highlights, and inactive toggle) in `src/app/(dashboard)/reports/team-comparison/page.tsx`
+- [ ] T029 [US3] Write automated tests for offer calculations, team grid sorting, inactive rep toggle, and page route access control in `src/tests/reports-us3.test.ts`
 
 **Checkpoint**: All reporting pages are fully functional, verified, and secure.
 
@@ -93,9 +93,9 @@
 
 **Purpose**: UI refinement, Excel export formatting validation, and build verification.
 
-- [X] T030 Verify the `.xlsx` export structure, Arabic headers, active filters list, summary row, and RLS correctness across all reports
-- [X] T031 Polish RTL layout spacing, responsive chart scaling, and Tajawal font representation across all report screens
-- [X] T032 Run `quickstart.md` validation, ensuring local build compiles successfully and all Vitest suites pass
+- [ ] T030 Verify the `.xlsx` export structure, Arabic headers, active filters list, summary row, and RLS correctness across all reports
+- [ ] T031 Polish RTL layout spacing, responsive chart scaling, and Tajawal font representation across all report screens
+- [ ] T032 Run `quickstart.md` validation, ensuring local build compiles successfully and all Vitest suites pass
 
 ---
 

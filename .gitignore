@@ -25,6 +25,9 @@ yarn-error.log*
 .env*
 !.env.local.example
 
+# local Supabase state
+/supabase/.branches/
+
 # vercel
 .vercel
 

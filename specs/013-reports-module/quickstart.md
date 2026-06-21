@@ -9,7 +9,7 @@ This document helps you set up the environment and run the Reports Module.
 Before starting the Next.js server, apply the database schema fixes:
 
 1. **Locate Migration File**:
-   [20260621000000_reports_prerequisites.sql](file:///F:/CodingProjects/NebrasCRM/supabase/migrations/20260621000000_reports_prerequisites.sql)
+   [20260621000001_reports_prerequisites.sql](file:///F:/CodingProjects/NebrasCRM/supabase/migrations/20260621000001_reports_prerequisites.sql)
 2. **Apply Migration**:
    Run the migration using Supabase CLI or execute the SQL commands directly in the Supabase SQL Editor:
    ```bash

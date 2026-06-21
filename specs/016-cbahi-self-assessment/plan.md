@@ -23,9 +23,9 @@ Build the CBAHI Self-Assessment Tool at the public route `/assessment`. It is a 
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- [x] **Principle I: Multi-Tenant Data Isolation** - Pass. This is a public client-side-only assessment tool with no database operations or tenant-scoping in this phase.
-- [x] **Principle II: Role-Based Access Control** - Pass. The page is completely public, bypasses CRM authentication, and can be accessed by both visitors and logged-in consultants.
-- [x] **Principle III: Arabic-First, RTL, Bilingual** - Pass. The page will be rendered in RTL layout utilizing Arabic terminology and the Google Font Tajawal.
+- [ ] **Principle I: Multi-Tenant Data Isolation** - Pass. This is a public client-side-only assessment tool with no database operations or tenant-scoping in this phase.
+- [ ] **Principle II: Role-Based Access Control** - Pass. The page is completely public, bypasses CRM authentication, and can be accessed by both visitors and logged-in consultants.
+- [ ] **Principle III: Arabic-First, RTL, Bilingual** - Pass. The page will be rendered in RTL layout utilizing Arabic terminology and the Google Font Tajawal.
 
 ## Project Structure
 

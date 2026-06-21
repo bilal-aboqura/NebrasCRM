@@ -6,7 +6,7 @@ This document outlines the database schema updates required to support the Repor
 
 ## 1. Schema Changes
 
-We will create a migration `20260621000000_reports_prerequisites.sql` to perform the following operations:
+We will create a migration `20260621000001_reports_prerequisites.sql` to perform the following operations:
 
 ### 1.1 `public.followup_type` Enum Update
 The existing enum:

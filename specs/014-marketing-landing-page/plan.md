@@ -22,9 +22,9 @@ Build the public-facing marketing landing page for NEBRASGOO at the root route `
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- [x] **Principle I: Multi-Tenant Data Isolation** - Pass. The page contains static content only and does not perform database queries or mutations.
-- [x] **Principle II: Role-Based Access Control** - Pass. Public page requires no authentication. The auth middleware matches and protects `/dashboard` and `/admin` while whitelisting the root route `/` and static assets.
-- [x] **Principle III: Arabic-First, RTL, Bilingual** - Pass. Root layout sets `lang="ar"` and `dir="rtl"`. Fonts loaded using Google Font Tajawal optimized via next/font.
+- [ ] **Principle I: Multi-Tenant Data Isolation** - Pass. The page contains static content only and does not perform database queries or mutations.
+- [ ] **Principle II: Role-Based Access Control** - Pass. Public page requires no authentication. The auth middleware matches and protects `/dashboard` and `/admin` while whitelisting the root route `/` and static assets.
+- [ ] **Principle III: Arabic-First, RTL, Bilingual** - Pass. Root layout sets `lang="ar"` and `dir="rtl"`. Fonts loaded using Google Font Tajawal optimized via next/font.
 
 ## Project Structure
 

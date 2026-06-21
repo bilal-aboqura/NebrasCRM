@@ -28,11 +28,11 @@ The frontend is built using Next.js (App Router), Tailwind CSS, Recharts for vis
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- [x] **Principle I: Multi-Tenant Data Isolation** - Confirm all data queries and writes are scoped by `company_id` at the data-access layer.  
+- [ ] **Principle I: Multi-Tenant Data Isolation** - Confirm all data queries and writes are scoped by `company_id` at the data-access layer.  
   *Yes. All queries run through the database's Row-Level Security (RLS) policies scoped by `company_id` obtained from the user's secure JWT session claims.*
-- [x] **Principle II: Role-Based Access Control** - Confirm server-side RBAC validation (deny-by-default) is enforced.  
+- [ ] **Principle II: Role-Based Access Control** - Confirm server-side RBAC validation (deny-by-default) is enforced.  
   *Yes. Access to routes and API data queries checks the user's role. Sales Users are restricted from accessing Report 6 (Team Comparison) and see only their owned/assigned data in Reports 1–5. Supervisors and Admins see company-wide records.*
-- [x] **Principle III: Arabic-First, RTL, Bilingual** - Confirm UI renders correctly in RTL using the Tajawal font.  
+- [ ] **Principle III: Arabic-First, RTL, Bilingual** - Confirm UI renders correctly in RTL using the Tajawal font.  
   *Yes. The UI will render in RTL, using Arabic headers and labels, SAR currency representation, and Tajawal typography.*
 
 ## Project Structure
@@ -79,7 +79,7 @@ src/
 │       └── followups.ts                          # Updated FollowUp Zod schema
 └── supabase/
     └── migrations/
-        └── 20260621000000_reports_prerequisites.sql  # Database schema fixes
+        └── 20260621000001_reports_prerequisites.sql  # Database schema fixes
 ```
 
 **Structure Decision**: Next.js App Router structure under `(dashboard)/reports` for all reporting pages. Shared components are placed under `components/reports/` for clean modularity, and server-side aggregation functions are declared in `lib/actions/reports-actions.ts`.

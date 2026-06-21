@@ -23,9 +23,9 @@ Build the role-aware app shell navigation linking all Features 001–009 pages t
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- [x] **Principle I: Multi-Tenant Data Isolation** - All database queries for dashboard counts are run via the Supabase client under the authenticated user session, fully respecting tenant RLS isolation.
-- [x] **Principle II: Role-Based Access Control** - Sidebar navigation items and the company switcher are hidden or shown on the server/client based on the user's role claim. Server-side page guards (already implemented) prevent direct URL bypasses.
-- [x] **Principle III: Arabic-First, RTL, Bilingual** - Nav bar links, header labels, stats cards, and role badges are rendered in Arabic with RTL direction (`dir="rtl"`) using the `Tajawal` typeface and the green/gold color system.
+- [ ] **Principle I: Multi-Tenant Data Isolation** - All database queries for dashboard counts are run via the Supabase client under the authenticated user session, fully respecting tenant RLS isolation.
+- [ ] **Principle II: Role-Based Access Control** - Sidebar navigation items and the company switcher are hidden or shown on the server/client based on the user's role claim. Server-side page guards (already implemented) prevent direct URL bypasses.
+- [ ] **Principle III: Arabic-First, RTL, Bilingual** - Nav bar links, header labels, stats cards, and role badges are rendered in Arabic with RTL direction (`dir="rtl"`) using the `Tajawal` typeface and the green/gold color system.
 
 ## Project Structure
 

@@ -9,8 +9,8 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [x] T001 Create project directories `src/app/(public)/assessment` and `src/components/assessment`
-- [x] T002 Initialize static CBAHI questions bank data in `src/lib/data/cbahi-data.ts`
+- [ ] T001 Create project directories `src/app/(public)/assessment` and `src/components/assessment`
+- [ ] T002 Initialize static CBAHI questions bank data in `src/lib/data/cbahi-data.ts`
 
 ---
 
@@ -20,9 +20,9 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [x] T003 Implement custom React session hook in `src/hooks/use-cbahi-session.ts` for scoring formulas, reset, and state management
-- [x] T004 Create shared public wrapper layout in `src/app/(public)/layout.tsx` (top contact strip, primary header with navigation link, and footer)
-- [x] T005 Create automated tests for custom hook logic in `src/tests/016-cbahi-self-assessment.test.ts`
+- [ ] T003 Implement custom React session hook in `src/hooks/use-cbahi-session.ts` for scoring formulas, reset, and state management
+- [ ] T004 Create shared public wrapper layout in `src/app/(public)/layout.tsx` (top contact strip, primary header with navigation link, and footer)
+- [ ] T005 Create automated tests for custom hook logic in `src/tests/016-cbahi-self-assessment.test.ts`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -36,8 +36,8 @@
 
 ### Implementation for User Story 1
 
-- [x] T006 [P] [US1] Create toggling selectors and confirmation modal component in `src/components/assessment/FacilitySelector.tsx`
-- [x] T007 [US1] Create public assessment page wrapper container in `src/app/(public)/assessment/page.tsx` integrating the state hook and initial structure
+- [ ] T006 [P] [US1] Create toggling selectors and confirmation modal component in `src/components/assessment/FacilitySelector.tsx`
+- [ ] T007 [US1] Create public assessment page wrapper container in `src/app/(public)/assessment/page.tsx` integrating the state hook and initial structure
 
 **Checkpoint**: User Story 1 is functional; correct standard counts load for both facility types
 
@@ -51,9 +51,9 @@
 
 ### Implementation for User Story 2
 
-- [x] T008 [P] [US2] Build questionnaire listing component in `src/components/assessment/AssessmentPanel.tsx` showing standard codes, questions, suggested evidence, compliance selector, and notes textarea
-- [x] T009 [P] [US2] Build score progress and counts breakdown sidebar component in `src/components/assessment/ScoringSidebar.tsx`
-- [x] T010 [US2] Integrate `AssessmentPanel` and `ScoringSidebar` in `/assessment` main page inside `src/app/(public)/assessment/page.tsx`
+- [ ] T008 [P] [US2] Build questionnaire listing component in `src/components/assessment/AssessmentPanel.tsx` showing standard codes, questions, suggested evidence, compliance selector, and notes textarea
+- [ ] T009 [P] [US2] Build score progress and counts breakdown sidebar component in `src/components/assessment/ScoringSidebar.tsx`
+- [ ] T010 [US2] Integrate `AssessmentPanel` and `ScoringSidebar` in `/assessment` main page inside `src/app/(public)/assessment/page.tsx`
 
 **Checkpoint**: Main assessment forms and live scoring elements are fully functional
 
@@ -67,9 +67,9 @@
 
 ### Implementation for User Story 3
 
-- [x] T011 [P] [US3] Build report card and gaps table component in `src/components/assessment/GapReportSection.tsx` featuring the URL pre-filled redirecting CTA
-- [x] T012 [US3] Add print styling overrides in `src/app/(public)/assessment/page.tsx` to hide navigational layout components and interactive inputs during browser printing
-- [x] T013 [US3] Integrate `GapReportSection` and print button handler to `/assessment` main page inside `src/app/(public)/assessment/page.tsx`
+- [ ] T011 [P] [US3] Build report card and gaps table component in `src/components/assessment/GapReportSection.tsx` featuring the URL pre-filled redirecting CTA
+- [ ] T012 [US3] Add print styling overrides in `src/app/(public)/assessment/page.tsx` to hide navigational layout components and interactive inputs during browser printing
+- [ ] T013 [US3] Integrate `GapReportSection` and print button handler to `/assessment` main page inside `src/app/(public)/assessment/page.tsx`
 
 **Checkpoint**: Gap report is visible, printable, and redirects with score query parameters correctly
 
@@ -83,8 +83,8 @@
 
 ### Implementation for User Story 4
 
-- [x] T014 [US4] Add chapter select filter dropdown to `AssessmentPanel.tsx` in `src/components/assessment/AssessmentPanel.tsx`
-- [x] T015 [US4] Bind reset session action to the button in `ScoringSidebar.tsx` and main controller inside `src/app/(public)/assessment/page.tsx`
+- [ ] T014 [US4] Add chapter select filter dropdown to `AssessmentPanel.tsx` in `src/components/assessment/AssessmentPanel.tsx`
+- [ ] T015 [US4] Bind reset session action to the button in `ScoringSidebar.tsx` and main controller inside `src/app/(public)/assessment/page.tsx`
 
 **Checkpoint**: All interactive filtering and reset controls are functional
 
@@ -94,9 +94,9 @@
 
 **Purpose**: Visual polishing, mobile responsive checking, and documentation
 
-- [x] T016 Run and verify all unit tests in `src/tests/016-cbahi-self-assessment.test.ts`
-- [x] T017 [P] Perform visual audit of responsiveness and RTL styling across desktop, tablet, and mobile layouts in browser dev tools
-- [x] T018 [P] Update walkthrough documentation in `specs/016-cbahi-self-assessment/walkthrough.md`
+- [ ] T016 Run and verify all unit tests in `src/tests/016-cbahi-self-assessment.test.ts`
+- [ ] T017 [P] Perform visual audit of responsiveness and RTL styling across desktop, tablet, and mobile layouts in browser dev tools
+- [ ] T018 [P] Update walkthrough documentation in `specs/016-cbahi-self-assessment/walkthrough.md`
 
 ---
 

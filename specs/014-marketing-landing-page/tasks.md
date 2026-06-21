@@ -19,8 +19,8 @@
 
 **Purpose**: Initial configurations and design system setup
 
-- [x] T001 Configure design system color tokens in [tailwind.config.ts](file:///f:/CodingProjects/NebrasCRM/tailwind.config.ts)
-- [x] T002 Load Tajawal google font and assign its variable class in [layout.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/layout.tsx)
+- [ ] T001 Configure design system color tokens in [tailwind.config.ts](file:///f:/CodingProjects/NebrasCRM/tailwind.config.ts)
+- [ ] T002 Load Tajawal google font and assign its variable class in [layout.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/layout.tsx)
 
 ---
 
@@ -28,12 +28,12 @@
 
 **Purpose**: Route separation and dashboard relocation tasks (MUST be complete before starting user stories)
 
-- [x] T003 [P] Update matcher patterns in [middleware.ts](file:///f:/CodingProjects/NebrasCRM/src/middleware.ts) to whitelist public landing routes
-- [x] T004 Copy dashboard home page content to [page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(dashboard)/dashboard/page.tsx)
-- [x] T005 [P] Update post-login redirect path to `/dashboard` in [login-action.ts](file:///f:/CodingProjects/NebrasCRM/src/lib/auth/login-action.ts)
-- [x] T006 [P] Update company brand root link to `/dashboard` in [Header.tsx](file:///f:/CodingProjects/NebrasCRM/src/components/Header.tsx)
-- [x] T007 [P] Update Dashboard menu link to `/dashboard` in [SidebarNav.tsx](file:///f:/CodingProjects/NebrasCRM/src/components/SidebarNav.tsx)
-- [x] T008 Delete old root page file [page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(dashboard)/page.tsx)
+- [ ] T003 [P] Update matcher patterns in [middleware.ts](file:///f:/CodingProjects/NebrasCRM/src/middleware.ts) to whitelist public landing routes
+- [ ] T004 Copy dashboard home page content to [page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(dashboard)/dashboard/page.tsx)
+- [ ] T005 [P] Update post-login redirect path to `/dashboard` in [login-action.ts](file:///f:/CodingProjects/NebrasCRM/src/lib/auth/login-action.ts)
+- [ ] T006 [P] Update company brand root link to `/dashboard` in [Header.tsx](file:///f:/CodingProjects/NebrasCRM/src/components/Header.tsx)
+- [ ] T007 [P] Update Dashboard menu link to `/dashboard` in [SidebarNav.tsx](file:///f:/CodingProjects/NebrasCRM/src/components/SidebarNav.tsx)
+- [ ] T008 Delete old root page file [page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(dashboard)/page.tsx)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -47,16 +47,16 @@
 
 ### Implementation for User Story 1
 
-- [x] T009 [P] [US1] Create public route layout file [layout.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(public)/layout.tsx)
-- [x] T010 [P] [US1] Create Google Tag Manager component [GtmPlaceholder.tsx](file:///f:/CodingProjects/NebrasCRM/src/components/GtmPlaceholder.tsx)
-- [x] T011 [US1] Initialize page layout and static data structures in [page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(public)/page.tsx)
-- [x] T012 [US1] Build top contact bar layout in [page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(public)/page.tsx)
-- [x] T013 [US1] Build sticky header with responsive mobile hamburger drawer toggle in [page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(public)/page.tsx)
-- [x] T014 [US1] Build hero section with copy and custom CSS reception desk card in [page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(public)/page.tsx)
-- [x] T015 [US1] Build statistics bar in [page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(public)/page.tsx)
-- [x] T016 [US1] Build 7-card responsive services grid in [page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(public)/page.tsx)
-- [x] T017 [US1] Build 4-column trust feature section in [page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(public)/page.tsx)
-- [x] T018 [US1] Build lead capture placeholder and page footer sections in [page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(public)/page.tsx)
+- [ ] T009 [P] [US1] Create public route layout file [layout.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(public)/layout.tsx)
+- [ ] T010 [P] [US1] Create Google Tag Manager component [GtmPlaceholder.tsx](file:///f:/CodingProjects/NebrasCRM/src/components/GtmPlaceholder.tsx)
+- [ ] T011 [US1] Initialize page layout and static data structures in [page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(public)/page.tsx)
+- [ ] T012 [US1] Build top contact bar layout in [page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(public)/page.tsx)
+- [ ] T013 [US1] Build sticky header with responsive mobile hamburger drawer toggle in [page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(public)/page.tsx)
+- [ ] T014 [US1] Build hero section with copy and custom CSS reception desk card in [page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(public)/page.tsx)
+- [ ] T015 [US1] Build statistics bar in [page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(public)/page.tsx)
+- [ ] T016 [US1] Build 7-card responsive services grid in [page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(public)/page.tsx)
+- [ ] T017 [US1] Build 4-column trust feature section in [page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(public)/page.tsx)
+- [ ] T018 [US1] Build lead capture placeholder and page footer sections in [page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(public)/page.tsx)
 
 **Checkpoint**: User Story 1 is functional and testable independently at the root URL.
 
@@ -70,7 +70,7 @@
 
 ### Implementation for User Story 2
 
-- [x] T019 [US2] Configure clickable tel, wa.me, and mailto schemas for contact assets in [page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(public)/page.tsx)
+- [ ] T019 [US2] Configure clickable tel, wa.me, and mailto schemas for contact assets in [page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(public)/page.tsx)
 
 **Checkpoint**: Contacting options are live and open external apps successfully.
 
@@ -84,7 +84,7 @@
 
 ### Implementation for User Story 3
 
-- [x] T020 [US3] Implement scroll-behavior and button navigation handlers in [page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(public)/page.tsx)
+- [ ] T020 [US3] Implement scroll-behavior and button navigation handlers in [page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(public)/page.tsx)
 
 **Checkpoint**: All interactive navigation controls are validated and responsive.
 
@@ -94,9 +94,9 @@
 
 **Purpose**: Final SEO tags and compilation quality check
 
-- [x] T021 [P] Configure Arabic SEO metadata (titles, descriptions, Open Graph) in [page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(public)/page.tsx)
-- [x] T022 Run Next.js production build command `npm run build` to verify layout compilations
-- [x] T023 Run manual verification checklist from [quickstart.md](file:///f:/CodingProjects/NebrasCRM/specs/014-marketing-landing-page/quickstart.md)
+- [ ] T021 [P] Configure Arabic SEO metadata (titles, descriptions, Open Graph) in [page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(public)/page.tsx)
+- [ ] T022 Run Next.js production build command `npm run build` to verify layout compilations
+- [ ] T023 Run manual verification checklist from [quickstart.md](file:///f:/CodingProjects/NebrasCRM/specs/014-marketing-landing-page/quickstart.md)
 
 ---
 

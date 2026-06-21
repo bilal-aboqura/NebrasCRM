@@ -23,9 +23,9 @@ The public lead-capture form allows unauthenticated landing page visitors to req
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- [x] **Principle I: Multi-Tenant Data Isolation** - Confirmed. All writes default to the `DEFAULT_LEAD_COMPANY_ID` environment variable context. Duplicate checks are run across all tenants because the phone number must be unique CRM-wide for this public portal.
-- [x] **Principle II: Role-Based Access Control** - Confirmed. This endpoint is public (unauthenticated) by design, but it implements strict, hardcoded server-side field-level writes. It cannot be used to modify arbitrary fields, assign users, or select arbitrary companies.
-- [x] **Principle III: Arabic-First, RTL, Bilingual** - Confirmed. The React form UI is fully localized in Arabic, follows RTL layout direction, uses the Tajawal font, and renders inline error messages in Arabic.
+- [ ] **Principle I: Multi-Tenant Data Isolation** - Confirmed. All writes default to the `DEFAULT_LEAD_COMPANY_ID` environment variable context. Duplicate checks are run across all tenants because the phone number must be unique CRM-wide for this public portal.
+- [ ] **Principle II: Role-Based Access Control** - Confirmed. This endpoint is public (unauthenticated) by design, but it implements strict, hardcoded server-side field-level writes. It cannot be used to modify arbitrary fields, assign users, or select arbitrary companies.
+- [ ] **Principle III: Arabic-First, RTL, Bilingual** - Confirmed. The React form UI is fully localized in Arabic, follows RTL layout direction, uses the Tajawal font, and renders inline error messages in Arabic.
 
 ## Project Structure
 

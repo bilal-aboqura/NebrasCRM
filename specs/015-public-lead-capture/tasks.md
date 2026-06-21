@@ -44,13 +44,13 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation.**
 
-- [x] T004 [P] [US1] Create integration test file [tests/integration/015-public-lead-capture.test.ts](file:///f:/CodingProjects/NebrasCRM/tests/integration/015-public-lead-capture.test.ts) with test cases verifying successful public lead submission, record fields, activity timeline logging, and unauthenticated access.
+- [ ] T004 [P] [US1] Create integration test file [tests/integration/015-public-lead-capture.test.ts](file:///f:/CodingProjects/NebrasCRM/tests/integration/015-public-lead-capture.test.ts) with test cases verifying successful public lead submission, record fields, activity timeline logging, and unauthenticated access.
 
 ### Implementation for User Story 1
 
-- [x] T005 [US1] Implement lead capture Server Action `submitLeadAction` in [src/lib/actions/lead-capture.ts](file:///f:/CodingProjects/NebrasCRM/src/lib/actions/lead-capture.ts) with input sanitization, phone normalization, and record insertion into `db.facilities` (defaulting status to `new`, owner to `null`, and company to `DEFAULT_LEAD_COMPANY_ID`).
-- [x] T006 [P] [US1] Create React form component [src/components/public/LeadCaptureForm.tsx](file:///f:/CodingProjects/NebrasCRM/src/components/public/LeadCaptureForm.tsx) rendering fields for name, type, phone, and city in Arabic (RTL, Tajawal) with loading states and client-side validation.
-- [x] T007 [US1] Embed the LeadCaptureForm component in the public landing page layout [src/app/(public)/page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(public)/page.tsx) in place of the Feature 013/014 placeholder.
+- [ ] T005 [US1] Implement lead capture Server Action `submitLeadAction` in [src/lib/actions/lead-capture.ts](file:///f:/CodingProjects/NebrasCRM/src/lib/actions/lead-capture.ts) with input sanitization, phone normalization, and record insertion into `db.facilities` (defaulting status to `new`, owner to `null`, and company to `DEFAULT_LEAD_COMPANY_ID`).
+- [ ] T006 [P] [US1] Create React form component [src/components/public/LeadCaptureForm.tsx](file:///f:/CodingProjects/NebrasCRM/src/components/public/LeadCaptureForm.tsx) rendering fields for name, type, phone, and city in Arabic (RTL, Tajawal) with loading states and client-side validation.
+- [ ] T007 [US1] Embed the LeadCaptureForm component in the public landing page layout [src/app/(public)/page.tsx](file:///f:/CodingProjects/NebrasCRM/src/app/(public)/page.tsx) in place of the Feature 013/014 placeholder.
 
 **Checkpoint**: User Story 1 MVP is fully functional and testable at the root URL.
 
@@ -64,14 +64,14 @@
 
 ### Tests for User Story 2
 
-- [x] T008 [P] [US2] Add duplicate integration tests in [tests/integration/015-public-lead-capture.test.ts](file:///f:/CodingProjects/NebrasCRM/tests/integration/015-public-lead-capture.test.ts) to assert active duplicate blocking and archived reactivation.
+- [ ] T008 [P] [US2] Add duplicate integration tests in [tests/integration/015-public-lead-capture.test.ts](file:///f:/CodingProjects/NebrasCRM/tests/integration/015-public-lead-capture.test.ts) to assert active duplicate blocking and archived reactivation.
 
 ### Implementation for User Story 2
 
-- [x] T009 [US2] Update `submitLeadAction` in [src/lib/actions/lead-capture.ts](file:///f:/CodingProjects/NebrasCRM/src/lib/actions/lead-capture.ts) to query all facilities for primary phone match:
+- [ ] T009 [US2] Update `submitLeadAction` in [src/lib/actions/lead-capture.ts](file:///f:/CodingProjects/NebrasCRM/src/lib/actions/lead-capture.ts) to query all facilities for primary phone match:
   - If active: block write and return duplicate flag.
   - If archived: restore record (`isArchived = false`), reset status to `new`, reset owner to `null`, update name/type, append city to notes, and log `facility_recovered` activity.
-- [x] T010 [US2] Update [src/components/public/LeadCaptureForm.tsx](file:///f:/CodingProjects/NebrasCRM/src/components/public/LeadCaptureForm.tsx) to handle the duplicate response, replacing the form in-place with an amber warning card.
+- [ ] T010 [US2] Update [src/components/public/LeadCaptureForm.tsx](file:///f:/CodingProjects/NebrasCRM/src/components/public/LeadCaptureForm.tsx) to handle the duplicate response, replacing the form in-place with an amber warning card.
 
 **Checkpoint**: User Stories 1 and 2 work seamlessly together, protecting the DB from duplicates.
 
@@ -85,12 +85,12 @@
 
 ### Tests for User Story 3
 
-- [x] T011 [P] [US3] Add rate-limiting test cases in [tests/integration/015-public-lead-capture.test.ts](file:///f:/CodingProjects/NebrasCRM/tests/integration/015-public-lead-capture.test.ts).
+- [ ] T011 [P] [US3] Add rate-limiting test cases in [tests/integration/015-public-lead-capture.test.ts](file:///f:/CodingProjects/NebrasCRM/tests/integration/015-public-lead-capture.test.ts).
 
 ### Implementation for User Story 3
 
-- [x] T012 [US3] Integrate IP rate limit validation check in [src/lib/actions/lead-capture.ts](file:///f:/CodingProjects/NebrasCRM/src/lib/actions/lead-capture.ts) leveraging the IP tracking Map.
-- [x] T013 [US3] Add rate-limit banner alert display above the form inputs in [src/components/public/LeadCaptureForm.tsx](file:///f:/CodingProjects/NebrasCRM/src/components/public/LeadCaptureForm.tsx).
+- [ ] T012 [US3] Integrate IP rate limit validation check in [src/lib/actions/lead-capture.ts](file:///f:/CodingProjects/NebrasCRM/src/lib/actions/lead-capture.ts) leveraging the IP tracking Map.
+- [ ] T013 [US3] Add rate-limit banner alert display above the form inputs in [src/components/public/LeadCaptureForm.tsx](file:///f:/CodingProjects/NebrasCRM/src/components/public/LeadCaptureForm.tsx).
 
 **Checkpoint**: The endpoint is secured against flooding and API spam.
 
@@ -100,10 +100,10 @@
 
 **Purpose**: Final production quality steps and metrics integration
 
-- [x] T014 [P] Trigger GTM dataLayer event `lead_form_submitted` on successful non-duplicate submissions in [src/components/public/LeadCaptureForm.tsx](file:///f:/CodingProjects/NebrasCRM/src/components/public/LeadCaptureForm.tsx)
-- [x] T015 Run Next.js production build (`npm run build`) to ensure all compilation paths pass
-- [x] T016 Run and verify all integration tests pass successfully using `npm run test`
-- [x] T017 Complete all manual verification checklist items outlined in [quickstart.md](file:///f:/CodingProjects/NebrasCRM/specs/015-public-lead-capture/quickstart.md)
+- [ ] T014 [P] Trigger GTM dataLayer event `lead_form_submitted` on successful non-duplicate submissions in [src/components/public/LeadCaptureForm.tsx](file:///f:/CodingProjects/NebrasCRM/src/components/public/LeadCaptureForm.tsx)
+- [ ] T015 Run Next.js production build (`npm run build`) to ensure all compilation paths pass
+- [ ] T016 Run and verify all integration tests pass successfully using `npm run test`
+- [ ] T017 Complete all manual verification checklist items outlined in [quickstart.md](file:///f:/CodingProjects/NebrasCRM/specs/015-public-lead-capture/quickstart.md)
 
 ---
 

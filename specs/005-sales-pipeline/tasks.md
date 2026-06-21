@@ -11,8 +11,8 @@
 
 **Purpose**: Route structure initialization and shell navigation updates
 
-- [X] T001 Create pipeline directory in src/app/(dashboard)/dashboard/pipeline/
-- [X] T002 Add pipeline navigation link "Ù„ÙˆØ­Ø© Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª" to the sidebar app shell layout in src/app/(dashboard)/layout.tsx
+- [ ] T001 Create pipeline directory in src/app/(dashboard)/dashboard/pipeline/
+- [ ] T002 Add pipeline navigation link "Ù„ÙˆØ­Ø© Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª" to the sidebar app shell layout in src/app/(dashboard)/layout.tsx
 
 ---
 
@@ -20,9 +20,9 @@
 
 **Purpose**: Database schema expansion and testing baseline setup
 
-- [X] T003 Create database migration file for lost_reason and status_changed_at in supabase/migrations/20260616000003_pipeline_lost_reason.sql
+- [ ] T003 Create database migration file for lost_reason and status_changed_at in supabase/migrations/20260616000003_pipeline_lost_reason.sql
 - [ ] T004 Apply database migrations and seeds locally using npx supabase db reset
-- [X] T005 Initialize pgTAP unit test file for pipeline isolation in supabase/tests/005-sales-pipeline.test.sql
+- [ ] T005 Initialize pgTAP unit test file for pipeline isolation in supabase/tests/005-sales-pipeline.test.sql
 
 ---
 
@@ -33,16 +33,16 @@
 **Independent Test**: Log in as a Sales User, navigate to `/dashboard/pipeline`. Verify columns render RTL from Right (Ø¬Ø¯ÙŠØ¯) to Left (Ø®Ø§Ø³Ø±Ø©), showing only assigned cards with correct counts.
 
 ### Tests for User Story 1
-- [X] T006 [P] [US1] Write pgTAP tests in supabase/tests/005-sales-pipeline.test.sql to verify that facilities are selected with tenant-scoped isolation (RLS)
+- [ ] T006 [P] [US1] Write pgTAP tests in supabase/tests/005-sales-pipeline.test.sql to verify that facilities are selected with tenant-scoped isolation (RLS)
 
 ### Implementation for User Story 1
-- [X] T007 [P] [US1] Define Typescript interfaces for getPipelineAction response and columns payload in src/lib/actions/pipeline.ts
-- [X] T008 [US1] Implement getPipelineAction server action query in src/lib/actions/pipeline.ts enforcing RLS and assignments
-- [X] T009 [P] [US1] Create facility card UI component with Call and WhatsApp shortcut actions in src/components/pipeline/KanbanCard.tsx
-- [X] T010 [P] [US1] Create column UI component with header count badges in src/components/pipeline/KanbanColumn.tsx
-- [X] T011 [US1] Implement mobile single-column view and swipeable header tabs in src/components/pipeline/MobileTabbedHeader.tsx
-- [X] T012 [US1] Integrate columns, cards, and mobile views inside src/components/pipeline/KanbanBoard.tsx
-- [X] T013 [US1] Implement Next.js Page handler connecting dashboard route to board wrapper in src/app/(dashboard)/dashboard/pipeline/page.tsx
+- [ ] T007 [P] [US1] Define Typescript interfaces for getPipelineAction response and columns payload in src/lib/actions/pipeline.ts
+- [ ] T008 [US1] Implement getPipelineAction server action query in src/lib/actions/pipeline.ts enforcing RLS and assignments
+- [ ] T009 [P] [US1] Create facility card UI component with Call and WhatsApp shortcut actions in src/components/pipeline/KanbanCard.tsx
+- [ ] T010 [P] [US1] Create column UI component with header count badges in src/components/pipeline/KanbanColumn.tsx
+- [ ] T011 [US1] Implement mobile single-column view and swipeable header tabs in src/components/pipeline/MobileTabbedHeader.tsx
+- [ ] T012 [US1] Integrate columns, cards, and mobile views inside src/components/pipeline/KanbanBoard.tsx
+- [ ] T013 [US1] Implement Next.js Page handler connecting dashboard route to board wrapper in src/app/(dashboard)/dashboard/pipeline/page.tsx
 
 ---
 
@@ -53,14 +53,14 @@
 **Independent Test**: Drag a card to another stage, confirm counts update instantly, and details timeline log records the change. Reject out-of-scope moves and revert card placement.
 
 ### Tests for User Story 2
-- [X] T014 [P] [US2] Write pgTAP tests in supabase/tests/005-sales-pipeline.test.sql to verify that status updates fail for cross-tenant or unowned facilities, and succeed with activity log writes on owned facilities
+- [ ] T014 [P] [US2] Write pgTAP tests in supabase/tests/005-sales-pipeline.test.sql to verify that status updates fail for cross-tenant or unowned facilities, and succeed with activity log writes on owned facilities
 
 ### Implementation for User Story 2
-- [X] T015 [US2] Implement updateFacilityStatusAction server action in src/lib/actions/pipeline.ts recording status_change logs and handling lost_reason
-- [X] T016 [US2] Integrate HTML5 drag-and-drop pointer event handlers in src/components/pipeline/KanbanBoard.tsx and src/components/pipeline/KanbanColumn.tsx
-- [X] T017 [US2] Implement optimistic UI update and rollback reconciliation logic on drag failure in src/components/pipeline/KanbanBoard.tsx
-- [X] T018 [US2] Create terminal stage transition confirmation modal capturing lost_reason in src/components/pipeline/ConfirmTerminalModal.tsx
-- [X] T019 [US2] Add keyboard-accessible action menu dropdown to cards in src/components/pipeline/KanbanCard.tsx, calling updateFacilityStatusAction
+- [ ] T015 [US2] Implement updateFacilityStatusAction server action in src/lib/actions/pipeline.ts recording status_change logs and handling lost_reason
+- [ ] T016 [US2] Integrate HTML5 drag-and-drop pointer event handlers in src/components/pipeline/KanbanBoard.tsx and src/components/pipeline/KanbanColumn.tsx
+- [ ] T017 [US2] Implement optimistic UI update and rollback reconciliation logic on drag failure in src/components/pipeline/KanbanBoard.tsx
+- [ ] T018 [US2] Create terminal stage transition confirmation modal capturing lost_reason in src/components/pipeline/ConfirmTerminalModal.tsx
+- [ ] T019 [US2] Add keyboard-accessible action menu dropdown to cards in src/components/pipeline/KanbanCard.tsx, calling updateFacilityStatusAction
 
 ---
 
@@ -71,8 +71,8 @@
 **Independent Test**: Load a column with 12 items. Verify only 10 cards display with a "Load More" button and a header count of 12. Tap "Load More" to reveal the last 2 cards.
 
 ### Implementation for User Story 3
-- [X] T020 [US3] Implement pagination offset query filters in getPipelineAction server action in src/lib/actions/pipeline.ts
-- [X] T021 [US3] Implement "Load More" button and client-side card concatenation logic in src/components/pipeline/KanbanColumn.tsx
+- [ ] T020 [US3] Implement pagination offset query filters in getPipelineAction server action in src/lib/actions/pipeline.ts
+- [ ] T021 [US3] Implement "Load More" button and client-side card concatenation logic in src/components/pipeline/KanbanColumn.tsx
 
 ---
 
@@ -83,8 +83,8 @@
 **Independent Test**: Select a city or facility type. Confirm columns filter instantly and header counts recalculate accordingly.
 
 ### Implementation for User Story 4
-- [X] T022 [US4] Add filter payload handling inside getPipelineAction in src/lib/actions/pipeline.ts
-- [X] T023 [US4] Render filter selection components in src/components/pipeline/KanbanBoard.tsx resetting pagination states on modification
+- [ ] T022 [US4] Add filter payload handling inside getPipelineAction in src/lib/actions/pipeline.ts
+- [ ] T023 [US4] Render filter selection components in src/components/pipeline/KanbanBoard.tsx resetting pagination states on modification
 
 ---
 
@@ -93,7 +93,7 @@
 **Purpose**: Performance checks, accessibility verification, and cleanup
 
 - [ ] T024 Run complete database pgTAP tests suite in supabase/tests/005-sales-pipeline.test.sql
-- [X] T025 Verify ARIA announcements and tab focus sequences on mobile and desktop viewports
+- [ ] T025 Verify ARIA announcements and tab focus sequences on mobile and desktop viewports
 - [ ] T026 Execute quickstart.md validation checklist to confirm clean builds and deployment readiness
 
 ---

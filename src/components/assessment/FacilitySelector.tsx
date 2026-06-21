@@ -1,9 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getFacilitiesList } from "@/lib/actions/facilities";
-import type { Facility } from "@/lib/types/domain";
 import { Building2, X, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+
+type FacilityOption = {
+  id: string;
+  name_ar: string;
+  type: string;
+  city_custom?: string | null;
+  cities?: { name_ar?: string } | null;
+};
 
 interface FacilitySelectorProps {
   isOpen: boolean;
@@ -14,28 +21,26 @@ interface FacilitySelectorProps {
 }
 
 export default function FacilitySelector({ isOpen, onClose, onSelect, isSaving, error }: FacilitySelectorProps) {
-  const [facilities, setFacilities] = useState<Facility[]>([]);
+  const [facilities, setFacilities] = useState<FacilityOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      loadFacilities();
-    }
-  }, [isOpen]);
-
-  const loadFacilities = async () => {
+  const loadFacilities = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Assuming context handles getting the right facilities
-      const result = await getFacilitiesList({ pageSize: 100 });
-      setFacilities(result.rows);
+      const result = await getFacilitiesList({ limit: 15 });
+      if (!result.success) throw new Error(result.error);
+      setFacilities(result.data.records as unknown as FacilityOption[]);
     } catch (err) {
       console.error(err);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) void loadFacilities();
+  }, [isOpen, loadFacilities]);
 
   const handleConfirm = async () => {
     if (!selectedId) return;
@@ -98,9 +103,9 @@ export default function FacilitySelector({ isOpen, onClose, onSelect, isSaving, 
                 >
                   <div>
                     <h3 className={`font-bold ${selectedId === fac.id ? "text-nebras-green" : "text-gray-800"}`}>
-                      {fac.name}
+                      {fac.name_ar}
                     </h3>
-                    <p className="text-sm text-gray-500 mt-1">{fac.city} - {fac.type}</p>
+                    <p className="text-sm text-gray-500 mt-1">{fac.city_custom || fac.cities?.name_ar || "-"} - {fac.type}</p>
                   </div>
                   {selectedId === fac.id && (
                     <CheckCircle className="text-nebras-green" size={24} />

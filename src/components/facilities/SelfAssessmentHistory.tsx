@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getFacilityAssessments, canManageAssessments, recoverAssessment } from "@/lib/actions/assessment-actions";
 import { FileText, ArrowLeft, Loader2, RefreshCw } from "lucide-react";
 import type { Assessment } from "@/lib/types/assessment";
@@ -12,8 +12,7 @@ interface SelfAssessmentHistoryProps {
 }
 
 function mapFacilityType(facilityType?: string): "general" | "dental" {
-  if (facilityType && facilityType.includes("أسنان")) return "dental";
-  return "general";
+  return facilityType === "dental_complex" ? "dental" : "general";
 }
 
 export default function SelfAssessmentHistory({ facilityId, facilityType }: SelfAssessmentHistoryProps) {
@@ -23,11 +22,11 @@ export default function SelfAssessmentHistory({ facilityId, facilityType }: Self
   const [canManage, setCanManage] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
 
-  const loadHistory = async () => {
+  const loadHistory = useCallback(async () => {
     setIsLoading(true);
     try {
       const [data, isManager] = await Promise.all([
-        getFacilityAssessments(facilityId, undefined, showArchived),
+        getFacilityAssessments(facilityId, showArchived),
         canManageAssessments()
       ]);
       setAssessments(data);
@@ -37,11 +36,11 @@ export default function SelfAssessmentHistory({ facilityId, facilityType }: Self
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [facilityId, showArchived]);
 
   useEffect(() => {
     loadHistory();
-  }, [facilityId, showArchived]);
+  }, [loadHistory]);
 
   const handleRecover = async (e: React.MouseEvent, assessmentId: string) => {
     e.stopPropagation();

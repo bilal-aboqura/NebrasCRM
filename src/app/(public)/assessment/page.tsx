@@ -8,14 +8,15 @@ import AssessmentPanel from "@/components/assessment/AssessmentPanel";
 import ScoringSidebar from "@/components/assessment/ScoringSidebar";
 import GapReportSection from "@/components/assessment/GapReportSection";
 import { getFacilityDetail } from "@/lib/actions/facilities";
-import type { Facility } from "@/lib/types/domain";
+
+type PrelinkedFacility = { id: string; name_ar: string; type: string };
 
 function AssessmentContent() {
   const { state, setFacilityType, setAnswer, setNote, setChapterFilter, setShowReport, reset, scoreBreakdown } = useCbahisession();
   const searchParams = useSearchParams();
   const facilityId = searchParams.get("facility_id");
   const typeParam = searchParams.get("type") as "general" | "dental" | null;
-  const [prelinkedFacility, setPrelinkedFacility] = useState<Facility | null>(null);
+  const [prelinkedFacility, setPrelinkedFacility] = useState<PrelinkedFacility | null>(null);
 
   useEffect(() => {
     if (typeParam) {
@@ -23,10 +24,12 @@ function AssessmentContent() {
     }
     if (facilityId) {
       getFacilityDetail(facilityId)
-        .then(fac => {
+        .then((result) => {
+          if (!result.success) throw new Error(result.error);
+          const fac = result.data as PrelinkedFacility;
           setPrelinkedFacility(fac);
           if (!typeParam) {
-            if (fac.type.includes("أسنان")) setFacilityType("dental");
+            if (fac.type === "dental_complex") setFacilityType("dental");
             else setFacilityType("general");
           }
         })
@@ -40,7 +43,7 @@ function AssessmentContent() {
         <div className="mb-6 rounded-lg bg-blue-50 p-4 text-blue-800 border border-blue-100 flex items-center justify-between">
           <div>
             <span className="font-bold">تقييم مرتبط بمنشأة: </span>
-            {prelinkedFacility.name}
+            {prelinkedFacility.name_ar}
           </div>
         </div>
       )}

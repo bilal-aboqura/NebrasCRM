@@ -18,7 +18,6 @@ import { getContractOptions, getFacilityContracts } from "@/lib/actions/contract
 import { getFacilityActivity, getFacilityDetail, getFacilityOptions } from "@/lib/actions/facilities";
 import { getFacilityFollowUps, getFollowUpOptions } from "@/lib/actions/followups";
 import { getFacilityOffers, getOfferOptions } from "@/lib/actions/offers";
-import { getFacilityAssessments } from "@/lib/actions/assessment-actions";
 import { buildWhatsAppUrl, DEFAULT_WHATSAPP_TEMPLATE } from "@/lib/utils/phone";
 
 const statusLabels: Record<string, string> = { new: "جديد", contacted: "تم التواصل", interested: "مهتم", offer: "عرض", negotiation: "تفاوض", contract: "عقد", lost: "مفقود" };
@@ -45,12 +44,6 @@ export default async function FacilityDetailPage({ params, searchParams }: { par
   const contacts = contactsResult.success ? contactsResult.data : [];
   const followUps = followUpsResult.success ? followUpsResult.data : [];
 
-  let archivedAssessmentIds: string[] = [];
-  try {
-    const allAssessments = await getFacilityAssessments(params.id, undefined, true);
-    archivedAssessmentIds = allAssessments.filter((a) => !a.isActive).map((a) => a.id);
-  } catch { /* RBAC may restrict; skip gracefully */ }
-
   return <section className="space-y-6" dir="rtl">
     <Link href="/dashboard/facilities" className="inline-flex items-center gap-2 text-nebras-green"><ArrowRight size={18} />العودة إلى قائمة المنشآت</Link>
     {!facility.is_active && <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 font-bold text-amber-900">هذه المنشأة مؤرشفة، وسجلها محفوظ للقراءة.</div>}
@@ -66,7 +59,7 @@ export default async function FacilityDetailPage({ params, searchParams }: { par
     {contractsResult.success && contractOptions.success ? <ContractsSection facilityId={facility.id} facilityName={facility.name_ar} facilityStatus={facility.status} contracts={contractsResult.data} contacts={contractOptions.data.contacts} offers={contractOptions.data.offers} canEdit={Boolean(facility.is_active)} canManage={contractOptions.data.canManage && Boolean(facility.is_active)} /> : <article className="rounded-2xl bg-white p-6 text-red-700 shadow-sm">{contractsResult.success ? (contractOptions.success ? "" : contractOptions.error.message) : contractsResult.error.message}</article>}
     <div className="space-y-4">
       <h2 className="text-xl font-bold text-gray-800 px-1">سجل التقييم الذاتي (CBAHI)</h2>
-      <SelfAssessmentHistory facilityId={facility.id} facilityType={facility.type} archivedAssessmentIds={archivedAssessmentIds} />
+      <SelfAssessmentHistory facilityId={facility.id} facilityType={facility.type} />
     </div>
     <article className="rounded-2xl bg-white p-6 shadow-sm"><h2 className="mb-6 text-xl font-extrabold">سجل النشاط</h2>{activity.success ? <ActivityTimeline activities={activity.data} /> : <p className="text-red-700">{activity.error}</p>}</article>
     <QuickLogBanner facilityId={facility.id} />

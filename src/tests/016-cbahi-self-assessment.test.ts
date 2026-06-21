@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+
 import { describe, it, expect } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useCbahisession } from "@/hooks/use-cbahi-session";

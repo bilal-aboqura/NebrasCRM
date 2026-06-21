@@ -30,3 +30,5 @@ export function ActivityTimeline({ activities }: { activities: Activity[] }) {
     })}
   </ol>;
 }
+
+export default ActivityTimeline;

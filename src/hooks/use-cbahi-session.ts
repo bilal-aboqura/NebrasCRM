@@ -18,6 +18,7 @@ export interface ScoreBreakdown {
   applicableItems: number;
   totalItems: number;
   answeredCount: number;
+  countByStatus: { met: number; partial: number; notMet: number; notApplicable: number };
   gaps: { code: string; question: string; value: string; chapter: string }[];
   tier: "high" | "medium" | "low";
   tierLabel: string;
@@ -81,6 +82,7 @@ export function useCbahisession() {
     let applicableItems = 0;
     let answeredCount = 0;
     let totalItems = 0;
+    const countByStatus = { met: 0, partial: 0, notMet: 0, notApplicable: 0 };
     const gaps: { code: string; question: string; value: string; chapter: string }[] = [];
 
     config.chapters.forEach((chapter) => {
@@ -90,14 +92,18 @@ export function useCbahisession() {
         if (val !== "") answeredCount++;
 
         if (val === "na") {
-          // not applicable: excluded from numerator and denominator
+          countByStatus.notApplicable++;
         } else {
           applicableItems++;
-          if (val === "1") pointsEarned += 1.0;
-          else if (val === "0.5") {
+          if (val === "1") {
+            pointsEarned += 1.0;
+            countByStatus.met++;
+          } else if (val === "0.5") {
             pointsEarned += 0.5;
+            countByStatus.partial++;
             gaps.push({ code: item.code, question: item.question, value: "0.5", chapter: chapter.title });
           } else if (val === "0") {
+            countByStatus.notMet++;
             gaps.push({ code: item.code, question: item.question, value: "0", chapter: chapter.title });
           } else if (val === "") {
             gaps.push({ code: item.code, question: item.question, value: "unanswered", chapter: chapter.title });

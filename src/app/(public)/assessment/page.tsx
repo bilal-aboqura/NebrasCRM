@@ -14,21 +14,25 @@ function AssessmentContent() {
   const { state, setFacilityType, setAnswer, setNote, setChapterFilter, setShowReport, reset, scoreBreakdown } = useCbahisession();
   const searchParams = useSearchParams();
   const facilityId = searchParams.get("facility_id");
+  const typeParam = searchParams.get("type") as "general" | "dental" | null;
   const [prelinkedFacility, setPrelinkedFacility] = useState<Facility | null>(null);
 
   useEffect(() => {
+    if (typeParam) {
+      setFacilityType(typeParam);
+    }
     if (facilityId) {
       getFacilityDetail(facilityId)
         .then(fac => {
           setPrelinkedFacility(fac);
-          // If the facility has a type, we might auto-select it. 
-          // For now just general logic
-          if (fac.type.includes("أسنان")) setFacilityType("dental");
-          else setFacilityType("general");
+          if (!typeParam) {
+            if (fac.type.includes("أسنان")) setFacilityType("dental");
+            else setFacilityType("general");
+          }
         })
         .catch(console.error);
     }
-  }, [facilityId, setFacilityType]);
+  }, [facilityId, typeParam, setFacilityType]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">

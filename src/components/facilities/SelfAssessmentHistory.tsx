@@ -8,9 +8,15 @@ import SavedAssessmentModal from "@/components/assessment/SavedAssessmentModal";
 
 interface SelfAssessmentHistoryProps {
   facilityId: string;
+  facilityType?: string;
 }
 
-export default function SelfAssessmentHistory({ facilityId }: SelfAssessmentHistoryProps) {
+function mapFacilityType(facilityType?: string): "general" | "dental" {
+  if (facilityType && facilityType.includes("أسنان")) return "dental";
+  return "general";
+}
+
+export default function SelfAssessmentHistory({ facilityId, facilityType }: SelfAssessmentHistoryProps) {
   const [assessments, setAssessments] = useState<(Assessment & { previousScore?: number, delta?: number })[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
@@ -107,7 +113,7 @@ export default function SelfAssessmentHistory({ facilityId }: SelfAssessmentHist
         )}
         <div className={!canManage ? "ml-auto" : ""}>
           <a 
-            href={`/assessment?facility_id=${facilityId}`}
+            href={`/assessment?facility_id=${facilityId}&type=${mapFacilityType(facilityType)}`}
             className="flex items-center gap-2 bg-nebras-green text-white px-4 py-2 rounded-lg font-bold hover:bg-[#208f60] transition-colors text-sm"
           >
             <FileText size={16} />

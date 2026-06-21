@@ -77,7 +77,8 @@ export async function saveAssessment(input: SaveAssessmentInput, overrideAuth?: 
       facilityId: assessment.facilityId,
       kind: "assessment_saved",
       message: `تم حفظ التقييم بنسبة ${overall_score}%`,
-      actorId: userContext.user.id
+      actorId: userContext.user.id,
+      newValue: assessment.id
     });
 
     return { success: true, assessment };

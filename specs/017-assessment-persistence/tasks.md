@@ -15,8 +15,8 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Initialize type definitions in `src/lib/types/assessment.ts` for saved assessments and answers
-- [ ] T002 Configure mock database store exports in `src/lib/data/store.ts` to support new assessments tables
+- [X] T001 Initialize type definitions in `src/lib/types/assessment.ts` for saved assessments and answers
+- [X] T002 Configure mock database store exports in `src/lib/data/store.ts` to support new assessments tables
 
 ---
 
@@ -24,8 +24,8 @@
 
 **Purpose**: Database schema creation and migration framework setup
 
-- [ ] T003 [P] Create database migration file `supabase/migrations/20260621000000_create_assessments_table.sql` defining assessments table structure, indexes, check constraints, RLS policies, and immutability trigger
-- [ ] T004 Apply database schema migration locally using Supabase CLI command `supabase db reset`
+- [X] T003 [P] Create database migration file `supabase/migrations/20260621000000_create_assessments_table.sql` defining assessments table structure, indexes, check constraints, RLS policies, and immutability trigger
+- [X] T004 Apply database schema migration locally using Supabase CLI command `supabase db reset`
 
 **Checkpoint**: Database table and RLS policies are active and ready.
 
@@ -38,12 +38,12 @@
 **Independent Test**: Complete assessment, click "حفظ التقييم", select facility, confirm, and verify database entry and timeline entry.
 
 ### Tests for User Story 1 (MANDATORY per Principle VI)
-- [ ] T005 [P] [US1] Create automated unit/integration tests in `tests/017-assessment-persistence.test.ts` for tenant isolation (Company A vs B) and server-side score calculation logic (asserting correct math, mixed options, and N/A handling)
+- [X] T005 [P] [US1] Create automated unit/integration tests in `tests/017-assessment-persistence.test.ts` for tenant isolation (Company A vs B) and server-side score calculation logic (asserting correct math, mixed options, and N/A handling)
 
 ### Implementation for User Story 1
-- [ ] T006 [US1] Create server action `saveAssessment` in `src/lib/actions/assessment-actions.ts` with authentication verification, company isolation checks, dynamic score/tier recalculation, and timeline activity logging
-- [ ] T007 [P] [US1] Create facility selection dropdown modal component in `src/components/assessment/FacilitySelector.tsx`
-- [ ] T008 [US1] Update self-assessment page in `src/app/(public)/assessment/page.tsx` to conditionally render "حفظ التقييم" button for authenticated users and hook it to `FacilitySelector.tsx` and the `saveAssessment` action
+- [X] T006 [US1] Create server action `saveAssessment` in `src/lib/actions/assessment-actions.ts` with authentication verification, company isolation checks, dynamic score/tier recalculation, and timeline activity logging
+- [X] T007 [P] [US1] Create facility selection dropdown modal component in `src/components/assessment/FacilitySelector.tsx`
+- [X] T008 [US1] Update self-assessment page in `src/app/(public)/assessment/page.tsx` to conditionally render "حفظ التقييم" button for authenticated users and hook it to `FacilitySelector.tsx` and the `saveAssessment` action
 
 **Checkpoint**: Logged-in consultants can successfully audit a facility and save the result.
 
@@ -56,11 +56,11 @@
 **Independent Test**: Navigate to a facility detail page. Verify history list is correct, badges match tiers, and trend text is correct.
 
 ### Tests for User Story 2
-- [ ] T009 [P] [US2] Create integration tests in `tests/017-assessment-persistence.test.ts` to verify history retrieval logic and Progression Text delta calculations
+- [X] T009 [P] [US2] Create integration tests in `tests/017-assessment-persistence.test.ts` to verify history retrieval logic and Progression Text delta calculations
 
 ### Implementation for User Story 2
-- [ ] T010 [US2] Create self-assessment history list component in `src/components/facilities/SelfAssessmentHistory.tsx` rendering progression text (e.g. `45% ⬅️ 78% (+33%)`) and status badges
-- [ ] T011 [US2] Integrate `SelfAssessmentHistory.tsx` component into the facility detail page at `src/app/(dashboard)/dashboard/facilities/[id]/page.tsx`
+- [X] T010 [US2] Create self-assessment history list component in `src/components/facilities/SelfAssessmentHistory.tsx` rendering progression text (e.g. `45% ⬅️ 78% (+33%)`) and status badges
+- [X] T011 [US2] Integrate `SelfAssessmentHistory.tsx` component into the facility detail page at `src/app/(dashboard)/dashboard/facilities/[id]/page.tsx`
 
 **Checkpoint**: Facility detail page renders assessment history and progression trend correctly.
 
@@ -73,8 +73,8 @@
 **Independent Test**: Click on assessment in history list, verify modal/view loads correctly, displays correct scores, and all inputs are read-only.
 
 ### Implementation for User Story 3
-- [ ] T012 [P] [US3] Create read-only assessment details view modal in `src/components/assessment/SavedAssessmentModal.tsx` disabling all interactive selects, textareas, and buttons
-- [ ] T013 [US3] Connect list items in `src/components/facilities/SelfAssessmentHistory.tsx` to open the `SavedAssessmentModal.tsx` component on click
+- [X] T012 [P] [US3] Create read-only assessment details view modal in `src/components/assessment/SavedAssessmentModal.tsx` disabling all interactive selects, textareas, and buttons
+- [X] T013 [US3] Connect list items in `src/components/facilities/SelfAssessmentHistory.tsx` to open the `SavedAssessmentModal.tsx` component on click
 
 **Checkpoint**: Historical audits can be opened in detailed read-only format.
 
@@ -87,8 +87,8 @@
 **Independent Test**: Click "بدء تقييم جديد" from a general complex facility, verify assessment tool opens with general complex pre-selected and facility pre-linked.
 
 ### Implementation for User Story 4
-- [ ] T014 [P] [US4] Add "بدء تقييم جديد" button to `src/components/facilities/SelfAssessmentHistory.tsx` linking to `/assessment?facility_id={id}&type={mapped_type}`
-- [ ] T015 [US4] Update assessment container in `src/app/(public)/assessment/page.tsx` to parse query parameters, pre-select facility and type configuration, and display pre-linked banner
+- [X] T014 [P] [US4] Add "بدء تقييم جديد" button to `src/components/facilities/SelfAssessmentHistory.tsx` linking to `/assessment?facility_id={id}&type={mapped_type}`
+- [X] T015 [US4] Update assessment container in `src/app/(public)/assessment/page.tsx` to parse query parameters, pre-select facility and type configuration, and display pre-linked banner
 
 **Checkpoint**: Direct audit creation from facility detail page is fully operational.
 
@@ -101,22 +101,22 @@
 **Independent Test**: Log in as admin, archive assessment, verify it disappears from history, timeline log is updated, recovery restores it.
 
 ### Tests for User Story 5
-- [ ] T016 [P] [US5] Add unit tests in `tests/017-assessment-persistence.test.ts` to assert that archiving/recovery functions enforce supervisor/admin access restrictions
+- [X] T016 [P] [US5] Add unit tests in `tests/017-assessment-persistence.test.ts` to assert that archiving/recovery functions enforce supervisor/admin access restrictions
 
 ### Implementation for User Story 5
-- [ ] T017 [US5] Add `archiveAssessment` and `recoverAssessment` Server Actions in `src/lib/actions/assessment-actions.ts` setting the archive flags and creating a timeline log entry
-- [ ] T018 [US5] Integrate archive button inside `src/components/assessment/SavedAssessmentModal.tsx` conditional on supervisor/admin role
-- [ ] T019 [US5] Add "Show Archived" toggle and recovery button inside `src/components/facilities/SelfAssessmentHistory.tsx` for supervisors/admins
-- [ ] T020 [US5] Update timeline event details in `src/components/facilities/ActivityTimeline.tsx` to display an archived status tag on the original "تم حفظ التقييم" event if it is archived
+- [X] T017 [US5] Add `archiveAssessment` and `recoverAssessment` Server Actions in `src/lib/actions/assessment-actions.ts` setting the archive flags and creating a timeline log entry
+- [X] T018 [US5] Integrate archive button inside `src/components/assessment/SavedAssessmentModal.tsx` conditional on supervisor/admin role
+- [X] T019 [US5] Add "Show Archived" toggle and recovery button inside `src/components/facilities/SelfAssessmentHistory.tsx` for supervisors/admins
+- [X] T020 [US5] Update timeline event details in `src/components/facilities/ActivityTimeline.tsx` to display an archived status tag on the original "تم حفظ التقييم" event if it is archived
 
 **Checkpoint**: Supervisors/admins can fully manage archiving and recovery of historical audits.
 
 ---
 
 ## Phase 8: Polish & Final Validation (Priority: P2)
-- [ ] T021 [US1,US2,US3,US4,US5] Verify CSS and RTL alignment for Arabic layout in all newly added components
-- [ ] T022 [P] [US1,US2,US3,US4,US5] Run the automated test suite locally to verify no regressions
-- [ ] T023 [P] [US1,US2,US3,US4,US5] Run validation walkthrough per `quickstart.md` instructions
+- [X] T021 [US1,US2,US3,US4,US5] Verify CSS and RTL alignment for Arabic layout in all newly added components
+- [X] T022 [P] [US1,US2,US3,US4,US5] Run the automated test suite locally to verify no regressions
+- [X] T023 [P] [US1,US2,US3,US4,US5] Run validation walkthrough per `quickstart.md` instructions
 
 ---
 

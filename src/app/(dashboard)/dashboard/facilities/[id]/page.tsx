@@ -10,6 +10,7 @@ import QuickLogBanner from "@/components/facilities/QuickLogBanner";
 import { getCallLogs } from "@/lib/actions/call-logs";
 import { getContracts } from "@/lib/actions/contracts";
 import { getFacilityActivity, getFacilityDetail } from "@/lib/actions/facilities";
+import { getFacilityAssessments } from "@/lib/actions/assessment-actions";
 import { getOffers } from "@/lib/actions/offers";
 import { contacts } from "@/lib/data/mock";
 import { toWaMe } from "@/lib/utils/phone";
@@ -24,6 +25,12 @@ export default async function FacilityDetailPage({ params }: { params: { id: str
   ]);
   const facilityContacts = contacts.filter((contact) => contact.facilityId === params.id);
 
+  let archivedAssessmentIds: string[] = [];
+  try {
+    const allAssessments = await getFacilityAssessments(params.id, undefined, true);
+    archivedAssessmentIds = allAssessments.filter((a) => !a.isActive).map((a) => a.id);
+  } catch { /* RBAC may restrict; skip gracefully */ }
+
   return (
     <section className="space-y-6">
       <div className="rounded-lg border border-nebras-line bg-white p-5">
@@ -37,14 +44,14 @@ export default async function FacilityDetailPage({ params }: { params: { id: str
       <FacilityForm facility={facility} />
       <div className="space-y-4">
         <h2 className="text-xl font-bold text-gray-800 px-1">سجل التقييم الذاتي (CBAHI)</h2>
-        <SelfAssessmentHistory facilityId={facility.id} />
+        <SelfAssessmentHistory facilityId={facility.id} facilityType={facility.type} />
       </div>
       <ContactsSection contacts={facilityContacts} />
       <LogCommunicationModal />
       <CallLogsSection logs={logs} />
       <OffersSection offers={offers} />
       <ContractsSection contracts={contracts} />
-      <ActivityTimeline activities={activity} />
+      <ActivityTimeline activities={activity} archivedAssessmentIds={archivedAssessmentIds} />
       <QuickLogBanner />
     </section>
   );

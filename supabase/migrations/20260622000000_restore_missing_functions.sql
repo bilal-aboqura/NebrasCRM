@@ -943,11 +943,45 @@ grant execute on function public.complete_followup_with_call_log_atomic(uuid, uu
 -- From 20260617000008_offer_management.sql
 -- ===========================================================================
 
+-- Ensure canonical columns exist (live DB may have 'discount'/'tax' instead).
+-- These are added idempotently so re-running this script is safe.
+do $$ begin
+  if not exists (select 1 from information_schema.columns
+                 where table_schema = 'public' and table_name = 'offers'
+                 and column_name = 'discount_amount') then
+    alter table public.offers add column discount_amount numeric(15,2) not null default 0;
+  end if;
+  if not exists (select 1 from information_schema.columns
+                 where table_schema = 'public' and table_name = 'offers'
+                 and column_name = 'tax_amount') then
+    alter table public.offers add column tax_amount numeric(15,2) not null default 0;
+  end if;
+end $$;
+
+-- Sync owner_id <-> created_by on INSERT (live DB has both columns)
+create or replace function public.sync_offer_owner_fields()
+returns trigger language plpgsql as $$
+begin
+  if new.owner_id is null and new.created_by is not null then
+    new.owner_id := new.created_by;
+  end if;
+  if new.created_by is null and new.owner_id is not null then
+    new.created_by := new.owner_id;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_sync_offer_owner_fields on public.offers;
+create trigger trg_sync_offer_owner_fields
+  before insert on public.offers
+  for each row execute function public.sync_offer_owner_fields();
+
 create or replace function public.calculate_offer_totals()
 returns trigger language plpgsql as $$
 begin
-  new.title := trim(new.title);
-  new.notes := nullif(trim(new.notes), '');
+  new.title         := trim(new.title);
+  new.notes         := nullif(trim(new.notes), '');
   new.decision_note := nullif(trim(new.decision_note), '');
   if new.discount_type = 'percentage' then
     if new.discount_value > 100 then
@@ -960,9 +994,13 @@ begin
   if new.discount_amount > new.subtotal then
     raise exception 'discount cannot exceed subtotal' using errcode = '23514';
   end if;
-  new.tax_amount := round((new.subtotal - new.discount_amount) * new.tax_rate / 100, 2);
+  -- Keep legacy column names in sync (live DB has 'discount'/'tax'/'total')
+  new.discount    := new.discount_amount;
+  new.tax_amount  := round((new.subtotal - new.discount_amount) * new.tax_rate / 100, 2);
+  new.tax         := new.tax_amount;
   new.grand_total := round(new.subtotal - new.discount_amount + new.tax_amount, 2);
-  new.updated_at := now();
+  new.total       := new.grand_total;
+  new.updated_at  := now();
   return new;
 end;
 $$;

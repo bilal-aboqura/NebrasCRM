@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
-  BriefcaseBusiness,
   Building2,
   CalendarCheck2,
   Columns3,
@@ -23,13 +22,11 @@ const mainItems = [
   { href: "/dashboard/followups", label: "المتابعات", icon: CalendarCheck2 },
   { href: "/dashboard/offers", label: "العروض", icon: FileText },
   { href: "/dashboard/contracts", label: "العقود", icon: FileText },
-  { href: "/sales", label: "المبيعات", icon: BriefcaseBusiness },
-  { href: "/team", label: "الفريق", icon: Users },
+  { href: "/admin/users", label: "الفريق", icon: Users },
   { href: "/reports", label: "التقارير", icon: BarChart3 },
 ] as const;
 
 const accountItems = [
-  { href: "/admin/users", label: "المستخدمون", icon: Users },
   { href: "/admin/companies", label: "الشركات", icon: Building2 },
   { href: "/profile", label: "الملف الشخصي", icon: UserRoundCog },
 ] as const;

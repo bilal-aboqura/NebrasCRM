@@ -14,20 +14,21 @@ describe("role-aware sidebar navigation", () => {
   it("hides administration links from sales users", () => {
     render(<SidebarNav role="sales_user" />);
     expect(screen.getByRole("link", { name: "المنشآت" })).toHaveAttribute("aria-current", "page");
-    expect(screen.queryByRole("link", { name: "المستخدمون" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "الفريق" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "الشركات" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "الملف الشخصي" })).toBeInTheDocument();
   });
 
-  it.each(["company_admin", "supervisor"] as const)("shows users but not companies to %s", (role) => {
+  it.each(["company_admin", "supervisor"] as const)("shows team but not companies to %s", (role) => {
     render(<SidebarNav role={role} />);
-    expect(screen.getByRole("link", { name: "المستخدمون" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "الفريق" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "الفريق" })).toHaveAttribute("href", "/admin/users");
     expect(screen.queryByRole("link", { name: "الشركات" })).not.toBeInTheDocument();
   });
 
   it("shows every administration link to super admins", () => {
     render(<SidebarNav role="super_admin" />);
-    expect(screen.getByRole("link", { name: "المستخدمون" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "الفريق" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "الشركات" })).toBeInTheDocument();
   });
 

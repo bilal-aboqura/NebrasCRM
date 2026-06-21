@@ -54,7 +54,7 @@ function fail(error: unknown): { success: false; error: string } {
   const candidate = error as { code?: string; message?: string };
   if (candidate.code === "42501" || candidate.message?.includes("access denied")) return { success: false, error: DENIED };
   if (candidate.code === "23505") return { success: false, error: "تعذر تعيين جهة الاتصال الرئيسية. يرجى المحاولة مرة أخرى." };
-  return { success: false, error: error instanceof Error ? error.message : "تعذر إتمام العملية." };
+  return { success: false, error: candidate.message ?? "تعذر إتمام العملية." };
 }
 
 function validateInput(input: UpdateContactInput, creating = false) {

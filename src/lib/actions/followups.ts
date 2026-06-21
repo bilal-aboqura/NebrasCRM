@@ -38,7 +38,7 @@ function fail(error: unknown): { success: false; error: string } {
   if (message.includes("not pending")) return { success: false, error: "لا يمكن تعديل متابعة مكتملة أو ملغاة." };
   if (message.includes("invalid followup owner")) return { success: false, error: "المسؤول المحدد غير نشط أو لا ينتمي إلى الشركة." };
   if (message.includes("outcome does not match")) return { success: false, error: "نتيجة المتابعة لا تتوافق مع نوعها." };
-  return { success: false, error: error instanceof Error ? error.message : "تعذر إتمام العملية." };
+  return { success: false, error: candidate.message ?? "تعذر إتمام العملية." };
 }
 
 async function requireFacilityAccess(facilityId: string, context: AuthContext, requireActive = true) {

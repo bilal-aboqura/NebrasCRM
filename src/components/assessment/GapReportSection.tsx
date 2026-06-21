@@ -15,7 +15,7 @@ export default function GapReportSection({ scoreBreakdown, facilityType, onBack 
   const scorePercent = Math.round(score);
 
   // Link to the public lead capture form with pre-filled query params
-  const ctaLink = `/#lead-capture?type=${facilityType}&score=${scorePercent}`;
+  const ctaLink = `/?type=${facilityType}&score=${scorePercent}#assessment`;
 
   const tierColors = {
     high: "bg-green-50 text-green-700 border-green-200",

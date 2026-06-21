@@ -2,47 +2,45 @@
 
 import { RefreshCw, FileText } from "lucide-react";
 import type { ScoreBreakdown } from "@/hooks/use-cbahi-session";
-import SaveAssessmentButton from "./SaveAssessmentButton";
 
 interface ScoringSidebarProps {
   scoreBreakdown: ScoreBreakdown;
-  onReset: () => void; // Phase 6 task T015
-  onGenerateReport: () => void; // Phase 5 task T011
+  onReset: () => void;
+  onGenerateReport: () => void;
 }
 
 export default function ScoringSidebar({ scoreBreakdown, onReset, onGenerateReport }: ScoringSidebarProps) {
-  const { score, pointsEarned, applicableItems, totalItems, answeredCount, tierLabel, tierDescription, tier } = scoreBreakdown;
+  const { score, pointsEarned, applicableItems, totalItems, answeredCount, countByStatus, tierLabel, tierDescription, tier } = scoreBreakdown;
   const progressPercent = Math.round((answeredCount / totalItems) * 100) || 0;
   const scorePercent = Math.round(score);
 
-  // Determine colors based on tier
   const tierColors = {
-    high: "text-green-600 bg-green-50 border-green-200 ring-green-600",
-    medium: "text-amber-600 bg-amber-50 border-amber-200 ring-amber-500",
-    low: "text-red-600 bg-red-50 border-red-200 ring-red-500",
+    high: "text-green-600 bg-green-50 border-green-200",
+    medium: "text-amber-600 bg-amber-50 border-amber-200",
+    low: "text-red-600 bg-red-50 border-red-200",
   };
 
-  const currentTierColor = answeredCount === 0 ? "text-gray-400 bg-gray-50 border-gray-200 ring-gray-200" : tierColors[tier];
+  const currentTierColor = answeredCount === 0 ? "text-gray-400 bg-gray-50 border-gray-200" : tierColors[tier];
 
   return (
     <div className="sticky top-24 rounded-xl border border-gray-200 bg-white p-6 shadow-lg print:hidden">
       <h2 className="mb-6 text-xl font-bold text-nebras-ink">نتيجة التقييم</h2>
 
       <div className="mb-8 flex flex-col items-center justify-center">
-        {/* CSS Conic Gradient for Circular Score */}
-        <div 
-          className={`relative flex h-40 w-40 items-center justify-center rounded-full bg-slate-100 before:absolute before:inset-2 before:rounded-full before:bg-white`}
+        <div
+          className="relative flex h-40 w-40 items-center justify-center rounded-full bg-slate-100"
           style={{
-            background: answeredCount > 0 
+            background: answeredCount > 0
               ? `conic-gradient(${tier === 'high' ? '#16a34a' : tier === 'medium' ? '#d97706' : '#dc2626'} ${scorePercent * 3.6}deg, #f1f5f9 0deg)`
               : `conic-gradient(#e2e8f0 360deg, #f1f5f9 0deg)`
           }}
         >
+          <div className="absolute inset-2 rounded-full bg-white" />
           <div className="relative z-10 flex flex-col items-center">
             <span className={`text-4xl font-black ${answeredCount > 0 ? (tier === 'high' ? 'text-green-600' : tier === 'medium' ? 'text-amber-600' : 'text-red-600') : 'text-gray-400'}`}>
               {scorePercent}%
             </span>
-            <span className="text-xs text-gray-500 mt-1">نسبة التوافق</span>
+            <span className="mt-1 text-xs text-gray-500">نسبة التوافق</span>
           </div>
         </div>
 
@@ -61,7 +59,7 @@ export default function ScoringSidebar({ scoreBreakdown, onReset, onGenerateRepo
             <span className="font-bold text-gray-900">{answeredCount} / {totalItems}</span>
           </div>
           <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
-            <div 
+            <div
               className="h-full bg-nebras-green transition-all duration-500"
               style={{ width: `${progressPercent}%` }}
             />
@@ -78,11 +76,28 @@ export default function ScoringSidebar({ scoreBreakdown, onReset, onGenerateRepo
             <span className="font-bold text-nebras-ink">{applicableItems}</span>
           </div>
         </div>
+
+        <div className="grid grid-cols-2 gap-2 text-center text-xs">
+          <div className="rounded-lg bg-green-50 p-2">
+            <span className="font-bold text-green-700">{countByStatus.met}</span>
+            <span className="block text-gray-600">متوفر</span>
+          </div>
+          <div className="rounded-lg bg-amber-50 p-2">
+            <span className="font-bold text-amber-700">{countByStatus.partial}</span>
+            <span className="block text-gray-600">جزئي</span>
+          </div>
+          <div className="rounded-lg bg-red-50 p-2">
+            <span className="font-bold text-red-700">{countByStatus.notMet}</span>
+            <span className="block text-gray-600">غير متوفر</span>
+          </div>
+          <div className="rounded-lg bg-gray-100 p-2">
+            <span className="font-bold text-gray-600">{countByStatus.notApplicable}</span>
+            <span className="block text-gray-600">غير منطبق</span>
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-col gap-3">
-        <SaveAssessmentButton />
-        
         <button
           onClick={onGenerateReport}
           disabled={answeredCount === 0}

@@ -137,6 +137,7 @@ export function useCbahisession() {
       applicableItems,
       totalItems,
       answeredCount,
+      countByStatus,
       gaps: limitedGaps,
       tier,
       tierLabel,

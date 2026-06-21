@@ -2,6 +2,7 @@
 
 import { Building2, Stethoscope } from "lucide-react";
 import type { FacilityType } from "@/hooks/use-cbahi-session";
+import { CBAHI_DATA } from "@/lib/data/cbahi-data";
 
 interface FacilitySelectorProps {
   currentType: FacilityType;
@@ -12,7 +13,7 @@ interface FacilitySelectorProps {
 export default function FacilityTypeSelector({ currentType, onChange, hasAnswers }: FacilitySelectorProps) {
   const handleSelect = (type: FacilityType) => {
     if (type === currentType) return;
-    
+
     if (hasAnswers) {
       if (confirm("تغيير نوع المنشأة سيؤدي إلى مسح جميع الإجابات الحالية. هل أنت متأكد؟")) {
         onChange(type);
@@ -21,6 +22,9 @@ export default function FacilityTypeSelector({ currentType, onChange, hasAnswers
       onChange(type);
     }
   };
+
+  const generalCount = CBAHI_DATA.general.chapters.reduce((s, ch) => s + ch.items.length, 0);
+  const dentalCount = CBAHI_DATA.dental.chapters.reduce((s, ch) => s + ch.items.length, 0);
 
   return (
     <div className="flex flex-col gap-4 sm:flex-row print:hidden">
@@ -39,7 +43,7 @@ export default function FacilityTypeSelector({ currentType, onChange, hasAnswers
           <h3 className={`font-bold ${currentType === "general" ? "text-nebras-green" : "text-gray-700"}`}>
             المجمعات الطبية العامة
           </h3>
-          <p className="text-xs">33 معيار - 11 فصل</p>
+          <p className="text-xs">{generalCount} معيار - {CBAHI_DATA.general.chapters.length} فصل</p>
         </div>
       </button>
 
@@ -58,7 +62,7 @@ export default function FacilityTypeSelector({ currentType, onChange, hasAnswers
           <h3 className={`font-bold ${currentType === "dental" ? "text-nebras-green" : "text-gray-700"}`}>
             مجمعات وعيادات الأسنان
           </h3>
-          <p className="text-xs">23 معيار - 6 فصول</p>
+          <p className="text-xs">{dentalCount} معيار - {CBAHI_DATA.dental.chapters.length} فصول</p>
         </div>
       </button>
     </div>

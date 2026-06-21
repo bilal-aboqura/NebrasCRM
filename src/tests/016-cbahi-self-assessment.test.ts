@@ -20,7 +20,7 @@ describe("CBAHI Self-Assessment Session Hook", () => {
     const { result } = renderHook(() => useCbahisession());
     
     act(() => {
-      result.current.setAnswer("CH-1-01", "1");
+      result.current.setAnswer("LD-01", "1");
       result.current.setFacilityType("dental");
     });
     
@@ -32,24 +32,24 @@ describe("CBAHI Self-Assessment Session Hook", () => {
     const { result } = renderHook(() => useCbahisession());
     
     act(() => {
-      result.current.setAnswer("CH-1-01", "1");
-      result.current.setNote("CH-1-01", "Test note");
+      result.current.setAnswer("LD-01", "1");
+      result.current.setNote("LD-01", "Test note");
     });
     
-    expect(result.current.state.answers["CH-1-01"]).toBe("1");
-    expect(result.current.state.notes["CH-1-01"]).toBe("Test note");
+    expect(result.current.state.answers["LD-01"]).toBe("1");
+    expect(result.current.state.notes["LD-01"]).toBe("Test note");
   });
 
   it("should calculate score correctly with 1, 0.5, 0 and na", () => {
     const { result } = renderHook(() => useCbahisession());
     
     // We mock the answers to existing codes in general
-    // General has CH-1-01, CH-1-02, CH-1-03, etc.
+    // General uses the official chapter codes from the supplied standards.
     act(() => {
-      result.current.setAnswer("CH-1-01", "1"); // 1/1
-      result.current.setAnswer("CH-1-02", "0.5"); // 0.5/1
-      result.current.setAnswer("CH-1-03", "0"); // 0/1
-      result.current.setAnswer("CH-2-01", "na"); // excluded
+      result.current.setAnswer("LD-01", "1"); // 1/1
+      result.current.setAnswer("LD-02", "0.5"); // 0.5/1
+      result.current.setAnswer("LD-03", "0"); // 0/1
+      result.current.setAnswer("PC-01", "na"); // excluded
       // all other 29 are unanswered => denominator = 29+3 = 32
     });
     

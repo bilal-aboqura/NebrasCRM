@@ -8,6 +8,7 @@ import {
   CalendarCheck2,
   Columns3,
   FileText,
+  ClipboardCheck,
   LayoutDashboard,
   UserRoundCog,
   Users,
@@ -18,6 +19,7 @@ import { canAccessPath } from "@/lib/auth/rbac-guards";
 const mainItems = [
   { href: "/dashboard", label: "لوحة التحكم", icon: LayoutDashboard },
   { href: "/dashboard/facilities", label: "المنشآت", icon: Building2 },
+  { href: "/dashboard/assessment-leads", label: "نتائج تقييم سباهي", icon: ClipboardCheck },
   { href: "/dashboard/pipeline", label: "المسار", icon: Columns3 },
   { href: "/dashboard/followups", label: "المتابعات", icon: CalendarCheck2 },
   { href: "/dashboard/offers", label: "العروض", icon: FileText },

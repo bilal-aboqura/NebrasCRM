@@ -1,21 +1,20 @@
 "use client";
 
 import { Printer, ArrowRight, CheckCircle, AlertTriangle, AlertCircle } from "lucide-react";
-import Link from "next/link";
-import type { ScoreBreakdown, FacilityType } from "@/hooks/use-cbahi-session";
+import { SharedLeadForm } from "@/components/assessment/SharedLeadForm";
+import type { AnswerValue, ScoreBreakdown, FacilityType } from "@/hooks/use-cbahi-session";
 
 interface GapReportSectionProps {
   scoreBreakdown: ScoreBreakdown;
   facilityType: FacilityType;
+  answers: Record<string, AnswerValue>;
+  notes: Record<string, string>;
   onBack: () => void;
 }
 
-export default function GapReportSection({ scoreBreakdown, facilityType, onBack }: GapReportSectionProps) {
+export default function GapReportSection({ scoreBreakdown, facilityType, answers, notes, onBack }: GapReportSectionProps) {
   const { score, gaps, tier, tierLabel, tierDescription } = scoreBreakdown;
   const scorePercent = Math.round(score);
-
-  // Link to the public lead capture form with pre-filled query params
-  const ctaLink = `/#lead-capture?type=${facilityType}&score=${scorePercent}`;
 
   const tierColors = {
     high: "bg-green-50 text-green-700 border-green-200",
@@ -112,17 +111,8 @@ export default function GapReportSection({ scoreBreakdown, facilityType, onBack 
         </div>
       )}
 
-      <div className="mt-8 rounded-xl bg-nebras-ink p-8 text-center text-white print:hidden">
-        <h3 className="mb-4 text-2xl font-bold">هل تحتاج لمساعدة في تحسين الجاهزية؟</h3>
-        <p className="mb-6 text-gray-300">
-          خبراء نبراسكو مستعدون لتقديم الاستشارة وتصميم خطة تحسين متكاملة تضمن نجاحك في الحصول على الاعتماد.
-        </p>
-        <Link 
-          href={ctaLink}
-          className="inline-block rounded-lg bg-nebras-gold px-8 py-3 font-bold text-white transition-colors hover:bg-yellow-500"
-        >
-          طلب استشارة مجانية
-        </Link>
+      <div className="print:hidden">
+        <SharedLeadForm facilityType={facilityType} answers={answers} notes={notes} />
       </div>
       
       <div className="hidden print:block mt-8 pt-8 border-t border-gray-200 text-center text-sm text-gray-500">

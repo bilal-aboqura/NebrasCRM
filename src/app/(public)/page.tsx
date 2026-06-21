@@ -48,6 +48,7 @@ const navItems = [
   { href: "#hero", label: "الرئيسية" },
   { href: "#about", label: "عن نبراسقو" },
   { href: "#services", label: "خدماتنا" },
+  { href: "/assessment", label: "تقييم سباهي" },
   { href: "#contact", label: "تواصل معنا" },
 ] as const;
 
@@ -213,6 +214,9 @@ export default function MarketingLandingPage() {
               نرافق منشأتكم الصحية بخبرة عملية وحلول مصممة بعناية، من تقييم الجاهزية وبناء الأنظمة إلى التدريب والدعم المستمر حتى تحقيق الاعتماد بثقة.
             </p>
             <div className="mt-9 flex flex-wrap gap-3">
+              <Link href="/assessment" className="inline-flex items-center gap-2 rounded-full bg-nebras-gold px-7 py-3.5 font-bold text-nebras-green shadow-lg shadow-nebras-gold/20 transition hover:-translate-y-1 hover:shadow-xl">
+                ابدأ تقييم سباهي <ArrowLeft aria-hidden size={19} />
+              </Link>
               <a href="#lead-capture" className="inline-flex items-center gap-2 rounded-full bg-nebras-green px-7 py-3.5 font-bold text-white shadow-lg shadow-nebras-green/20 transition hover:-translate-y-1 hover:shadow-xl">
                 احجز تقييم جاهزية مجاني <ArrowLeft aria-hidden size={19} />
               </a>

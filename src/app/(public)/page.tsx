@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { LeadCaptureForm } from "@/components/public/LeadCaptureForm";
 import {
   ArrowLeft,
   Award,
@@ -320,15 +321,7 @@ export default function MarketingLandingPage() {
               أو تحدّث مباشرة مع مستشار <MessageCircle aria-hidden size={20} />
             </a>
           </div>
-          <div className="rounded-[2rem] border-2 border-dashed border-nebras-gold/60 bg-white/80 p-8 text-center shadow-sm sm:p-12">
-            <span className="mx-auto grid size-16 place-items-center rounded-full bg-nebras-green text-nebras-gold"><HeartHandshake aria-hidden size={30} /></span>
-            <h3 className="mt-5 text-xl font-extrabold text-nebras-green">نموذج تقييم الجاهزية</h3>
-            <p className="mx-auto mt-3 max-w-md leading-7 text-slate-500">سيظهر هنا نموذج حجز التقييم المجاني. وحتى اكتمال الربط، يسعد فريقنا باستقبال طلبك عبر واتساب أو الهاتف.</p>
-            <div className="mt-6 flex flex-wrap justify-center gap-3">
-              <a href={whatsapp.href} target="_blank" rel="noreferrer" className="rounded-full bg-nebras-green px-6 py-3 font-bold text-white">تواصل عبر واتساب</a>
-              <a href={phone.href} className="rounded-full border border-nebras-green/20 px-6 py-3 font-bold text-nebras-green">اتصل بنا</a>
-            </div>
-          </div>
+          <LeadCaptureForm />
         </div>
       </section>
 

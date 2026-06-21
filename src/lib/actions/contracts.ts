@@ -292,17 +292,34 @@ export async function getContractOptions(facilityId: string) {
 export async function getContractsDirectory(filters: ContractsDirectoryFilters = {}) {
   try {
     const context = await requireAuth(); const companyId = activeCompany(context); const admin = createAdminClient();
-    let query = admin.from("contracts").select("*,facilities!inner(name_ar,status,assigned_to,is_active),contacts(name_ar),companies(settings),owner:profiles!contracts_created_by_fkey(display_name)")
+    let query = admin.from("contracts").select("*,facilities!inner(name_ar,status,assigned_to,is_active),companies(settings)")
       .eq("company_id", companyId).eq("is_active", true).eq("facilities.is_active", true);
     if (context.role === "sales_user") query = query.eq("facilities.assigned_to", context.userId);
     else if (filters.ownerId) query = query.eq("facilities.assigned_to", filters.ownerId);
     if (filters.status && DB_STATUSES.has(filters.status as ContractStatus)) query = query.eq("status", filters.status);
     const { data, error } = await query.order("created_at", { ascending: false });
     if (error) throw error;
-    let contracts = (data ?? []).map(mapContract);
+    // Resolve these lookups explicitly so the page remains compatible with
+    // production schemas whose PostgREST cache has no contracts/contact or
+    // contracts/profile relationship metadata yet.
+    const [contactsResult, profilesResult] = await Promise.all([
+      admin.from("contacts").select("id,name_ar").eq("company_id", companyId),
+      admin.from("profiles").select("id,display_name,role,status").eq("company_id", companyId).order("display_name"),
+    ]);
+    if (contactsResult.error) throw contactsResult.error;
+    if (profilesResult.error) throw profilesResult.error;
+    const contactById = new Map((contactsResult.data ?? []).map((contact) => [contact.id, contact]));
+    const profileById = new Map((profilesResult.data ?? []).map((profile) => [profile.id, profile]));
+    let contracts = (data ?? []).map((row) => mapContract({
+      ...row,
+      contacts: row.contact_id ? contactById.get(row.contact_id) : null,
+      owner: profileById.get(row.created_by),
+    }));
     if (filters.status === "expired" || filters.status === "expiring_soon") contracts = contracts.filter((contract) => contract.displayStatus === filters.status);
     else if (filters.status === "active") contracts = contracts.filter((contract) => contract.displayStatus === "active");
-    const owners = MANAGEMENT_ROLES.has(context.role) ? (await admin.from("profiles").select("id,display_name").eq("company_id", companyId).eq("role", "sales_user").eq("status", "active").order("display_name")).data ?? [] : [];
+    const owners = MANAGEMENT_ROLES.has(context.role)
+      ? (profilesResult.data ?? []).filter((profile) => profile.role === "sales_user" && profile.status === "active")
+      : [];
     return { success: true as const, data: { contracts, owners, canFilterOwner: MANAGEMENT_ROLES.has(context.role), canManage: MANAGEMENT_ROLES.has(context.role), total: contracts.reduce((sum, contract) => sum + contract.value, 0) } };
   } catch (error) { return failure(error); }
 }

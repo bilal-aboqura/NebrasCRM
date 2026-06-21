@@ -282,18 +282,25 @@ export async function getOffersDirectory(filters: OffersDirectoryFilters = {}) {
   try {
     const context = await requireAuth(); const companyId = activeCompany(context);
     const admin = createAdminClient();
-    let query = admin.from("offers").select("*,facilities!inner(name_ar,assigned_to,is_active),contacts(name_ar),owner:profiles!offers_created_by_fkey(display_name)")
+    let query = admin.from("offers").select("*,facilities!inner(name_ar,assigned_to,is_active),contacts(name_ar)")
       .eq("company_id", companyId).eq("is_active", true).eq("facilities.is_active", true);
     if (context.role === "sales_user") query = query.eq("facilities.assigned_to", context.userId);
     else if (filters.ownerId) query = query.eq("facilities.assigned_to", filters.ownerId);
     if (filters.status && filters.status !== "expired" && STATUSES.has(filters.status)) query = query.eq("status", filters.status);
     const { data, error } = await query.order("created_at", { ascending: false });
     if (error) throw error;
-    let offers = (data ?? []).map(mapOffer);
+    // Do not embed profiles here. Some deployed databases predate the named
+    // offers_created_by_fkey constraint, which makes PostgREST reject the
+    // entire directory query while refreshing its relationship cache.
+    const { data: profiles, error: profilesError } = await admin.from("profiles")
+      .select("id,display_name,role,status").eq("company_id", companyId).order("display_name");
+    if (profilesError) throw profilesError;
+    const profileById = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
+    let offers = (data ?? []).map((row) => mapOffer({ ...row, owner: profileById.get(row.created_by) }));
     if (filters.status === "expired") offers = offers.filter((offer) => offer.displayStatus === "expired");
     else if (filters.status === "sent") offers = offers.filter((offer) => offer.displayStatus === "sent");
     const owners = MANAGEMENT_ROLES.has(context.role)
-      ? (await admin.from("profiles").select("id,display_name").eq("company_id", companyId).eq("role", "sales_user").eq("status", "active").order("display_name")).data ?? []
+      ? (profiles ?? []).filter((profile) => profile.role === "sales_user" && profile.status === "active")
       : [];
     return { success: true as const, data: { offers, owners, canFilterOwner: MANAGEMENT_ROLES.has(context.role), total: offers.reduce((sum, offer) => sum + offer.grandTotal, 0) } };
   } catch (error) { return failure(error); }

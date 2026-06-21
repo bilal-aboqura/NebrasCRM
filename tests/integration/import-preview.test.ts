@@ -83,4 +83,12 @@ describe("facility import preview", () => {
     expect((await POST(upload(facilitySpreadsheet([])))).status).toBe(403);
     expect(state.calls).toHaveLength(0);
   });
+
+  it("surfaces the actual database error message instead of a generic fallback", async () => {
+    state.responses.set("system_settings", [{ data: null, error: { code: "42P01", message: "relation \"public.system_settings\" does not exist" } }]);
+    const response = await POST(upload(facilitySpreadsheet([])));
+    const body = await response.json();
+    expect(body.error).toBe("relation \"public.system_settings\" does not exist");
+    expect(body.error).not.toBe("تعذر تحليل ملف الاستيراد.");
+  });
 });

@@ -66,7 +66,8 @@ export async function POST(request: Request) {
     return Response.json({ batchId: batch.id, summary, rows });
   } catch (error) {
     if (error instanceof SpreadsheetParseError) return jsonError(error.message);
-    return jsonError(error instanceof Error ? error.message : "تعذر تحليل ملف الاستيراد.", 500);
+    const candidate = error as { message?: string };
+    return jsonError(candidate.message ?? "تعذر تحليل ملف الاستيراد.", 500);
   }
 }
 

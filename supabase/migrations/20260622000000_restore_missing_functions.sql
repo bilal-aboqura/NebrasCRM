@@ -216,6 +216,13 @@ for each row execute function public.prepare_facility();
 -- From 20260616000004_contact_management.sql
 -- ===========================================================================
 
+-- Ensure primary contact activity enum values exist (used by update_contact_atomic
+-- and archive_contact_atomic). These were missing from the original enum definition.
+do $$ begin
+  alter type public.facility_activity_type add value if not exists 'primary_changed';
+  alter type public.facility_activity_type add value if not exists 'primary_cleared';
+end $$;
+
 create or replace function public.prepare_contact()
 returns trigger language plpgsql as $$
 begin

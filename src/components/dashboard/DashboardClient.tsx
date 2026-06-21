@@ -1,35 +1,20 @@
-import type { DashboardData, RepPerformance } from "@/lib/actions/dashboard";
-import { isManagementRole } from "@/lib/auth/context";
-import KpiCards from "@/components/dashboard/KpiCards";
-import PipelineFunnel from "@/components/dashboard/PipelineFunnel";
-import FollowUpAlerts from "@/components/dashboard/FollowUpAlerts";
-import RecentActivityFeed from "@/components/dashboard/RecentActivityFeed";
-import TeamPerformance from "@/components/dashboard/TeamPerformance";
+import type { DashboardData, PerformancePeriod, RepPerformance } from "@/lib/actions/dashboard";
+import { FollowUpAlerts } from "./FollowUpAlerts";
+import { KpiCards } from "./KpiCards";
+import { PipelineFunnel } from "./PipelineFunnel";
+import { RecentActivityFeed } from "./RecentActivityFeed";
+import { TeamPerformance } from "./TeamPerformance";
 
-interface Props {
-  data: DashboardData;
-  teamData: RepPerformance[] | null;
-}
+const MANAGER_ROLES = new Set(["super_admin", "company_admin", "supervisor"]);
 
-export default function DashboardClient({ data, teamData }: Props) {
-  const showTeamPerformance = isManagementRole(data.role) && teamData !== null;
-
-  return (
-    <div className="space-y-6">
-      {/* US1: KPI Cards */}
-      <KpiCards kpis={data.kpis} />
-
-      {/* US1: Pipeline Funnel */}
-      <PipelineFunnel funnelData={data.funnelData} />
-
-      {/* US2: Alerts and Activity Feed side-by-side on wide screens */}
-      <div className="grid gap-5 lg:grid-cols-2">
-        <FollowUpAlerts alerts={data.alerts} />
-        <RecentActivityFeed activityFeed={data.activityFeed} />
-      </div>
-
-      {/* US3: Team Performance — management only */}
-      {showTeamPerformance && <TeamPerformance initialData={teamData} initialPeriod="month" />}
+export function DashboardClient({ data, teamPerformance = [], onPeriodChange }: { data: DashboardData; teamPerformance?: RepPerformance[]; onPeriodChange?: (period: PerformancePeriod) => Promise<RepPerformance[]> }) {
+  return <div className="space-y-5" dir="rtl">
+    <KpiCards kpis={data.kpis} />
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(20rem,0.6fr)]">
+      <PipelineFunnel data={data.funnelData} />
+      <FollowUpAlerts alerts={data.alerts} />
     </div>
-  );
+    <RecentActivityFeed activities={data.activityFeed} />
+    {MANAGER_ROLES.has(data.role) && onPeriodChange && <TeamPerformance initialData={teamPerformance} onPeriodChange={onPeriodChange} />}
+  </div>;
 }

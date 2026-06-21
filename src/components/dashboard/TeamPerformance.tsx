@@ -1,95 +1,48 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { getTeamPerformanceAction, type RepPerformance, type PerformancePeriod } from "@/lib/actions/dashboard";
+import { Users } from "lucide-react";
+import type { PerformancePeriod, RepPerformance } from "@/lib/actions/dashboard";
 
-interface Props {
-  initialData: RepPerformance[];
-  initialPeriod?: PerformancePeriod;
-}
+const PERIODS: Array<{ value: PerformancePeriod; label: string }> = [
+  { value: "week", label: "هذا الأسبوع" },
+  { value: "month", label: "هذا الشهر" },
+  { value: "quarter", label: "هذا الربع" },
+];
+const number = new Intl.NumberFormat("ar-SA");
 
-const PERIOD_LABELS: Record<PerformancePeriod, string> = {
-  week: "هذا الأسبوع",
-  month: "هذا الشهر",
-  quarter: "هذا الربع"
-};
+export function TeamPerformance({ initialData, onPeriodChange }: { initialData: RepPerformance[]; onPeriodChange: (period: PerformancePeriod) => Promise<RepPerformance[]> }) {
+  const [period, setPeriod] = useState<PerformancePeriod>("week");
+  const [rows, setRows] = useState(initialData);
+  const [error, setError] = useState("");
+  const [pending, startTransition] = useTransition();
 
-export default function TeamPerformance({ initialData, initialPeriod = "month" }: Props) {
-  const [period, setPeriod] = useState<PerformancePeriod>(initialPeriod);
-  const [data, setData] = useState<RepPerformance[]>(initialData);
-  const [isPending, startTransition] = useTransition();
-
-  function handlePeriodChange(newPeriod: PerformancePeriod) {
-    setPeriod(newPeriod);
+  function selectPeriod(next: PerformancePeriod) {
+    setPeriod(next);
+    setError("");
     startTransition(async () => {
-      const result = await getTeamPerformanceAction(newPeriod);
-      setData(result);
+      try { setRows(await onPeriodChange(next)); }
+      catch { setError("تعذر تحديث أداء الفريق. حاول مرة أخرى."); }
     });
   }
 
-  return (
-    <section id="team-performance" className="rounded-xl border border-nebras-line bg-white p-5 shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h2 className="text-base font-semibold text-nebras-ink flex items-center gap-2">
-          <span>👥</span>
-          أداء الفريق
-        </h2>
-        <div id="period-filter" role="group" aria-label="تصفية الفترة" className="flex gap-1 rounded-lg border border-nebras-line p-0.5 bg-nebras-cream">
-          {(["week", "month", "quarter"] as PerformancePeriod[]).map((p) => (
-            <button
-              key={p}
-              id={`period-${p}`}
-              onClick={() => handlePeriodChange(p)}
-              disabled={isPending}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                period === p
-                  ? "bg-nebras-green text-white shadow-sm"
-                  : "text-slate-600 hover:bg-white hover:text-nebras-ink"
-              }`}
-            >
-              {PERIOD_LABELS[p]}
-            </button>
-          ))}
-        </div>
+  return <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm" aria-labelledby="team-title">
+    <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+      <div className="flex items-center gap-3">
+        <span className="grid size-10 place-items-center rounded-xl bg-blue-50 text-blue-700"><Users aria-hidden size={20} /></span>
+        <div><h2 id="team-title" className="text-lg font-extrabold text-nebras-green">أداء الفريق</h2><p className="mt-1 text-sm text-slate-500">ملخص نشاط مندوبي المبيعات</p></div>
       </div>
-
-      {data.length === 0 ? (
-        <p className="text-center text-slate-400 py-6 text-sm">لا يوجد مندوبو مبيعات في الشركة</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table
-            id="team-performance-table"
-            className={`w-full text-sm transition-opacity ${isPending ? "opacity-50" : "opacity-100"}`}
-          >
-            <thead>
-              <tr className="border-b border-nebras-line text-xs text-slate-500">
-                <th className="pb-2 text-start font-medium">المندوب</th>
-                <th className="pb-2 text-center font-medium">المنشآت</th>
-                <th className="pb-2 text-center font-medium">المتابعات المكتملة</th>
-                <th className="pb-2 text-center font-medium">المكالمات</th>
-                <th className="pb-2 text-center font-medium">العروض المرسلة</th>
-                <th className="pb-2 text-center font-medium">العقود المبرمة</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-nebras-line">
-              {data.map((rep) => (
-                <tr key={rep.repId} className="hover:bg-nebras-cream/50 transition-colors">
-                  <td className="py-2.5 font-medium text-nebras-ink">{rep.displayName}</td>
-                  <td className="py-2.5 text-center text-slate-700">{rep.facilitiesAssigned.toLocaleString("ar-SA")}</td>
-                  <td className="py-2.5 text-center text-slate-700">{rep.followUpsCompleted.toLocaleString("ar-SA")}</td>
-                  <td className="py-2.5 text-center text-slate-700">{rep.callsLogged.toLocaleString("ar-SA")}</td>
-                  <td className="py-2.5 text-center text-slate-700">{rep.offersSent.toLocaleString("ar-SA")}</td>
-                  <td className="py-2.5 text-center">
-                    <span className={`font-semibold ${rep.contractsWon > 0 ? "text-green-600" : "text-slate-400"}`}>
-                      {rep.contractsWon.toLocaleString("ar-SA")}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </section>
-  );
+      <div className="flex rounded-xl bg-slate-100 p-1" aria-label="فترة الأداء">
+        {PERIODS.map((item) => <button key={item.value} type="button" aria-pressed={period === item.value} disabled={pending} onClick={() => selectPeriod(item.value)} className={`rounded-lg px-3 py-2 text-xs font-bold transition ${period === item.value ? "bg-white text-nebras-green shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>{item.label}</button>)}
+      </div>
+    </div>
+    {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{error}</p>}
+    <div className={`mt-5 overflow-x-auto transition-opacity ${pending ? "opacity-50" : "opacity-100"}`} aria-busy={pending}>
+      {rows.length === 0 ? <p className="rounded-xl bg-slate-50 px-4 py-10 text-center text-sm font-bold text-slate-500">لا توجد بيانات لعرضها</p> :
+        <table className="w-full min-w-[720px] text-right text-sm">
+          <thead><tr className="border-b border-slate-200 text-xs text-slate-500"><th className="px-3 py-3">المندوب</th><th className="px-3 py-3">المنشآت المسندة</th><th className="px-3 py-3">متابعات مكتملة</th><th className="px-3 py-3">اتصالات مسجلة</th><th className="px-3 py-3">عروض مرسلة</th><th className="px-3 py-3">عقود ناجحة</th></tr></thead>
+          <tbody>{rows.map((row) => <tr key={row.repId} className="border-b border-slate-100 last:border-0"><th className="px-3 py-4 font-extrabold text-slate-800">{row.displayName}</th><td className="px-3 py-4">{number.format(row.facilitiesAssigned)}</td><td className="px-3 py-4">{number.format(row.followUpsCompleted)}</td><td className="px-3 py-4">{number.format(row.callsLogged)}</td><td className="px-3 py-4">{number.format(row.offersSent)}</td><td className="px-3 py-4 font-extrabold text-emerald-700">{number.format(row.contractsWon)}</td></tr>)}</tbody>
+        </table>}
+    </div>
+  </section>;
 }

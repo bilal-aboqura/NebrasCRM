@@ -2,59 +2,42 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  color-scheme: light;
-  --surface: #fffdf6;
-  --surface-muted: #f8f4e8;
-  --border: #d8d1be;
-  --ink: #1f2933;
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+html { direction: rtl; background: #fbfaf7; scroll-behavior: smooth; }
+body { margin: 0; min-height: 100vh; color: #17352c; background: #fbfaf7; }
+button, input, select { font: inherit; }
+:focus-visible { outline: 3px solid #c4a35a; outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
 
-* {
-  box-sizing: border-box;
+@media (max-width: 1050px) {
+  .app-sidebar { width: 13rem; }
+  .app-content { margin-right: 13rem; }
+  .app-header { padding-inline: 1rem; }
 }
 
-html {
-  direction: rtl;
-}
-
-body {
-  margin: 0;
-  min-height: 100vh;
-  background: var(--surface);
-  color: var(--ink);
-  font-family: var(--font-tajawal), Tahoma, Arial, sans-serif;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
+@media (max-width: 700px) {
+  .app-sidebar { position: static; width: 100%; min-height: auto; padding: 1rem; }
+  .app-sidebar > div { margin-bottom: .75rem; }
+  .app-sidebar nav { display: flex; gap: .75rem; overflow-x: auto; }
+  .app-sidebar nav > div { display: flex; flex: 0 0 auto; gap: .25rem; border: 0; padding: 0; }
+  .app-sidebar nav > div > p { display: none; }
+  .app-sidebar nav a { flex: 0 0 auto; }
+  .app-content { margin-right: 0; }
+  .app-header { align-items: flex-start; }
+  .user-details { display: none; }
 }
 
 @media print {
-  aside,
-  header,
-  .no-print {
-    display: none !important;
-  }
-
-  body {
-    background: white;
-  }
-
-  main {
-    padding: 0 !important;
-  }
-
-  @page {
-    size: A4;
-    margin: 16mm;
-  }
+  @page { size: A4; margin: 18mm; }
+  html, body { background: #fff !important; color: #111 !important; }
+  .app-sidebar, .app-header, .no-print { display: none !important; }
+  .app-content { margin: 0 !important; }
+  .app-content main { padding: 0 !important; }
+  .print-document { max-width: none !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; padding: 0 !important; }
+  .print-document table, .print-document tr, .print-document dl { break-inside: avoid; }
 }

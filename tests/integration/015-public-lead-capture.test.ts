@@ -1,147 +1,163 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+type Response = { data?: unknown; error?: unknown };
+
+const responses = new Map<string, Response[]>();
+const calls: Array<{ table: string; method: string; args: unknown[] }> = [];
+let clientIp = "203.0.113.10";
+
+function nextResponse(table: string): Response {
+  return responses.get(table)?.shift() ?? { data: null, error: null };
+}
+
+function builder(table: string): object {
+  return new Proxy({}, {
+    get(_target, property) {
+      if (property === "then") {
+        return (resolve: (value: Response) => void) => resolve(nextResponse(table));
+      }
+      if (property === "single" || property === "maybeSingle") {
+        return () => Promise.resolve(nextResponse(table));
+      }
+      return (...args: unknown[]) => {
+        calls.push({ table, method: String(property), args });
+        return builder(table);
+      };
+    },
+  });
+}
+
+vi.mock("next/headers", () => ({
+  headers: () => ({ get: (name: string) => name === "x-forwarded-for" ? clientIp : null }),
+}));
+
+vi.mock("@/lib/supabase/admin", () => ({
+  createAdminClient: () => ({ from: (table: string) => builder(table) }),
+}));
+
 import { submitLeadAction } from "@/lib/actions/lead-capture";
-import { db } from "@/lib/data/store";
-import { headers } from "next/headers";
+import { resetRateLimitStore } from "@/lib/rate-limit/memory";
 
-let currentIp = "192.168.1.1";
+const validPayload = {
+  facilityName: "مجمع الشفاء الطبي",
+  facilityType: "medical_complex" as const,
+  city: "الرياض",
+  phone: "050 111 2233",
+};
 
-// Mock headers for IP tracking
-vi.mock("next/headers", () => {
-  return {
-    headers: vi.fn(() => new Map([["x-forwarded-for", currentIp]])),
-  };
-});
-
-describe("Public Lead Capture Server Action", () => {
-  let testCounter = 1;
+describe("public lead capture", () => {
   beforeEach(() => {
-    // Reset DB state for clean tests
-    db.facilities = [];
-    db.activities = [];
-    currentIp = `192.168.1.${testCounter++}`; // new IP for each test
+    calls.length = 0;
+    responses.clear();
+    clientIp = "203.0.113.10";
+    process.env.DEFAULT_LEAD_COMPANY_ID = "company-a";
+    resetRateLimitStore();
   });
 
-  it("should fail validation on missing fields", async () => {
-    const res = await submitLeadAction({
-      facilityName: "",
-      city: "",
-      phone: "",
-      facilityType: "",
+  it("creates a sanitized, unassigned website lead without authentication", async () => {
+    responses.set("companies", [{ data: { id: "company-a" }, error: null }]);
+    responses.set("facilities", [
+      { data: null, error: null },
+      { data: { id: "facility-new", name_ar: "مجمع الشفاء الطبي" }, error: null },
+    ]);
+    responses.set("facility_activity", [{ error: null }]);
+
+    const result = await submitLeadAction({
+      ...validPayload,
+      facilityName: "  <b>مجمع الشفاء الطبي</b>  ",
+      city: "<script>alert(1)</script>الرياض",
+      phone: "+966 50 111 2233",
     });
-    
-    expect(res.success).toBe(false);
-    expect(res.errors?.facilityName).toBeDefined();
-    expect(res.errors?.city).toBeDefined();
-    expect(res.errors?.phone).toBeDefined();
-    expect(res.errors?.facilityType).toBeDefined();
+
+    expect(result).toMatchObject({ success: true, duplicate: false });
+    const insert = calls.find((call) => call.table === "facilities" && call.method === "insert");
+    expect(insert?.args[0]).toMatchObject({
+      company_id: "company-a",
+      name_ar: "مجمع الشفاء الطبي",
+      type: "medical_complex",
+      primary_phone_normalized: "966501112233",
+      status: "new",
+      lead_source: "website_form",
+      assigned_to: null,
+      is_active: true,
+      notes: "المدينة المدخلة: الرياض",
+    });
+    expect(calls).toContainEqual(expect.objectContaining({
+      table: "facility_activity",
+      method: "insert",
+      args: [expect.objectContaining({ event_type: "created", facility_id: "facility-new" })],
+    }));
   });
 
-  it("should successfully create a new lead", async () => {
-    const res = await submitLeadAction({
-      facilityName: "مجمع النور الطبي",
-      city: "الرياض",
-      phone: "0551234567",
-      facilityType: "مجمع طبي",
+  it("returns field errors without writing invalid input", async () => {
+    const result = await submitLeadAction({ ...validPayload, facilityName: "", phone: "12345" });
+
+    expect(result).toMatchObject({
+      success: false,
+      errors: { facilityName: expect.any(Array), phone: expect.any(Array) },
     });
-
-    expect(res.success).toBe(true);
-    expect(res.duplicate).toBeUndefined();
-
-    expect(db.facilities.length).toBe(1);
-    const newFac = db.facilities[0];
-    expect(newFac.name).toBe("مجمع النور الطبي");
-    expect(newFac.primaryPhone).toBe("+966551234567");
-    expect(newFac.lead_source).toBe("website_form");
-    expect(newFac.status).toBe("new");
-    expect(newFac.ownerId).toBeNull();
-    expect(newFac.notes).toContain("المدينة المدخلة: الرياض");
-
-    expect(db.activities.length).toBe(1);
-    expect(db.activities[0].kind).toBe("facility_created");
+    expect(calls).toHaveLength(0);
   });
 
-  it("should handle active duplicates gracefully", async () => {
-    // First submission
-    await submitLeadAction({
-      facilityName: "مجمع النور الطبي",
-      city: "الرياض",
-      phone: "0551234567",
-      facilityType: "مجمع طبي",
-    });
+  it("blocks an active duplicate across all companies without exposing its id", async () => {
+    responses.set("companies", [{ data: { id: "company-a" }, error: null }]);
+    responses.set("facilities", [{ data: { id: "secret-id", is_active: true }, error: null }]);
 
-    // Second submission with same phone
-    const res = await submitLeadAction({
-      facilityName: "مجمع النور الجديد",
-      city: "جدة",
-      phone: "0551234567",
-      facilityType: "مجمع طبي",
-    });
+    const result = await submitLeadAction(validPayload);
 
-    expect(res.success).toBe(true);
-    expect(res.duplicate).toBe(true);
-    
-    // Ensure no new facility was created
-    expect(db.facilities.length).toBe(1);
+    expect(result).toMatchObject({ success: true, duplicate: true });
+    expect(JSON.stringify(result)).not.toContain("secret-id");
+    expect(calls.filter((call) => call.table === "facilities" && call.method === "insert")).toHaveLength(0);
+    expect(calls).not.toContainEqual(expect.objectContaining({
+      table: "facilities",
+      method: "eq",
+      args: ["company_id", expect.anything()],
+    }));
   });
 
-  it("should unarchive and update archived duplicates", async () => {
-    // First submission
-    await submitLeadAction({
-      facilityName: "مجمع النور القديم",
-      city: "الرياض",
-      phone: "0551234567",
-      facilityType: "مجمع طبي",
-    });
+  it("reactivates an archived duplicate in the configured company and logs recovery", async () => {
+    responses.set("companies", [{ data: { id: "company-a" }, error: null }]);
+    responses.set("facilities", [
+      { data: { id: "facility-old", is_active: false, notes: "ملاحظة سابقة" }, error: null },
+      { data: { id: "facility-old" }, error: null },
+    ]);
+    responses.set("facility_activity", [{ error: null }]);
 
-    // Manually archive it
-    db.facilities[0].isArchived = true;
-    db.facilities[0].status = "lost";
-    db.facilities[0].ownerId = "user-1";
+    const result = await submitLeadAction(validPayload);
 
-    // Second submission with same phone
-    const res = await submitLeadAction({
-      facilityName: "مجمع النور الجديد",
-      city: "جدة",
-      phone: "0551234567",
-      facilityType: "مستشفى",
-    });
-
-    expect(res.success).toBe(true);
-    expect(res.duplicate).toBeUndefined();
-    
-    expect(db.facilities.length).toBe(1);
-    const updatedFac = db.facilities[0];
-    
-    expect(updatedFac.isArchived).toBe(false);
-    expect(updatedFac.status).toBe("new");
-    expect(updatedFac.ownerId).toBeNull();
-    expect(updatedFac.name).toBe("مجمع النور الجديد");
-    expect(updatedFac.type).toBe("مستشفى");
-    expect(updatedFac.notes).toContain("المدينة المدخلة: جدة");
-    expect(updatedFac.notes).toContain("المدينة المدخلة: الرياض");
-
-    expect(db.activities.length).toBe(2);
-    expect(db.activities[1].kind).toBe("facility_reactivated");
+    expect(result).toMatchObject({ success: true, duplicate: false, recovered: true });
+    expect(calls).toContainEqual(expect.objectContaining({
+      table: "facilities",
+      method: "update",
+      args: [expect.objectContaining({
+        company_id: "company-a",
+        name_ar: validPayload.facilityName,
+        type: validPayload.facilityType,
+        status: "new",
+        assigned_to: null,
+        is_active: true,
+        archived_at: null,
+        archived_by: null,
+        notes: "ملاحظة سابقة\nالمدينة المدخلة: الرياض",
+      })],
+    }));
+    expect(calls).toContainEqual(expect.objectContaining({
+      table: "facility_activity",
+      method: "insert",
+      args: [expect.objectContaining({ event_type: "recovered", facility_id: "facility-old" })],
+    }));
   });
-  
-  it("should rate limit after 5 submissions", async () => {
-    for (let i = 0; i < 5; i++) {
-      await submitLeadAction({
-        facilityName: `Test ${i}`,
-        city: "Test",
-        phone: `055000000${i}`,
-        facilityType: "مجمع طبي",
-      });
+
+  it("rate limits the sixth submission from one IP within an hour", async () => {
+    responses.set("companies", Array.from({ length: 5 }, () => ({ data: { id: "company-a" }, error: null })));
+    responses.set("facilities", Array.from({ length: 5 }, () => ({ data: { id: "active", is_active: true }, error: null })));
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      expect(await submitLeadAction(validPayload)).toMatchObject({ success: true, duplicate: true });
     }
+    const result = await submitLeadAction(validPayload);
 
-    const res = await submitLeadAction({
-      facilityName: "Spam",
-      city: "Spam",
-      phone: "0559999999",
-      facilityType: "مجمع طبي",
-    });
-
-    expect(res.success).toBe(false);
-    expect(res.rateLimited).toBe(true);
+    expect(result).toMatchObject({ success: false, rateLimited: true });
+    expect(calls.filter((call) => call.table === "facilities" && call.method === "select")).toHaveLength(5);
   });
 });

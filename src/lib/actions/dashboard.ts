@@ -1,12 +1,50 @@
-"use server";
+import { requireAuth } from "@/lib/auth/context";
+import type { AppRole, AuthContext } from "@/lib/auth/types";
+import { createAdminClient } from "@/lib/supabase/admin";
 
-import { canManageCompanyWide, getAuthContext, isManagementRole } from "@/lib/auth/context";
-import { db } from "@/lib/data/store";
-import type { FacilityStatus, FollowUpType, Role } from "@/lib/types/domain";
+export const FACILITY_STATUSES = ["new", "contacted", "interested", "offer", "negotiation", "contract", "lost"] as const;
+export type FacilityStatus = (typeof FACILITY_STATUSES)[number];
+export type PerformancePeriod = "week" | "month" | "quarter";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+const MANAGEMENT_ROLES = new Set<AppRole>(["super_admin", "company_admin", "supervisor"]);
+const RIYADH_OFFSET_MS = 3 * 60 * 60 * 1000;
+
+const FUNNEL_META: Record<FacilityStatus, { name: string; color: string }> = {
+  new: { name: "جديد", color: "#3b82f6" },
+  contacted: { name: "تم التواصل", color: "#06b6d4" },
+  interested: { name: "مهتم", color: "#8b5cf6" },
+  offer: { name: "عرض سعر", color: "#f59e0b" },
+  negotiation: { name: "تفاوض", color: "#f97316" },
+  contract: { name: "عقد", color: "#10b981" },
+  lost: { name: "مفقود", color: "#64748b" },
+};
+
+const ACTIVITY_LABELS: Record<string, string> = {
+  created: "تمت إضافة المنشأة",
+  edited: "تم تحديث بيانات المنشأة",
+  status_change: "تم تغيير مرحلة المنشأة",
+  owner_change: "تم تغيير مسؤول المنشأة",
+  archived: "تمت أرشفة المنشأة",
+  recovered: "تمت استعادة المنشأة",
+  followup_create: "تمت جدولة متابعة",
+  followup_complete: "تم إكمال متابعة",
+  followup_reschedule: "تمت إعادة جدولة متابعة",
+  followup_cancel: "تم إلغاء متابعة",
+  followup_reassign: "تم إسناد متابعة",
+  call_logged: "تم تسجيل اتصال",
+  call_log_edited: "تم تعديل سجل اتصال",
+  offer_created: "تم إنشاء عرض سعر",
+  offer_sent: "تم إرسال عرض سعر",
+  offer_accepted: "تم قبول عرض السعر",
+  offer_rejected: "تم رفض عرض السعر",
+  contract_created: "تم إنشاء عقد",
+  contract_activated: "تم تفعيل عقد",
+  contract_completed: "تم إكمال عقد",
+  contract_terminated: "تم إنهاء عقد",
+};
+
+type FacilityRow = { id: string; name_ar: string; status: FacilityStatus; assigned_to: string | null };
+type RelatedFacility = { name_ar?: string } | Array<{ name_ar?: string }> | null;
 
 export interface DashboardData {
   kpis: {
@@ -19,17 +57,12 @@ export interface DashboardData {
     activeContractsValue: number;
     conversionRate: number;
   };
-  funnelData: Array<{
-    status: FacilityStatus;
-    name: string;
-    count: number;
-    color: string;
-  }>;
+  funnelData: Array<{ status: FacilityStatus; name: string; count: number; color: string }>;
   alerts: Array<{
     id: string;
     facilityId: string;
     facilityName: string;
-    type: FollowUpType;
+    type: string;
     dueAt: string;
     status: string;
   }>;
@@ -41,7 +74,7 @@ export interface DashboardData {
     message: string;
     createdAt: string;
   }>;
-  role: Role;
+  role: AppRole;
 }
 
 export interface RepPerformance {
@@ -54,289 +87,203 @@ export interface RepPerformance {
   contractsWon: number;
 }
 
-export type PerformancePeriod = "week" | "month" | "quarter";
+function activeCompany(context: AuthContext) {
+  const companyId = context.activeCompanyId ?? context.companyId;
+  if (!companyId) throw new Error("يرجى اختيار شركة نشطة أولاً.");
+  return companyId;
+}
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-const FUNNEL_ORDER: FacilityStatus[] = ["new", "contacted", "qualified", "proposal", "contract", "lost"];
-const FUNNEL_LABELS: Record<FacilityStatus, string> = {
-  new: "جديد",
-  contacted: "تم التواصل",
-  qualified: "مؤهل",
-  proposal: "عرض سعر",
-  contract: "عقد",
-  lost: "مفقود"
-};
-const FUNNEL_COLORS: Record<FacilityStatus, string> = {
-  new: "#6366f1",
-  contacted: "#0ea5e9",
-  qualified: "#10b981",
-  proposal: "#f59e0b",
-  contract: "#16a34a",
-  lost: "#ef4444"
-};
-
-/** Returns the current date string (YYYY-MM-DD) in Asia/Riyadh timezone */
-function riyadhDateString(date: Date = new Date()): string {
-  return new Intl.DateTimeFormat("en-CA", {
+function riyadhDateParts(now: Date) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Riyadh",
     year: "numeric",
     month: "2-digit",
-    day: "2-digit"
-  }).format(date);
+    day: "2-digit",
+  }).formatToParts(now);
+  const value = (type: string) => Number(parts.find((part) => part.type === type)?.value);
+  return { year: value("year"), month: value("month"), day: value("day") };
 }
 
-/** Returns start and end ISO timestamps for a given period in Asia/Riyadh TZ */
-function getPeriodBounds(period: PerformancePeriod): { start: string; end: string } {
-  const now = new Date();
-  const riyadhNow = new Date(
-    new Intl.DateTimeFormat("en-US", {
-      timeZone: "Asia/Riyadh",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false
-    }).format(now).replace(/(\d+)\/(\d+)\/(\d+),\s(\d+):(\d+):(\d+)/, "$3-$1-$2T$4:$5:$6")
-  );
+function riyadhMidnightUtc(year: number, monthIndex: number, day: number) {
+  return new Date(Date.UTC(year, monthIndex, day) - RIYADH_OFFSET_MS);
+}
 
-  const yyyy = riyadhNow.getFullYear();
-  const mm = riyadhNow.getMonth(); // 0-indexed
-  const dd = riyadhNow.getDate();
-  const dow = riyadhNow.getDay(); // 0=Sunday
+export function riyadhDayBounds(now = new Date()) {
+  const { year, month, day } = riyadhDateParts(now);
+  const start = riyadhMidnightUtc(year, month - 1, day);
+  const end = new Date(start.getTime() + 86_400_000);
+  return { start: start.toISOString(), end: end.toISOString(), date: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}` };
+}
 
+export function riyadhPeriodBounds(period: PerformancePeriod, now = new Date()) {
+  const { year, month, day } = riyadhDateParts(now);
   let start: Date;
   let end: Date;
 
   if (period === "week") {
-    // Sunday start
-    const sundayOffset = dow; // days since Sunday
-    start = new Date(Date.UTC(yyyy, mm, dd - sundayOffset));
-    end = new Date(Date.UTC(yyyy, mm, dd - sundayOffset + 6, 23, 59, 59, 999));
+    const localCalendarDate = new Date(Date.UTC(year, month - 1, day));
+    start = riyadhMidnightUtc(year, month - 1, day - localCalendarDate.getUTCDay());
+    end = new Date(start.getTime() + 7 * 86_400_000);
   } else if (period === "month") {
-    start = new Date(Date.UTC(yyyy, mm, 1));
-    end = new Date(Date.UTC(yyyy, mm + 1, 0, 23, 59, 59, 999));
+    start = riyadhMidnightUtc(year, month - 1, 1);
+    end = riyadhMidnightUtc(year, month, 1);
   } else {
-    // quarter
-    const quarterStart = Math.floor(mm / 3) * 3;
-    start = new Date(Date.UTC(yyyy, quarterStart, 1));
-    end = new Date(Date.UTC(yyyy, quarterStart + 3, 0, 23, 59, 59, 999));
+    const quarterStartMonth = Math.floor((month - 1) / 3) * 3;
+    start = riyadhMidnightUtc(year, quarterStartMonth, 1);
+    end = riyadhMidnightUtc(year, quarterStartMonth + 3, 1);
   }
 
-  return { start: start.toISOString(), end: end.toISOString() };
+  const localDate = (instant: Date) => new Date(instant.getTime() + RIYADH_OFFSET_MS).toISOString().slice(0, 10);
+  return { start: start.toISOString(), end: end.toISOString(), startDate: localDate(start), endDate: localDate(end) };
 }
 
-function inPeriod(isoString: string | undefined, start: string, end: string): boolean {
-  if (!isoString) return false;
-  return isoString >= start && isoString <= end;
+function relatedName(value: RelatedFacility, fallback = "منشأة") {
+  const relation = Array.isArray(value) ? value[0] : value;
+  return relation?.name_ar ?? fallback;
 }
 
-/** Check if a dueAt ISO string is overdue or due today (in Riyadh TZ) */
-function isOverdueOrDueToday(dueAt: string): boolean {
-  const today = riyadhDateString();
-  const dueDate = dueAt.slice(0, 10); // YYYY-MM-DD
-  return dueDate <= today;
+function emptyStageCounts(): Record<FacilityStatus, number> {
+  return Object.fromEntries(FACILITY_STATUSES.map((status) => [status, 0])) as Record<FacilityStatus, number>;
 }
 
-// ---------------------------------------------------------------------------
-// T003/T004: Authorization context helper + scoped facility fetch
-// ---------------------------------------------------------------------------
-
-async function getScopedActiveFacilityIds(companyId: string, userId: string, isManager: boolean): Promise<Set<string>> {
-  const facilities = db.facilities.filter((f) => {
-    if (f.isArchived) return false;
-    if (f.companyId !== companyId) return false;
-    if (!isManager && f.ownerId !== userId) return false;
-    return true;
-  });
-  return new Set(facilities.map((f) => f.id));
+async function rows<T>(query: PromiseLike<{ data: T[] | null; error: { message: string } | null }>): Promise<T[]> {
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  return data ?? [];
 }
 
-// ---------------------------------------------------------------------------
-// T006: getDashboardData — KPI cards, funnel, alerts, activity feed
-// ---------------------------------------------------------------------------
+export async function getDashboardData(now = new Date()): Promise<DashboardData> {
+  const context = await requireAuth();
+  const companyId = activeCompany(context);
+  const admin = createAdminClient();
+  let facilitiesQuery = admin.from("facilities")
+    .select("id,name_ar,status,assigned_to")
+    .eq("company_id", companyId)
+    .eq("is_active", true);
+  if (context.role === "sales_user") facilitiesQuery = facilitiesQuery.eq("assigned_to", context.userId);
+  const facilities = await rows<FacilityRow>(facilitiesQuery);
+  const facilityIds = facilities.map((facility) => facility.id);
+  const day = riyadhDayBounds(now);
 
-export async function getDashboardData(): Promise<DashboardData> {
-  const context = await getAuthContext();
-  const { user, activeCompany, role } = context;
-  const isManager = canManageCompanyWide(role);
-
-  // Scoped non-archived facilities
-  const scopedFacilities = db.facilities.filter((f) => {
-    if (f.isArchived) return false;
-    // super_admin sees the active company they're acting on
-    if (f.companyId !== activeCompany.id) return false;
-    if (!isManager && f.ownerId !== user.id) return false;
-    return true;
-  });
-
-  const scopedFacilityIds = new Set(scopedFacilities.map((f) => f.id));
-
-  // --- KPI: Stage counts ---
-  const stageCounts: Record<FacilityStatus, number> = {
-    new: 0,
-    contacted: 0,
-    qualified: 0,
-    proposal: 0,
-    contract: 0,
-    lost: 0
-  };
-  for (const f of scopedFacilities) {
-    stageCounts[f.status] = (stageCounts[f.status] ?? 0) + 1;
+  const stageCounts = emptyStageCounts();
+  for (const facility of facilities) {
+    if (facility.status in stageCounts) stageCounts[facility.status] += 1;
   }
 
-  // --- KPI: Total facilities ---
-  const totalFacilities = scopedFacilities.length;
-
-  // --- KPI: Overdue follow-ups ---
-  const today = riyadhDateString();
-  const overdueFollowUps = db.followUps.filter((fu) => {
-    if (fu.status !== "pending") return false;
-    if (!scopedFacilityIds.has(fu.facilityId)) return false;
-    const dueDate = fu.dueAt.slice(0, 10);
-    return dueDate <= today;
-  }).length;
-
-  // --- KPI: Pending offers ---
-  const pendingOffers = db.offers.filter((o) => {
-    if (o.status !== "sent") return false;
-    if (o.isActive === false) return false;
-    if (!scopedFacilityIds.has(o.facilityId)) return false;
-    // Not expired
-    return o.validUntil >= today;
-  });
-  const pendingOffersCount = pendingOffers.length;
-  const pendingOffersValue = pendingOffers.reduce((sum, o) => sum + o.total, 0);
-
-  // --- KPI: Active contracts ---
-  const activeContracts = db.contracts.filter((c) => {
-    if (c.status !== "active") return false;
-    if (c.isActive === false) return false;
-    if (!scopedFacilityIds.has(c.facilityId)) return false;
-    return true;
-  });
-  const activeContractsCount = activeContracts.length;
-  const activeContractsValue = activeContracts.reduce((sum, c) => sum + c.value, 0);
-
-  // --- KPI: Conversion rate ---
-  const contractFacilities = scopedFacilities.filter((f) => f.status === "contract").length;
-  const conversionRate = totalFacilities > 0 ? Math.round((contractFacilities / totalFacilities) * 1000) / 10 : 0;
-
-  // --- Funnel data ---
-  const funnelData = FUNNEL_ORDER.map((status) => ({
-    status,
-    name: FUNNEL_LABELS[status],
-    count: stageCounts[status],
-    color: FUNNEL_COLORS[status]
-  }));
-
-  // --- Follow-up alerts (top 10, overdue/due-today, ordered by dueAt asc) ---
-  const alerts = db.followUps
-    .filter((fu) => {
-      if (fu.status !== "pending") return false;
-      if (!scopedFacilityIds.has(fu.facilityId)) return false;
-      return isOverdueOrDueToday(fu.dueAt);
-    })
-    .sort((a, b) => a.dueAt.localeCompare(b.dueAt))
-    .slice(0, 10)
-    .map((fu) => {
-      const facility = db.facilities.find((f) => f.id === fu.facilityId);
-      return {
-        id: fu.id,
-        facilityId: fu.facilityId,
-        facilityName: facility?.name ?? fu.facilityId,
-        type: fu.type,
-        dueAt: fu.dueAt,
-        status: fu.status
-      };
-    });
-
-  // --- Activity feed (latest 15, scoped, ordered newest first) ---
-  const activityFeed = db.activities
-    .filter((a) => {
-      if (a.companyId !== activeCompany.id) return false;
-      if (!scopedFacilityIds.has(a.facilityId)) return false;
-      return true;
-    })
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    .slice(0, 15)
-    .map((a) => {
-      const facility = db.facilities.find((f) => f.id === a.facilityId);
-      return {
-        id: a.id,
-        facilityId: a.facilityId,
-        facilityName: facility?.name ?? a.facilityId,
-        kind: a.kind,
-        message: a.message,
-        createdAt: a.createdAt
-      };
-    });
-
-  return {
-    kpis: { totalFacilities, stageCounts, overdueFollowUps, pendingOffersCount, pendingOffersValue, activeContractsCount, activeContractsValue, conversionRate },
-    funnelData,
-    alerts,
-    activityFeed,
-    role
-  };
-}
-
-// ---------------------------------------------------------------------------
-// T017: getTeamPerformanceAction — management only
-// ---------------------------------------------------------------------------
-
-export async function getTeamPerformanceAction(period: PerformancePeriod): Promise<RepPerformance[]> {
-  const context = await getAuthContext();
-  const { activeCompany, role } = context;
-
-  if (!isManagementRole(role)) {
-    throw new Error("403 Forbidden: Team Performance is restricted to management roles");
-  }
-
-  const { start, end } = getPeriodBounds(period);
-
-  // All sales_user profiles in the active company
-  const reps = db.profiles.filter((p) => p.role === "sales_user" && p.companyId === activeCompany.id && p.status === "active");
-
-  return reps.map((rep) => {
-    // Facilities assigned: all active non-archived facilities owned by rep (ignores period)
-    const ownedFacilities = db.facilities.filter(
-      (f) => f.companyId === activeCompany.id && !f.isArchived && f.ownerId === rep.id
-    );
-    const ownedFacilityIds = new Set(ownedFacilities.map((f) => f.id));
-
-    // Follow-ups completed: status=done, dueAt in period, owned by rep
-    const followUpsCompleted = db.followUps.filter(
-      (fu) => fu.ownerId === rep.id && fu.status === "done" && inPeriod(fu.dueAt, start, end)
-    ).length;
-
-    // Calls logged: occurredAt in period, facilityId owned by rep
-    const callsLogged = db.callLogs.filter(
-      (cl) => ownedFacilityIds.has(cl.facilityId) && inPeriod(cl.occurredAt, start, end)
-    ).length;
-
-    // Offers sent: ownerId=rep, sentAt in period
-    const offersSent = db.offers.filter(
-      (o) => o.ownerId === rep.id && inPeriod(o.sentAt, start, end)
-    ).length;
-
-    // Contracts won: ownerId=rep, status=active, startDate in period
-    const contractsWon = db.contracts.filter(
-      (c) => c.ownerId === rep.id && c.status === "active" && inPeriod(c.startDate, start, end)
-    ).length;
-
+  if (facilityIds.length === 0) {
     return {
-      repId: rep.id,
-      displayName: rep.displayName,
-      facilitiesAssigned: ownedFacilities.length,
-      followUpsCompleted,
-      callsLogged,
-      offersSent,
-      contractsWon
+      kpis: {
+        totalFacilities: 0, stageCounts, overdueFollowUps: 0,
+        pendingOffersCount: 0, pendingOffersValue: 0,
+        activeContractsCount: 0, activeContractsValue: 0, conversionRate: 0,
+      },
+      funnelData: FACILITY_STATUSES.map((status) => ({ status, ...FUNNEL_META[status], count: 0 })),
+      alerts: [], activityFeed: [], role: context.role,
     };
-  });
+  }
+
+  const [followUps, offers, contracts, activities] = await Promise.all([
+    rows<{ id: string; facility_id: string; type: string; due_at: string; status: string; facilities: RelatedFacility }>(
+      admin.from("followups").select("id,facility_id,type,due_at,status,facilities!inner(name_ar)")
+        .eq("company_id", companyId).in("facility_id", facilityIds).eq("status", "pending")
+        .lt("due_at", day.end).order("due_at", { ascending: true }).limit(10),
+    ),
+    rows<{ facility_id: string; grand_total: number | string }>(
+      admin.from("offers").select("facility_id,grand_total").eq("company_id", companyId)
+        .in("facility_id", facilityIds).eq("status", "sent").eq("is_active", true)
+        .eq("is_superseded", false).gte("valid_until", day.date),
+    ),
+    rows<{ facility_id: string; value: number | string }>(
+      admin.from("contracts").select("facility_id,value").eq("company_id", companyId)
+        .in("facility_id", facilityIds).eq("status", "active").eq("is_active", true).eq("is_superseded", false),
+    ),
+    rows<{ id: string; facility_id: string; event_type: string; new_value: string | null; created_at: string; facilities: RelatedFacility }>(
+      admin.from("facility_activity").select("id,facility_id,event_type,new_value,created_at,facilities!inner(name_ar)")
+        .eq("company_id", companyId).in("facility_id", facilityIds)
+        .order("created_at", { ascending: false }).limit(15),
+    ),
+  ]);
+
+  const totalFacilities = facilities.length;
+  return {
+    kpis: {
+      totalFacilities,
+      stageCounts,
+      overdueFollowUps: followUps.length,
+      pendingOffersCount: offers.length,
+      pendingOffersValue: offers.reduce((sum, offer) => sum + Number(offer.grand_total || 0), 0),
+      activeContractsCount: contracts.length,
+      activeContractsValue: contracts.reduce((sum, contract) => sum + Number(contract.value || 0), 0),
+      conversionRate: totalFacilities === 0 ? 0 : Number(((stageCounts.contract / totalFacilities) * 100).toFixed(1)),
+    },
+    funnelData: FACILITY_STATUSES.map((status) => ({ status, ...FUNNEL_META[status], count: stageCounts[status] })),
+    alerts: followUps.map((followUp) => ({
+      id: followUp.id,
+      facilityId: followUp.facility_id,
+      facilityName: relatedName(followUp.facilities),
+      type: followUp.type,
+      dueAt: followUp.due_at,
+      status: followUp.status,
+    })),
+    activityFeed: activities.map((activity) => ({
+      id: activity.id,
+      facilityId: activity.facility_id,
+      facilityName: relatedName(activity.facilities),
+      kind: activity.event_type,
+      message: ACTIVITY_LABELS[activity.event_type] ?? activity.new_value ?? "تم تحديث المنشأة",
+      createdAt: activity.created_at,
+    })),
+    role: context.role,
+  };
+}
+
+export async function getTeamPerformanceAction(period: PerformancePeriod, now = new Date()): Promise<RepPerformance[]> {
+  const context = await requireAuth();
+  if (!MANAGEMENT_ROLES.has(context.role)) throw new Error("غير مصرح لك بعرض أداء الفريق.");
+  if (!(["week", "month", "quarter"] as string[]).includes(period)) throw new Error("الفترة المحددة غير صالحة.");
+
+  const companyId = activeCompany(context);
+  const admin = createAdminClient();
+  const bounds = riyadhPeriodBounds(period, now);
+  const [profiles, facilities] = await Promise.all([
+    rows<{ id: string; display_name: string }>(admin.from("profiles").select("id,display_name")
+      .eq("company_id", companyId).eq("role", "sales_user").eq("status", "active").order("display_name")),
+    rows<FacilityRow>(admin.from("facilities").select("id,name_ar,status,assigned_to")
+      .eq("company_id", companyId).eq("is_active", true)),
+  ]);
+  if (profiles.length === 0) return [];
+
+  const facilityIds = facilities.map((facility) => facility.id);
+  const [followUps, callLogs, offers, contracts] = facilityIds.length === 0
+    ? [[], [], [], []]
+    : await Promise.all([
+      rows<{ assigned_to: string }>(admin.from("followups").select("assigned_to")
+        .eq("company_id", companyId).in("facility_id", facilityIds).eq("status", "done")
+        .gte("due_at", bounds.start).lt("due_at", bounds.end)),
+      rows<{ facility_id: string }>(admin.from("call_logs").select("facility_id")
+        .eq("company_id", companyId).in("facility_id", facilityIds).eq("is_archived", false)
+        .gte("occurred_at", bounds.start).lt("occurred_at", bounds.end)),
+      rows<{ facility_id: string }>(admin.from("offers").select("facility_id")
+        .eq("company_id", companyId).in("facility_id", facilityIds).eq("status", "sent")
+        .eq("is_active", true).eq("is_superseded", false)
+        .gte("sent_at", bounds.start).lt("sent_at", bounds.end)),
+      rows<{ facility_id: string }>(admin.from("contracts").select("facility_id")
+        .eq("company_id", companyId).in("facility_id", facilityIds).eq("status", "active")
+        .eq("is_active", true).eq("is_superseded", false)
+        .gte("start_date", bounds.startDate).lt("start_date", bounds.endDate)),
+    ] as const);
+
+  const ownerByFacility = new Map(facilities.map((facility) => [facility.id, facility.assigned_to]));
+  const ownerCount = (records: Array<{ facility_id: string }>, repId: string) =>
+    records.filter((record) => ownerByFacility.get(record.facility_id) === repId).length;
+
+  return profiles.map((profile) => ({
+    repId: profile.id,
+    displayName: profile.display_name,
+    facilitiesAssigned: facilities.filter((facility) => facility.assigned_to === profile.id).length,
+    followUpsCompleted: followUps.filter((followUp) => followUp.assigned_to === profile.id).length,
+    callsLogged: ownerCount(callLogs, profile.id),
+    offersSent: ownerCount(offers, profile.id),
+    contractsWon: ownerCount(contracts, profile.id),
+  }));
 }

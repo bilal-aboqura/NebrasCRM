@@ -1,18 +1,23 @@
-import type { Facility, Role } from "@/lib/types/domain";
-import { canManageCompanyWide } from "@/lib/auth/context";
+import type { AuthContext } from "./types";
 
-export function scopeByCompany<T extends { companyId: string }>(rows: T[], companyId: string, role: Role) {
-  return role === "super_admin" ? rows : rows.filter((row) => row.companyId === companyId);
+export class TenantAccessError extends Error {
+  readonly status = 403;
+  constructor() { super("غير مصرح لك بالوصول إلى بيانات هذه الشركة."); }
 }
 
-export function scopeFacilitiesForUser(rows: Facility[], companyId: string, role: Role, userId: string) {
-  const companyRows = scopeByCompany(rows, companyId, role);
-  if (canManageCompanyWide(role)) return companyRows;
-  return companyRows.filter((facility) => facility.ownerId === userId);
+export function effectiveCompanyId(context: Pick<AuthContext, "role" | "companyId" | "activeCompanyId">) {
+  const companyId = context.role === "super_admin" ? context.activeCompanyId : context.companyId;
+  if (!companyId) throw new TenantAccessError();
+  return companyId;
 }
 
-export function requireTenantMatch(rowCompanyId: string, activeCompanyId: string, role: Role) {
-  if (role !== "super_admin" && rowCompanyId !== activeCompanyId) {
-    throw new Error("403 Forbidden: cross-tenant access denied");
-  }
+export function assertTenantAccess(context: Pick<AuthContext, "role" | "companyId" | "activeCompanyId">, requestedCompanyId: string) {
+  if (effectiveCompanyId(context) !== requestedCompanyId) throw new TenantAccessError();
+  return requestedCompanyId;
 }
+
+export function scopeToTenant<T extends { company_id: string }>(context: Pick<AuthContext, "role" | "companyId" | "activeCompanyId">, records: readonly T[]) {
+  const companyId = effectiveCompanyId(context);
+  return records.filter((record) => record.company_id === companyId);
+}
+

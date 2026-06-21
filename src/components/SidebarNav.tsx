@@ -1,38 +1,62 @@
 "use client";
 
-import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, Building2, CalendarClock, FileCheck2, FileText, LayoutDashboard, PhoneCall, Settings, Users } from "lucide-react";
-import type { Role } from "@/lib/types/domain";
+import {
+  BarChart3,
+  Building2,
+  CalendarCheck2,
+  Columns3,
+  FileText,
+  LayoutDashboard,
+  UserRoundCog,
+  Users,
+} from "lucide-react";
+import type { AppRole } from "@/lib/auth/types";
+import { canAccessPath } from "@/lib/auth/rbac-guards";
 
-const navItems = [
-  { href: "/reports", label: "التقارير", icon: BarChart3, roles: ["super_admin", "company_admin", "supervisor", "sales_user"] },
-  { href: "/dashboard", label: "الرئيسية", icon: LayoutDashboard, roles: ["super_admin", "company_admin", "supervisor", "sales_user"] },
-  { href: "/dashboard/facilities", label: "المنشآت", icon: Building2, roles: ["super_admin", "company_admin", "supervisor", "sales_user"] },
-  { href: "/dashboard/pipeline", label: "لوحة المبيعات", icon: LayoutDashboard, roles: ["super_admin", "company_admin", "supervisor", "sales_user"] },
-  { href: "/dashboard/followups", label: "المتابعات", icon: CalendarClock, roles: ["super_admin", "company_admin", "supervisor", "sales_user"] },
-  { href: "/dashboard/offers", label: "العروض", icon: FileText, roles: ["super_admin", "company_admin", "supervisor", "sales_user"] },
-  { href: "/dashboard/contracts", label: "العقود", icon: FileCheck2, roles: ["super_admin", "company_admin", "supervisor", "sales_user"] },
-  { href: "/admin/companies", label: "الشركات", icon: Settings, roles: ["super_admin"] },
-  { href: "/admin/users", label: "المستخدمون", icon: Users, roles: ["super_admin", "company_admin"] },
-  { href: "/dashboard/facilities/fac-1", label: "سجل التواصل", icon: PhoneCall, roles: ["super_admin", "company_admin", "supervisor", "sales_user"] }
-] satisfies Array<{ href: string; label: string; icon: typeof LayoutDashboard; roles: Role[] }>;
+const mainItems = [
+  { href: "/dashboard", label: "لوحة التحكم", icon: LayoutDashboard },
+  { href: "/dashboard/facilities", label: "المنشآت", icon: Building2 },
+  { href: "/dashboard/pipeline", label: "المسار", icon: Columns3 },
+  { href: "/dashboard/followups", label: "المتابعات", icon: CalendarCheck2 },
+  { href: "/dashboard/offers", label: "العروض", icon: FileText },
+  { href: "/dashboard/contracts", label: "العقود", icon: FileText },
+  { href: "/admin/users", label: "الفريق", icon: Users },
+  { href: "/reports", label: "التقارير", icon: BarChart3 },
+] as const;
 
-export default function SidebarNav({ role }: { role: Role }) {
+const accountItems = [
+  { href: "/admin/companies", label: "الشركات", icon: Building2 },
+  { href: "/profile", label: "الملف الشخصي", icon: UserRoundCog },
+] as const;
+
+function isActive(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+export function SidebarNav({ role }: { role: AppRole }) {
   const pathname = usePathname();
-  return (
-    <nav className="space-y-1">
-      {navItems.filter((item) => item.roles.includes(role)).map((item) => {
-        const Icon = item.icon;
-        const active = item.href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(item.href);
-        return (
-          <Link key={item.href} href={item.href} className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium ${active ? "bg-nebras-gold text-nebras-green" : "text-white/85 hover:bg-white/10"}`}>
-            <Icon size={18} />
-            <span>{item.label}</span>
-          </Link>
-        );
-      })}
-    </nav>
-  );
+  const renderItems = (items: typeof mainItems | typeof accountItems) => items
+    .filter((item) => canAccessPath(role, item.href))
+    .map(({ href, label, icon: Icon }) => {
+      const active = isActive(pathname, href);
+      return <Link
+        key={href}
+        href={href}
+        aria-current={active ? "page" : undefined}
+        className={`flex items-center gap-3 rounded-xl px-4 py-3 font-bold transition-colors ${active ? "bg-nebras-gold text-nebras-green shadow-sm" : "text-white hover:bg-white/10"}`}
+      >
+        <Icon aria-hidden size={20} />
+        <span>{label}</span>
+      </Link>;
+    });
+
+  return <nav aria-label="التنقل الرئيسي" className="space-y-6">
+    <div className="space-y-1">{renderItems(mainItems)}</div>
+    <div className="space-y-1 border-t border-white/15 pt-5">
+      <p className="px-4 pb-1 text-xs font-bold text-white/60">الحساب والإدارة</p>
+      {renderItems(accountItems)}
+    </div>
+  </nav>;
 }

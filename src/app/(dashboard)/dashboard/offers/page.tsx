@@ -1,48 +1,16 @@
 import Link from "next/link";
-import { getOfferDisplayStatus, getOffers } from "@/lib/actions/offers";
-import { formatSar } from "@/lib/data/store";
-import { contacts, facilities, profiles } from "@/lib/data/mock";
-import { offerStatusLabels } from "@/lib/i18n";
-import ExportButton from "@/app/(dashboard)/dashboard/facilities/components/ExportButton";
+import { getOffersDirectory, type OfferDisplayStatus } from "@/lib/actions/offers";
+import { OFFER_STATUS_LABELS } from "@/lib/utils/offers";
+import { ExportButton } from "@/app/(dashboard)/dashboard/facilities/components/ExportButton";
 
-export default async function OffersPage({ searchParams }: { searchParams?: { status?: string; ownerId?: string } }) {
-  const rows = await getOffers({ status: (searchParams?.status as never) ?? "all", ownerId: searchParams?.ownerId });
-  const total = rows.reduce((sum, offer) => sum + offer.total, 0);
-  return (
-    <section className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-nebras-green">العروض</h1>
-        <div className="flex items-center gap-2">
-          <p className="rounded-lg border border-nebras-line bg-white px-4 py-2 font-bold">{formatSar(total)}</p>
-          <ExportButton exportUrl="/api/offers/export" label="تصدير Excel" />
-        </div>
-      </div>
-      <form className="flex flex-wrap gap-2 rounded-lg border border-nebras-line bg-white p-3">
-        <select name="status" defaultValue={searchParams?.status ?? "all"} className="rounded-md border border-nebras-line px-3 py-2">
-          <option value="all">كل الحالات</option><option value="draft">مسودة</option><option value="sent">مرسل</option><option value="expired">منتهي الصلاحية</option><option value="accepted">مقبول</option>
-        </select>
-        <select name="ownerId" defaultValue={searchParams?.ownerId ?? ""} className="rounded-md border border-nebras-line px-3 py-2">
-          <option value="">كل المندوبين</option>
-          {profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.displayName}</option>)}
-        </select>
-        <button className="rounded-md bg-nebras-green px-4 py-2 text-white">تصفية</button>
-      </form>
-      <div className="overflow-hidden rounded-lg border border-nebras-line bg-white">
-        <table className="w-full text-sm">
-          <thead className="bg-nebras-cream text-nebras-green"><tr><th className="p-3 text-right">العرض</th><th className="p-3 text-right">المنشأة</th><th className="p-3 text-right">جهة الاتصال</th><th className="p-3 text-right">القيمة</th><th className="p-3 text-right">الحالة</th></tr></thead>
-          <tbody>
-            {rows.map((offer) => (
-              <tr key={offer.id} className="border-t border-nebras-line">
-                <td className="p-3"><Link href={`/dashboard/offers/${offer.id}/print`}>{offer.title ?? offer.id}</Link></td>
-                <td className="p-3">{facilities.find((facility) => facility.id === offer.facilityId)?.name}</td>
-                <td className="p-3">{contacts.find((contact) => contact.id === offer.contactId)?.name ?? "-"}</td>
-                <td className="p-3">{formatSar(offer.total)}</td>
-                <td className="p-3">{offerStatusLabels[getOfferDisplayStatus(offer)]}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
+const labels = OFFER_STATUS_LABELS;
+export default async function OffersPage({ searchParams }: { searchParams?: { status?: string; owner?: string } }) {
+  const status = (searchParams?.status ?? "") as OfferDisplayStatus | "";
+  const result = await getOffersDirectory({ status, ownerId: searchParams?.owner });
+  if (!result.success) return <section dir="rtl"><h1 className="text-3xl font-extrabold text-nebras-green">العروض</h1><p className="mt-6 rounded-xl bg-red-50 p-4 text-red-700">{result.error.message}</p></section>;
+  return <section className="space-y-6" dir="rtl"><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="font-bold text-nebras-gold">المبيعات</p><h1 className="text-3xl font-extrabold text-nebras-green">العروض</h1></div><ExportButton endpoint="/api/offers/export" params={searchParams ?? {}} /></div>
+    <form className="flex flex-wrap gap-3 rounded-2xl bg-white p-4 shadow-sm"><label className="font-bold">الحالة<select name="status" defaultValue={status} className="mr-2 rounded-xl border bg-white px-3 py-2 font-normal"><option value="">الكل</option>{Object.entries(labels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>{result.data.canFilterOwner && <label className="font-bold">المسؤول<select name="owner" defaultValue={searchParams?.owner ?? ""} className="mr-2 rounded-xl border bg-white px-3 py-2 font-normal"><option value="">الكل</option>{result.data.owners.map((owner: any) => <option key={owner.id} value={owner.id}>{owner.display_name}</option>)}</select></label>}<button className="rounded-xl bg-nebras-green px-5 py-2 font-bold text-white">تطبيق</button></form>
+    <div className="overflow-x-auto rounded-2xl bg-white shadow-sm"><table className="w-full min-w-[850px] text-right"><thead className="bg-slate-50 text-sm"><tr><th className="p-4">العرض</th><th className="p-4">المنشأة</th><th className="p-4">جهة الاتصال</th><th className="p-4">المسؤول</th><th className="p-4">الصلاحية</th><th className="p-4">الحالة</th><th className="p-4">القيمة</th></tr></thead><tbody>{result.data.offers.map((offer) => <tr key={offer.id} className="border-t"><td className="p-4"><Link className="font-bold text-nebras-green hover:underline" href={`/dashboard/facilities/${offer.facilityId}`}>{offer.title} <small>v{offer.version}</small></Link></td><td className="p-4">{offer.facilityName}</td><td className="p-4">{offer.contactName ?? "—"}</td><td className="p-4">{offer.ownerName ?? "—"}</td><td className="p-4">{offer.validUntil}</td><td className="p-4"><span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-bold">{labels[offer.displayStatus]}</span></td><td className="p-4 font-extrabold">{offer.grandTotal.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ر.س</td></tr>)}</tbody></table>{!result.data.offers.length && <p className="p-8 text-center text-slate-500">لا توجد عروض مطابقة.</p>}</div>
+    <div className="rounded-2xl bg-nebras-green p-5 text-white"><span>إجمالي العروض المفلترة</span><strong className="mr-4 text-2xl text-nebras-gold">{result.data.total.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ر.س</strong></div>
+  </section>;
 }

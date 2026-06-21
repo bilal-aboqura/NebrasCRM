@@ -1,28 +1,21 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  content: ["./src/**/*.{ts,tsx}"],
+  content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
   theme: {
     extend: {
       colors: {
         nebras: {
-          green: "#123c2e",
-          gold: "#c7a44a",
-          cream: "#f8f4e8",
-          ink: "#1f2933",
-          line: "#d8d1be"
-        }
+          green: "#003d2f",
+          gold: "#c4a35a",
+          cream: "#fbfaf7",
+        },
       },
-      fontFamily: {
-        tajawal: ["var(--font-tajawal)", "Tahoma", "Arial", "sans-serif"]
-      },
-      screens: {
-        shell: "1050px",
-        compact: "700px"
-      }
-    }
+      fontFamily: { sans: ["var(--font-tajawal)", "Tahoma", "sans-serif"] },
+    },
   },
-  plugins: []
+  plugins: [],
 };
 
 export default config;
+

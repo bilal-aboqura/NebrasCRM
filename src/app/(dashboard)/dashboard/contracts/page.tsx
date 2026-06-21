@@ -1,32 +1,13 @@
-import { getContracts, getContractDisplayStatus } from "@/lib/actions/contracts";
-import { facilities, profiles } from "@/lib/data/mock";
-import { formatSar } from "@/lib/data/store";
-import { contractStatusLabels } from "@/lib/i18n";
-import ExportButton from "@/app/(dashboard)/dashboard/facilities/components/ExportButton";
+import Link from "next/link";
+import { getContractsDirectory, type ContractDisplayStatus } from "@/lib/actions/contracts";
+import { CONTRACT_STATUS_LABELS } from "@/lib/utils/contracts";
+import { ExportButton } from "@/app/(dashboard)/dashboard/facilities/components/ExportButton";
 
-export default async function ContractsPage({ searchParams }: { searchParams?: { status?: string; ownerId?: string } }) {
-  const rows = await getContracts({ status: (searchParams?.status as never) ?? "all", ownerId: searchParams?.ownerId });
-  const total = rows.reduce((sum, contract) => sum + contract.value, 0);
-  return (
-    <section className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-nebras-green">العقود</h1>
-        <div className="flex items-center gap-2">
-          <p className="rounded-lg border border-nebras-line bg-white px-4 py-2 font-bold">{formatSar(total)}</p>
-          <ExportButton exportUrl="/api/contracts/export" label="تصدير Excel" />
-        </div>
-      </div>
-      <form className="flex flex-wrap gap-2 rounded-lg border border-nebras-line bg-white p-3">
-        <select name="status" defaultValue={searchParams?.status ?? "all"} className="rounded-md border border-nebras-line px-3 py-2"><option value="all">كل الحالات</option><option value="draft">مسودة</option><option value="active">نشط</option><option value="completed">مكتمل</option></select>
-        <select name="ownerId" defaultValue={searchParams?.ownerId ?? ""} className="rounded-md border border-nebras-line px-3 py-2"><option value="">كل المندوبين</option>{profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.displayName}</option>)}</select>
-        <button className="rounded-md bg-nebras-green px-4 py-2 text-white">تصفية</button>
-      </form>
-      <div className="overflow-hidden rounded-lg border border-nebras-line bg-white">
-        <table className="w-full text-sm">
-          <thead className="bg-nebras-cream text-nebras-green"><tr><th className="p-3 text-right">المرجع</th><th className="p-3 text-right">المنشأة</th><th className="p-3 text-right">القيمة</th><th className="p-3 text-right">الحالة</th></tr></thead>
-          <tbody>{rows.map((contract) => <tr key={contract.id} className="border-t border-nebras-line"><td className="p-3">{contract.referenceNumber}</td><td className="p-3">{facilities.find((facility) => facility.id === contract.facilityId)?.name}</td><td className="p-3">{formatSar(contract.value)}</td><td className="p-3">{contractStatusLabels[getContractDisplayStatus(contract)]}</td></tr>)}</tbody>
-        </table>
-      </div>
-    </section>
-  );
+export default async function ContractsPage({ searchParams }: { searchParams?: { status?: string; owner?: string } }) {
+  const status = (searchParams?.status ?? "") as ContractDisplayStatus | "";
+  const result = await getContractsDirectory({ status, ownerId: searchParams?.owner });
+  if (!result.success) return <section dir="rtl"><h1 className="text-3xl font-extrabold text-nebras-green">العقود</h1><p className="mt-6 rounded-xl bg-red-50 p-4 text-red-700">{result.error.message}</p></section>;
+  return <section className="space-y-6" dir="rtl"><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="font-bold text-nebras-gold">المبيعات</p><h1 className="text-3xl font-extrabold text-nebras-green">العقود</h1></div><ExportButton endpoint="/api/contracts/export" params={searchParams ?? {}} /></div><form className="flex flex-wrap gap-3 rounded-2xl bg-white p-4 shadow-sm"><label className="font-bold">الحالة<select name="status" defaultValue={status} className="mr-2 rounded-xl border bg-white px-3 py-2 font-normal"><option value="">الكل</option>{Object.entries(CONTRACT_STATUS_LABELS).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label>{result.data.canFilterOwner && <label className="font-bold">المسؤول<select name="owner" defaultValue={searchParams?.owner ?? ""} className="mr-2 rounded-xl border bg-white px-3 py-2 font-normal"><option value="">الكل</option>{result.data.owners.map((owner:any) => <option key={owner.id} value={owner.id}>{owner.display_name}</option>)}</select></label>}<button className="rounded-xl bg-nebras-green px-5 py-2 font-bold text-white">تطبيق</button></form>
+    <div className="overflow-x-auto rounded-2xl bg-white shadow-sm"><table className="w-full min-w-[900px] text-right"><thead className="bg-slate-50 text-sm"><tr><th className="p-4">العقد</th><th className="p-4">المنشأة</th><th className="p-4">جهة الاتصال</th><th className="p-4">المسؤول</th><th className="p-4">الفترة</th><th className="p-4">الحالة</th><th className="p-4">القيمة</th></tr></thead><tbody>{result.data.contracts.map((contract) => <tr key={contract.id} className="border-t"><td className="p-4"><Link href={`/dashboard/facilities/${contract.facilityId}`} className="font-bold text-nebras-green hover:underline">{contract.referenceNumber}<small className="mr-2">v{contract.version}</small><span className="block font-normal text-slate-600">{contract.title}</span></Link></td><td className="p-4">{contract.facilityName}</td><td className="p-4">{contract.contactName ?? "—"}</td><td className="p-4">{contract.ownerName ?? "—"}</td><td className="p-4">{contract.startDate}<br />{contract.endDate}</td><td className="p-4"><span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-bold">{CONTRACT_STATUS_LABELS[contract.displayStatus]}</span></td><td className="p-4 font-extrabold">{contract.value.toLocaleString("ar-SA",{minimumFractionDigits:2})} ر.س</td></tr>)}</tbody></table>{!result.data.contracts.length && <p className="p-8 text-center text-slate-500">لا توجد عقود مطابقة.</p>}</div><div className="rounded-2xl bg-nebras-green p-5 text-white"><span>إجمالي العقود المفلترة</span><strong className="mr-4 text-2xl text-nebras-gold">{result.data.total.toLocaleString("ar-SA",{minimumFractionDigits:2})} ر.س</strong></div>
+  </section>;
 }

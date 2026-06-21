@@ -1,131 +1,63 @@
-# Bulk Import & Export — Feature 011
+# الاستيراد والتصدير الجماعي
 
-> **Stack**: Next.js App Router · TypeScript · SheetJS (`xlsx`) · PostgreSQL/Supabase + RLS
+تضيف الميزة 011 استيراد المنشآت من ملفات Excel/CSV وتصدير القوائم الحالية إلى ملفات Excel عربية باتجاه RTL.
 
-## Overview
+## الصلاحيات والعزل
 
-Feature 011 adds bulk data management capabilities to NebrasCRM:
+- الاستيراد متاح للأدوار `super_admin` و`company_admin` و`supervisor` فقط.
+- التصدير متاح لجميع المستخدمين المسجلين.
+- جميع استعلامات الخادم تُقيّد صراحةً بالشركة النشطة.
+- مستخدم المبيعات يُقيّد دائماً بالسجلات المسندة إليه، ولا يمكنه تجاوز ذلك عبر معاملات الرابط.
+- لا يقبل مسار التأكيد بيانات منشآت من العميل؛ بل يستخدم المعاينة المحفوظة والمرتبطة بالمستخدم والشركة.
 
-- **Import**: Company Admins, Supervisors, and Super Admins can upload Arabic-formatted Excel/CSV files to bulk-create facility leads with a preview-then-confirm workflow.
-- **Export**: All authenticated roles can export filtered CRM data (Facilities, Follow-ups, Offers, Contracts) to RTL Arabic-labeled Excel files.
+## إعداد قاعدة البيانات
 
----
+طبّق الملف التالي قبل تشغيل الميزة:
 
-## Architecture
-
-### New Source Files
-
-```
-src/lib/import-export/
-├── parser.ts        # SheetJS file parser; Arabic header → field name mapping
-├── generator.ts     # Excel template & export file generation (RTL, Arabic headers)
-└── validator.ts     # Per-row validation; duplicate detection (DB + in-file)
-
-src/lib/data/
-└── import-batches.ts  # In-memory import batch store (mirrors import_batches table)
-
-src/app/api/facilities/
-├── import/
-│   ├── template/route.ts   # GET  – Download blank Arabic template
-│   ├── preview/route.ts    # POST – Upload file, validate rows, return preview
-│   └── confirm/route.ts    # POST – Commit previewed batch to DB
-└── export/route.ts         # GET  – Export filtered facilities list
-
-src/app/api/followups/export/route.ts    # GET – Export follow-ups
-src/app/api/offers/export/route.ts       # GET – Export offers
-src/app/api/contracts/export/route.ts    # GET – Export contracts
-
-src/app/(dashboard)/dashboard/facilities/components/
-├── ImportModal.tsx     # 3-step import flow: upload → preview → confirm
-├── ExportButton.tsx    # Reusable client button; triggers any export URL
-└── FacilitiesToolbar.tsx  # Composes Import + Export controls for facilities page
+```text
+supabase/migrations/20260620000000_bulk_import_export.sql
 ```
 
-### Database Changes
+ينشئ الملف:
 
-Migration: `supabase/migrations/20260620000000_bulk_import_export.sql`
+- إعداد `max_import_rows` بقيمة افتراضية 1000.
+- جدول `import_batches` لحفظ ملخص ونتيجة المعاينة.
+- سياسات RLS للإعدادات والدفعات.
+- الدالة الذرية `confirm_bulk_facility_import` لإنشاء المنشآت وسجلات النشاط وتحديث الدفعة في معاملة واحدة.
 
-| Table | Purpose |
-|-------|---------|
-| `system_settings` | Key/value store; `max_import_rows` (default 1000) |
-| `import_batches` | Tracks import operations; status: `preview → confirmed / failed` |
+يعتمد المشروع على إصدار SheetJS CE المصحح `xlsx@0.20.3` من حزمة التوزيع الرسمية، لأن نسخة سجل npm القديمة لا تتضمن إصلاحات أمان محلل الملفات.
 
----
-
-## Import Flow
-
-```
-User uploads file
-  → POST /api/facilities/import/preview
-    → parseImportFile() [parser.ts]       reads xlsx/csv; maps Arabic headers
-    → validateFacilityRows() [validator.ts] checks required fields, phone format, duplicates
-    → Creates preview batch in import_batches
-    → Returns batchId + summary + rows (status: valid / error / duplicate)
-
-User reviews preview and clicks "Confirm"
-  → POST /api/facilities/import/confirm { batchId }
-    → Inserts only "valid" rows as facilities (status=new, ownerId=null)
-    → Logs facility_activity record per facility (kind=import_created)
-    → Updates import_batches.status = "confirmed"
-    → Returns { success, importedCount, skippedCount }
-```
-
-## Export Flow
-
-```
-User clicks "تصدير Excel" on any list page
-  → GET /api/{entity}/export[?filters...]
-    → Applies company_id scoping + role visibility
-    → generateExcelExport() [generator.ts] builds RTL xlsx
-    → Returns binary download with Content-Disposition header
-```
-
----
-
-## RBAC Summary
-
-| Action | super_admin | company_admin | supervisor | sales_user |
-|--------|:-----------:|:-------------:|:----------:|:----------:|
-| Download template | ✓ | ✓ | ✓ | ✗ |
-| Upload & preview | ✓ | ✓ | ✓ | ✗ |
-| Confirm import | ✓ | ✓ | ✓ | ✗ |
-| Export facilities | ✓ (all) | ✓ (company) | ✓ (company) | ✓ (owned only) |
-| Export followups | ✓ (all) | ✓ (company) | ✓ (company) | ✓ (owned only) |
-| Export offers | ✓ (all) | ✓ (company) | ✓ (company) | ✓ (owned only) |
-| Export contracts | ✓ (all) | ✓ (company) | ✓ (company) | ✓ (owned only) |
-
----
-
-## Import File Format
-
-The template (`/api/facilities/import/template`) produces an `.xlsx` with these RTL Arabic columns:
-
-| اسم المنشأة | نوع المنشأة | المدينة | المنطقة | الهاتف الرئيسي | الهاتف الفرعي | مصدر العميل | ملاحظات |
-|------------|------------|--------|--------|--------------|--------------|------------|--------|
-
-- **الهاتف الرئيسي**: must be a valid Saudi mobile number (05xxxxxxxx / +9665xxxxxxxx)
-- **مصدر العميل**: defaults to `imported` if blank
-
----
-
-## Configuration
-
-`max_import_rows` is stored in the `system_settings` table (default: 1000).
+يمكن تعديل الحد دون إعادة نشر التطبيق:
 
 ```sql
--- View current limit
-SELECT value FROM public.system_settings WHERE key = 'max_import_rows';
-
--- Update limit (requires super_admin)
-UPDATE public.system_settings SET value = '500' WHERE key = 'max_import_rows';
+update public.system_settings
+set value = '500', updated_at = now()
+where key = 'max_import_rows';
 ```
 
----
+## سير الاستيراد
 
-## Running Tests
+1. نزّل القالب من `GET /api/facilities/import/template`.
+2. ارفع ملف `.xlsx` أو `.csv` إلى `POST /api/facilities/import/preview` في حقل `file`.
+3. يقرأ الخادم الملف ويطبّق فحص الأعمدة والحد الأقصى والنوع والمنطقة والمدينة وأرقام الهاتف والتكرار داخل الملف وقاعدة البيانات.
+4. تُحفظ نتيجة المعاينة في دفعة مرتبطة بالمستخدم والشركة، دون إنشاء منشآت.
+5. أرسل `batchId` إلى `POST /api/facilities/import/confirm`.
+6. تنشئ المعاملة الصفوف الصالحة فقط بحالة `new` ومصدر `imported` ودون مالك، ثم تضيف حدث `created` بقيمة `imported` لكل منشأة.
+
+## مسارات التصدير
+
+- `GET /api/facilities/export`
+- `GET /api/followups/export`
+- `GET /api/offers/export`
+- `GET /api/contracts/export`
+
+تمرر الواجهة معاملات الفلاتر الحالية إلى المسار المناسب. تُجلب النتائج على صفحات من 1000 سجل لتجنب تحميل مجموعة كبيرة دفعة واحدة، ثم يُنشأ ملف `.xlsx` بعناوين عربية واتجاه RTL.
+
+## التحقق
 
 ```bash
 npm test
-# or run only import/export tests:
-npx vitest run tests/integration/import-template.test.ts tests/integration/import-preview.test.ts tests/integration/import-confirm.test.ts tests/integration/export-facilities.test.ts tests/integration/export-other.test.ts
+npx tsc --noEmit
 ```
+
+تغطي اختبارات التكامل تنزيل القالب، صلاحيات الاستيراد، المعاينة والحد الأقصى والتكرارات، التأكيد الذري، وعزل وفلاتر جميع عمليات التصدير.

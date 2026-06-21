@@ -1,5 +1,20 @@
-import { describe, expect, it } from "vitest";
-import { calculateCommunicationReport, calculateFollowupReport, type ReportDataset } from "@/lib/actions/reports-actions";
-const filter={startDate:"2026-06-01",endDate:"2026-06-30"};
-const data:ReportDataset={facilities:[{id:"f1",companyId:"a",name:"A",type:"x",city:"x",region:"x",primaryPhone:"1",ownerId:"rep",status:"new",isArchived:false,updatedAt:"2026-06-01"}],activities:[],profiles:[{id:"rep",companyId:"a",email:"r@x",displayName:"Rep",role:"sales_user",status:"active"}],followUps:[{id:"fu1",companyId:"a",facilityId:"f1",ownerId:"rep",type:"call",status:"done",createdAt:"2026-06-02T09:00:00Z",dueAt:"2026-06-04T09:00:00Z",completedAt:"2026-06-03T09:00:00Z"},{id:"fu2",companyId:"a",facilityId:"f1",ownerId:"rep",type:"visit",status:"pending",createdAt:"2026-06-02T09:00:00Z",dueAt:"2026-06-03T09:00:00Z"}],callLogs:[{id:"l1",companyId:"a",facilityId:"f1",channel:"phone",direction:"outbound",outcome:"answered",occurredAt:"2026-06-05T09:00:00Z",isArchived:false},{id:"l2",companyId:"a",facilityId:"f1",channel:"whatsapp",direction:"inbound",outcome:"callback",occurredAt:"2026-06-05T10:00:00Z",isArchived:false}],offers:[],contracts:[]};
-describe("reports US2",()=>{it("calculates completion, overdue, and on-time metrics",()=>{const report=calculateFollowupReport(data,filter);expect(report.summary).toMatchObject({totalCreated:2,totalCompleted:1,totalOverdue:1,onTimeRate:100,avgCompletionTime:24})});it("calculates communication outcomes",()=>{const report=calculateCommunicationReport(data,filter,false);expect(report).toMatchObject({totalCalls:1,totalWhatsapp:1,inboundCount:1,outboundCount:1});expect(report.outcomes).toHaveLength(2)});it("only exposes per-rep tables to managers",()=>{expect(calculateCommunicationReport(data,filter,false).repBreakdown).toBeUndefined();expect(calculateCommunicationReport(data,filter,true).repBreakdown?.[0]).toMatchObject({repId:"rep",calls:1,whatsapp:1})})});
+import { describe, expect, it, vi } from "vitest";
+vi.mock("@/lib/auth/context", () => ({ requireAuth: vi.fn() }));
+vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn() }));
+import { aggregateCommunication, aggregateFollowups } from "@/lib/actions/reports-actions";
+
+describe("reports US2", () => {
+  it("calculates follow-up totals, overdue work, and on-time rate", () => {
+    const rows = [
+      { assigned_to: "r1", type: "call", status: "done", created_at: "2026-06-01T00:00:00Z", due_at: "2026-06-03T00:00:00Z", completed_at: "2026-06-02T00:00:00Z" },
+      { assigned_to: "r1", type: "visit", status: "pending", created_at: "2026-06-01T00:00:00Z", due_at: "2026-06-02T00:00:00Z", completed_at: null },
+    ];
+    const result = aggregateFollowups(rows, "2026-06-01T00:00:00Z", "2026-06-30T23:59:59Z"); expect(result.summary).toMatchObject({ totalCreated: 2, totalCompleted: 1, totalOverdue: 1, onTimeRate: 100 });
+  });
+  it("hides representative breakdown from sales users", () => {
+    const logs = [{ created_by_id: "r1", channel: "call", direction: "outbound", outcome: "answered", occurred_at: "2026-06-01T00:00:00Z" }];
+    const profiles = [{ id: "r1", display_name: "مندوب", status: "active" }];
+    expect(aggregateCommunication(logs, profiles, false).repBreakdown).toBeUndefined();
+    expect(aggregateCommunication(logs, profiles, true).repBreakdown?.[0]).toMatchObject({ calls: 1, outbound: 1 });
+  });
+});

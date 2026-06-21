@@ -1,3 +1,10 @@
 import type { ReactNode } from "react";
-import DateRangePicker from "./DateRangePicker";
-export default function FilterBar({ startDate, endDate, children }: { startDate: string; endDate: string; children?: ReactNode }) { return <form className="flex flex-wrap items-end gap-3 rounded-xl border border-nebras-line bg-white p-4 shadow-sm"><DateRangePicker startDate={startDate} endDate={endDate} />{children}<button className="rounded-md bg-nebras-green px-4 py-2 font-bold text-white">تطبيق</button></form> }
+
+export function FilterBar({ children }: { children: ReactNode }) {
+  return <form method="get" className="rounded-2xl bg-white p-5 shadow-sm">
+    <div className="grid gap-4 lg:grid-cols-[minmax(320px,1fr)_auto] lg:items-end">
+      <div>{children}</div>
+      <button className="rounded-xl bg-nebras-green px-6 py-3 font-bold text-white hover:bg-nebras-green/90">تطبيق الفلاتر</button>
+    </div>
+  </form>;
+}

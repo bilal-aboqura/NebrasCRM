@@ -1,81 +1,73 @@
-/**
- * Route: POST /api/facilities/import/preview
- * Accepts a multipart/form-data upload (field: "file"), parses it,
- * validates rows, creates a preview batch, and returns the structured result.
- * Access: super_admin, company_admin, supervisor only.
- */
+import { requireAuth } from "@/lib/auth/context";
+import { parseFacilitySpreadsheet, SpreadsheetParseError } from "@/lib/import-export/parser";
+import { activeCompanyId, canImport, jsonError } from "@/lib/import-export/server";
+import { validateFacilityImportRows } from "@/lib/import-export/validator";
+import { createAdminClient } from "@/lib/supabase/admin";
 
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthContext, assertRole } from "@/lib/auth/context";
-import { parseImportFile } from "@/lib/import-export/parser";
-import { validateFacilityRows } from "@/lib/import-export/validator";
-import { importBatches, nextBatchId, getMaxImportRows } from "@/lib/data/import-batches";
-import { db } from "@/lib/data/store";
+export const runtime = "nodejs";
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
+const ALLOWED_EXTENSIONS = new Set(["xlsx", "csv"]);
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+
+export async function POST(request: Request) {
   try {
-    const { role, user, activeCompany } = await getAuthContext();
-    assertRole(role, ["super_admin", "company_admin", "supervisor"]);
-
-    const formData = await request.formData();
-    const file = formData.get("file");
-    if (!file || typeof file === "string") {
-      return NextResponse.json({ error: "يجب إرفاق ملف للرفع" }, { status: 400 });
+    const context = await requireAuth();
+    if (!canImport(context)) return jsonError("غير مصرح لك باستيراد المنشآت.", 403);
+    const companyId = activeCompanyId(context);
+    const form = await request.formData();
+    const file = form.get("file");
+    if (!(file instanceof File) || !file.size) return jsonError("يرجى اختيار ملف Excel أو CSV صالح.");
+    const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
+    if (!ALLOWED_EXTENSIONS.has(extension) || file.size > MAX_FILE_BYTES) {
+      return jsonError("الملف المرفوع غير صالح. الصيغ المدعومة هي XLSX وCSV وبحجم أقصى 10 ميجابايت.");
     }
 
-    const filename = (file as File).name;
-    const arrayBuffer = await (file as File).arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const admin = createAdminClient();
+    const { data: setting, error: settingError } = await admin.from("system_settings")
+      .select("value").eq("key", "max_import_rows").maybeSingle();
+    if (settingError) throw settingError;
+    const maxRows = Number(setting?.value);
+    if (!Number.isSafeInteger(maxRows) || maxRows < 1) throw new Error("إعداد الحد الأقصى للاستيراد غير صالح.");
+    const parsed = parseFacilitySpreadsheet(await file.arrayBuffer(), maxRows);
 
-    // Parse
-    const { rows, totalRows } = parseImportFile(buffer, filename);
+    const [regionsResult, citiesResult, phonesResult] = await Promise.all([
+      admin.from("regions").select("id,name_ar"),
+      admin.from("cities").select("id,region_id,name_ar,name_en"),
+      admin.from("facilities").select("primary_phone_normalized")
+        .eq("company_id", companyId).eq("is_active", true),
+    ]);
+    if (regionsResult.error) throw regionsResult.error;
+    if (citiesResult.error) throw citiesResult.error;
+    if (phonesResult.error) throw phonesResult.error;
 
-    // Row limit check
-    const maxRows = getMaxImportRows();
-    if (totalRows > maxRows) {
-      return NextResponse.json(
-        { error: `عدد الصفوف يتجاوز الحد الأقصى المسموح به (${maxRows} صف)` },
-        { status: 400 }
-      );
-    }
-
-    // Gather existing phones for this company (tenant isolation)
-    const companyId = role === "super_admin" ? activeCompany.id : activeCompany.id;
-    const existingPhones = new Set(
-      db.facilities
-        .filter((f) => f.companyId === companyId)
-        .map((f) => f.primaryPhone)
+    const rows = validateFacilityImportRows(
+      parsed,
+      { regions: regionsResult.data ?? [], cities: citiesResult.data ?? [] },
+      (phonesResult.data ?? []).map((row) => row.primary_phone_normalized),
     );
-
-    // Validate rows
-    const { validatedRows, summary } = validateFacilityRows(rows, existingPhones);
-
-    // Create preview batch in mock store
-    const batchId = nextBatchId();
-    importBatches.push({
-      id: batchId,
-      companyId,
-      uploadedBy: user.id,
-      filename,
-      totalRows: summary.total,
-      validRows: summary.valid,
-      skippedRows: summary.duplicates,
-      errorRows: summary.errors,
+    const summary = {
+      total: rows.length,
+      valid: rows.filter((row) => row.status === "valid").length,
+      errors: rows.filter((row) => row.status === "error").length,
+      duplicates: rows.filter((row) => row.status === "duplicate").length,
+    };
+    const { data: batch, error: batchError } = await admin.from("import_batches").insert({
+      company_id: companyId,
+      uploaded_by: context.userId,
+      filename: file.name.slice(0, 255),
+      total_rows: summary.total,
+      valid_rows: summary.valid,
+      skipped_rows: summary.errors + summary.duplicates,
+      error_rows: summary.errors,
+      preview_rows: rows,
       status: "preview",
-      createdAt: new Date().toISOString(),
-      _rows: validatedRows
-    });
-
-    return NextResponse.json({
-      batchId,
-      summary,
-      rows: validatedRows
-    });
+    }).select("id").single();
+    if (batchError) throw batchError;
+    return Response.json({ batchId: batch.id, summary, rows });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "خطأ غير معروف";
-    if (message.includes("403")) {
-      return NextResponse.json({ error: "غير مصرح لك برفع الملفات" }, { status: 403 });
-    }
-    return NextResponse.json({ error: message }, { status: 500 });
+    if (error instanceof SpreadsheetParseError) return jsonError(error.message);
+    const candidate = error as { message?: string };
+    return jsonError(candidate.message ?? "تعذر تحليل ملف الاستيراد.", 500);
   }
 }
+

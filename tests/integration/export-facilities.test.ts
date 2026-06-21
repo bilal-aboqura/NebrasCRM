@@ -1,57 +1,54 @@
-import { describe, expect, it } from "vitest";
-import {
-  generateExcelExport,
-  FACILITY_EXPORT_HEADERS
-} from "@/lib/import-export/generator";
 import * as XLSX from "xlsx";
-import { facilities } from "@/lib/data/mock";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { TEST_CONTEXT } from "./import-export-test-utils";
 
-describe("US4: Facilities export", () => {
-  it("generates an xlsx buffer with correct Arabic headers", () => {
-    const rows = facilities.map((f) => ({
-      [FACILITY_EXPORT_HEADERS[0]]: f.name,
-      [FACILITY_EXPORT_HEADERS[1]]: f.type,
-      [FACILITY_EXPORT_HEADERS[2]]: f.city,
-      [FACILITY_EXPORT_HEADERS[3]]: f.region,
-      [FACILITY_EXPORT_HEADERS[4]]: f.primaryPhone,
-      [FACILITY_EXPORT_HEADERS[5]]: f.secondaryPhone ?? "",
-      [FACILITY_EXPORT_HEADERS[6]]: f.status,
-      [FACILITY_EXPORT_HEADERS[7]]: f.updatedAt
-    }));
+const state = vi.hoisted(() => ({
+  context: { userId: "sales-a", role: "sales_user", companyId: "company-a", activeCompanyId: "company-a" } as Record<string, unknown>,
+  responses: [] as Array<Record<string, unknown>>,
+  calls: [] as Array<{ method: string; args: unknown[] }>,
+}));
 
-    const buffer = generateExcelExport(FACILITY_EXPORT_HEADERS, rows, "المنشآت");
-    expect(buffer).toBeInstanceOf(Buffer);
-    expect(buffer.length).toBeGreaterThan(0);
+function builder(): object {
+  return new Proxy({}, {
+    get(_target, property) {
+      if (property === "then") return (resolve: (value: unknown) => void) => resolve(state.responses.shift() ?? { data: [], error: null });
+      return (...args: unknown[]) => { state.calls.push({ method: String(property), args }); return builder(); };
+    },
+  });
+}
 
-    const workbook = XLSX.read(buffer, { type: "buffer" });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const parsed: string[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+vi.mock("@/lib/auth/context", () => ({ requireAuth: async () => state.context }));
+vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ from: () => builder() }) }));
 
-    // First row is headers
-    expect(parsed[0]).toEqual(FACILITY_EXPORT_HEADERS);
-    // Data rows equal mock facility count
-    expect(parsed.length - 1).toBe(facilities.length);
+import { GET } from "@/app/api/facilities/export/route";
+
+describe("facilities export", () => {
+  beforeEach(() => {
+    state.context = { ...TEST_CONTEXT, role: "sales_user" };
+    state.responses = [{ data: [{
+      name_ar: "مختبر النور", type: "lab", primary_phone: "0501234567", secondary_phone: null,
+      lead_source: "manual", status: "new", notes: null, created_at: "2026-06-21T10:00:00Z",
+      city_custom: null, cities: { name_ar: "الرياض" }, regions: { name_ar: "الرياض" }, owner: { display_name: "مندوب الاختبار" },
+    }], error: null }];
+    state.calls.length = 0;
   });
 
-  it("respects company_id scope (tenant isolation) in exported data", () => {
-    const companyAFacilities = facilities.filter((f) => f.companyId === "company-a");
-    const rows = companyAFacilities.map((f) => ({
-      [FACILITY_EXPORT_HEADERS[0]]: f.name,
-      [FACILITY_EXPORT_HEADERS[1]]: f.type,
-      [FACILITY_EXPORT_HEADERS[2]]: f.city,
-      [FACILITY_EXPORT_HEADERS[3]]: f.region,
-      [FACILITY_EXPORT_HEADERS[4]]: f.primaryPhone,
-      [FACILITY_EXPORT_HEADERS[5]]: f.secondaryPhone ?? "",
-      [FACILITY_EXPORT_HEADERS[6]]: f.status,
-      [FACILITY_EXPORT_HEADERS[7]]: f.updatedAt
-    }));
-
-    const buffer = generateExcelExport(FACILITY_EXPORT_HEADERS, rows, "المنشآت");
-    const workbook = XLSX.read(buffer, { type: "buffer" });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const parsed: string[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-    // Only company-a facilities (2) + header row
-    expect(parsed.length - 1).toBe(companyAFacilities.length);
+  it("exports only the filtered tenant and Sales User scope with Arabic columns", async () => {
+    const response = await GET(new Request("http://localhost/api/facilities/export?status=new&type=lab&city=city-a&assigned_to=other-user"));
+    expect(response.status).toBe(200);
+    expect(state.calls).toEqual(expect.arrayContaining([
+      expect.objectContaining({ method: "eq", args: ["company_id", TEST_CONTEXT.companyId] }),
+      expect.objectContaining({ method: "eq", args: ["assigned_to", TEST_CONTEXT.userId] }),
+      expect.objectContaining({ method: "eq", args: ["status", "new"] }),
+      expect.objectContaining({ method: "eq", args: ["type", "lab"] }),
+      expect.objectContaining({ method: "eq", args: ["city_id", "city-a"] }),
+    ]));
+    expect(state.calls.filter((call) => call.method === "eq" && call.args[0] === "assigned_to")).toHaveLength(1);
+    const workbook = XLSX.read(await response.arrayBuffer(), { type: "array" });
+    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[workbook.SheetNames[0]]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]["اسم المنشأة"]).toBe("مختبر النور");
+    expect(workbook.Workbook?.Views?.[0]?.RTL).toBe(true);
   });
 });
+

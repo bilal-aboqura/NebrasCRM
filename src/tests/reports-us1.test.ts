@@ -1,21 +1,22 @@
-import { describe, expect, it } from "vitest";
-import { calculateConversionLossReport, calculatePipelineReport, scopeReportDataset, type ReportDataset } from "@/lib/actions/reports-actions";
+import { describe, expect, it, vi } from "vitest";
+vi.mock("@/lib/auth/context", () => ({ requireAuth: vi.fn() }));
+vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn() }));
+import { aggregateConversion, aggregatePipeline, normalizeReportFilter, scopeReportFacilities } from "@/lib/actions/reports-actions";
 
-const filter = { startDate: "2026-06-01", endDate: "2026-06-30" };
-function fixture(): ReportDataset { return {
-  facilities: [
-    { id:"a1",companyId:"a",name:"A",type:"hospital",city:"Riyadh",region:"Central",primaryPhone:"1",ownerId:"sales-a",status:"contract",isArchived:false,lostReason:undefined,createdAt:"2026-06-01T09:00:00Z",updatedAt:"2026-06-10T09:00:00Z" },
-    { id:"a2",companyId:"a",name:"Lost",type:"clinic",city:"Riyadh",region:"Central",primaryPhone:"2",ownerId:"sales-other",status:"lost",lostReason:"السعر",isArchived:false,createdAt:"2026-06-02T09:00:00Z",updatedAt:"2026-06-10T09:00:00Z" },
-    { id:"b1",companyId:"b",name:"B",type:"hospital",city:"Jeddah",region:"West",primaryPhone:"3",ownerId:"sales-b",status:"contract",isArchived:false,createdAt:"2026-06-01T09:00:00Z",updatedAt:"2026-06-10T09:00:00Z" }
-  ],
-  activities: [
-    {id:"x1",companyId:"a",facilityId:"a1",kind:"status_change",eventType:"status_change",oldValue:"new",newValue:"contacted",message:"",createdAt:"2026-06-03T09:00:00Z"},
-    {id:"x2",companyId:"a",facilityId:"a1",kind:"status_change",eventType:"status_change",oldValue:"contacted",newValue:"contract",message:"",createdAt:"2026-06-08T09:00:00Z"},
-    {id:"x3",companyId:"a",facilityId:"a2",kind:"status_change",eventType:"status_change",oldValue:"new",newValue:"lost",message:"",createdAt:"2026-06-09T09:00:00Z"}
-  ], followUps:[],callLogs:[],offers:[],contracts:[{id:"c1",companyId:"a",facilityId:"a1",ownerId:"sales-a",referenceNumber:"1",status:"active",value:100,startDate:"2026-06-08",isActive:true}],profiles:[] } }
+const start = "2026-06-01T00:00:00.000Z"; const end = "2026-06-30T23:59:59.999Z";
+const facilities = [
+  { id: "a", assigned_to: "rep-a", status: "contract", lost_reason: null, created_at: "2026-06-02T00:00:00.000Z", is_active: true },
+  { id: "b", assigned_to: "rep-b", status: "lost", lost_reason: "price", created_at: "2026-06-03T00:00:00.000Z", is_active: true },
+];
+const activities = [
+  { facility_id: "a", old_value: "new", new_value: "contacted", created_at: "2026-06-04T00:00:00.000Z" },
+  { facility_id: "a", old_value: "contacted", new_value: "contract", created_at: "2026-06-06T00:00:00.000Z" },
+  { facility_id: "b", old_value: "new", new_value: "lost", created_at: "2026-06-05T00:00:00.000Z" },
+];
 
 describe("reports US1", () => {
-  it("calculates stage movement and duration", () => { const data=fixture(); const report=calculatePipelineReport(data,filter); expect(report.stages.find(r=>r.stage==="تم التواصل")).toMatchObject({inflow:1,outflow:1,avgDuration:5}) });
-  it("calculates funnel, loss reasons, and win rate", () => { const report=calculateConversionLossReport(fixture(),filter); expect(report.lossReasons).toEqual([{reason:"السعر",count:1}]); expect(report.winRate).toBe(50) });
-  it("isolates company and sales owner before calculations", () => { const company=scopeReportDataset(fixture(),"a","sales-a",true,filter); expect(company.facilities.map(f=>f.id)).toEqual(["a1","a2"]); const sales=scopeReportDataset(fixture(),"a","sales-a",false,filter); expect(sales.facilities.map(f=>f.id)).toEqual(["a1"]); expect(sales.contracts).toHaveLength(1) });
+  it("calculates pipeline movements and duration", () => { const result = aggregatePipeline(facilities, activities, start, end); expect(result.stages[0]).toMatchObject({ inflow: 2, outflow: 2, netChange: 0 }); expect(result.stages[1].avgDuration).toBe(2); });
+  it("calculates funnel, losses, and win rate", () => { const result = aggregateConversion(facilities, activities, start, end); expect(result.lossReasons).toEqual([{ reason: "price", count: 1 }]); expect(result.winRate).toBe(50); });
+  it("uses Riyadh day boundaries and rejects reversed ranges", () => { expect(normalizeReportFilter({ startDate: "2026-06-01", endDate: "2026-06-01" })).toMatchObject({ start: "2026-05-31T21:00:00.000Z", end: "2026-06-01T20:59:59.999Z" }); expect(() => normalizeReportFilter({ startDate: "2026-06-02", endDate: "2026-06-01" })).toThrow(); });
+  it("enforces tenant and sales-owner isolation after data access", () => { const rows = [{ ...facilities[0], company_id: "company-a" }, { ...facilities[1], company_id: "company-b" }]; expect(scopeReportFacilities(rows, "company-a", "sales_user", "rep-a").map((row) => row.id)).toEqual(["a"]); expect(scopeReportFacilities(rows, "company-a", "supervisor", "manager").map((row) => row.id)).toEqual(["a"]); });
 });

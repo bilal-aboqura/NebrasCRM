@@ -1,197 +1,150 @@
 "use client";
 
-import React, { useState } from "react";
-import { submitLeadAction, type LeadSubmissionPayload, type LeadSubmissionResponse } from "@/lib/actions/lead-capture";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { FormEvent, useEffect, useState } from "react";
+import { AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
+import {
+  submitLeadAction,
+  type LeadSubmissionPayload,
+  type LeadSubmissionResult,
+} from "@/lib/actions/lead-capture";
 
-export default function LeadCaptureForm() {
-  const [formData, setFormData] = useState<LeadSubmissionPayload>({
-    facilityName: "",
-    city: "",
-    phone: "",
-    facilityType: "مجمع طبي",
-  });
-  
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "duplicate">("idle");
-  const [errors, setErrors] = useState<Record<string, string[]>>({});
-  const [globalMessage, setGlobalMessage] = useState<string>("");
+declare global {
+  interface Window {
+    dataLayer?: Array<Record<string, unknown>>;
+  }
+}
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    // clear error for this field
-    if (errors[e.target.name]) {
-      setErrors({ ...errors, [e.target.name]: [] });
-    }
-  };
+const FACILITY_TYPES: Array<{ value: LeadSubmissionPayload["facilityType"]; label: string }> = [
+  { value: "medical_complex", label: "مجمع طبي" },
+  { value: "dental_complex", label: "مجمع لطب الأسنان" },
+  { value: "lab", label: "مختبر" },
+  { value: "radiology", label: "مركز أشعة" },
+  { value: "hospital", label: "مستشفى" },
+];
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setStatus("loading");
-    setErrors({});
-    setGlobalMessage("");
+const EMPTY_FORM: LeadSubmissionPayload = {
+  facilityName: "",
+  city: "",
+  phone: "",
+  facilityType: "medical_complex",
+};
 
-    try {
-      const response = await submitLeadAction(formData);
+type FieldErrors = Partial<Record<keyof LeadSubmissionPayload, string[]>>;
 
-      if (!response.success) {
-        setStatus("idle");
-        if (response.rateLimited) {
-          setGlobalMessage(response.message || "تم تجاوز الحد المسموح، يرجى المحاولة لاحقاً");
-        } else if (response.errors) {
-          setErrors(response.errors);
-        } else {
-          setGlobalMessage(response.message || "حدث خطأ غير متوقع.");
-        }
-        return;
-      }
+const fieldClass = "mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-nebras-gold focus:ring-2 focus:ring-nebras-gold/20";
 
-      if (response.duplicate) {
-        setStatus("duplicate");
-        setGlobalMessage(response.message || "تم تسجيل طلبك مسبقاً، سيتواصل معك فريقنا قريباً");
-      } else {
-        setStatus("success");
-        setGlobalMessage(response.message || "تم استلام طلبك بنجاح، سيتواصل معك فريق نبراس الجودة قريباً");
-        
-        // Trigger GTM Event
-        if (typeof window !== "undefined" && (window as any).dataLayer) {
-          (window as any).dataLayer.push({
-            event: "lead_form_submitted",
-            facilityType: formData.facilityType,
-            submissionTimestamp: new Date().toISOString(),
-          });
-        }
+export function LeadCaptureForm() {
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [result, setResult] = useState<LeadSubmissionResult | null>(null);
+  const [pending, setPending] = useState(false);
 
-        // Reset to idle after 8 seconds
-        setTimeout(() => {
-          setStatus("idle");
-          setFormData({ facilityName: "", city: "", phone: "", facilityType: "مجمع طبي" });
-          setGlobalMessage("");
-        }, 8000);
-      }
-    } catch (error) {
-      console.error(error);
-      setStatus("idle");
-      setGlobalMessage("حدث خطأ أثناء إرسال الطلب. يرجى المحاولة لاحقاً.");
-    }
-  };
+  useEffect(() => {
+    if (!result?.success || result.duplicate) return;
+    const timeout = window.setTimeout(() => {
+      setResult(null);
+      setForm(EMPTY_FORM);
+    }, 8000);
+    return () => window.clearTimeout(timeout);
+  }, [result]);
 
-  if (status === "success") {
-    return (
-      <div className="rounded-2xl bg-white p-8 text-center shadow-lg border border-green-100 animate-in fade-in zoom-in duration-300">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-nebras-green">
-          <CheckCircle2 size={32} />
-        </div>
-        <h3 className="mb-2 text-2xl font-bold text-nebras-green">شكراً لثقتكم بنا</h3>
-        <p className="text-gray-600">{globalMessage}</p>
-      </div>
-    );
+  function update<K extends keyof LeadSubmissionPayload>(field: K, value: LeadSubmissionPayload[K]) {
+    setForm((current) => ({ ...current, [field]: value }));
+    setErrors((current) => ({ ...current, [field]: undefined }));
   }
 
-  if (status === "duplicate") {
+  function validate(): FieldErrors {
+    const next: FieldErrors = {};
+    if (form.facilityName.trim().length < 2) next.facilityName = ["يرجى إدخال اسم المنشأة"];
+    if (!form.city.trim()) next.city = ["يرجى إدخال المدينة"];
+    if (!/^(?:\+?966|0)?5\d{8}$/.test(form.phone.replace(/[\s()-]/g, ""))) next.phone = ["يرجى إدخال رقم جوال سعودي صحيح"];
+    return next;
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const clientErrors = validate();
+    if (Object.keys(clientErrors).length > 0) {
+      setErrors(clientErrors);
+      return;
+    }
+
+    setPending(true);
+    setResult(null);
+    try {
+      const response = await submitLeadAction(form);
+      setResult(response);
+      if (!response.success && response.errors) setErrors(response.errors);
+      if (response.success && !response.duplicate) {
+        window.dataLayer = window.dataLayer ?? [];
+        window.dataLayer.push({
+          event: "lead_form_submitted",
+          facilityType: form.facilityType,
+          submissionTimestamp: new Date().toISOString(),
+        });
+      }
+    } finally {
+      setPending(false);
+    }
+  }
+
+  if (result?.success) {
+    const duplicate = result.duplicate;
     return (
-      <div className="rounded-2xl bg-amber-50 p-8 text-center shadow-lg border border-amber-200 animate-in fade-in zoom-in duration-300">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-amber-600">
-          <AlertCircle size={32} />
-        </div>
-        <h3 className="mb-2 text-2xl font-bold text-amber-800">طلب مسجل مسبقاً</h3>
-        <p className="text-amber-700">{globalMessage}</p>
+      <div role="status" className={`rounded-3xl border p-8 text-center ${duplicate ? "border-amber-200 bg-amber-50 text-amber-900" : "border-emerald-200 bg-emerald-50 text-emerald-900"}`}>
+        {duplicate
+          ? <AlertTriangle aria-hidden className="mx-auto size-14 text-amber-500" />
+          : <CheckCircle2 aria-hidden className="mx-auto size-14 text-emerald-600" />}
+        <h3 className="mt-4 text-xl font-extrabold">{duplicate ? "طلبك مسجل لدينا" : "تم استلام طلبك"}</h3>
+        <p className="mt-2 leading-7">{result.message}</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl bg-white p-8 text-right shadow-lg">
-      {globalMessage && (
-        <div className="mb-6 rounded-md bg-red-50 p-4 border border-red-200">
-          <div className="flex items-center gap-3">
-            <AlertCircle className="text-red-500" size={20} />
-            <span className="text-sm font-medium text-red-800">{globalMessage}</span>
-          </div>
+    <form onSubmit={submit} noValidate dir="rtl" className="rounded-[2rem] border border-nebras-green/10 bg-white p-6 shadow-xl shadow-nebras-green/5 sm:p-8">
+      <h3 className="text-xl font-extrabold text-nebras-green">بيانات المنشأة</h3>
+      <p className="mt-2 text-sm text-slate-500">املأ البيانات وسيتواصل معك فريقنا لتحديد موعد التقييم المجاني.</p>
+
+      {!result?.success && result?.rateLimited && (
+        <div role="alert" className="mt-5 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">
+          <AlertTriangle aria-hidden className="mt-0.5 shrink-0" size={19} />
+          {result.message}
         </div>
       )}
+      {!result?.success && result?.message && !result.rateLimited && (
+        <div role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800">{result.message}</div>
+      )}
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div>
-          <label htmlFor="facilityName" className="mb-2 block text-sm font-medium text-gray-700">
-            اسم المنشأة <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            id="facilityName"
-            name="facilityName"
-            value={formData.facilityName}
-            onChange={handleChange}
-            disabled={status === "loading"}
-            className="w-full rounded-md border border-gray-300 px-4 py-2 text-gray-900 focus:border-nebras-green focus:outline-none focus:ring-1 focus:ring-nebras-green disabled:bg-gray-100"
-            placeholder="مجمع الصحة المتميز"
-          />
-          {errors.facilityName && <p className="mt-1 text-xs text-red-500">{errors.facilityName[0]}</p>}
-        </div>
-
-        <div>
-          <label htmlFor="facilityType" className="mb-2 block text-sm font-medium text-gray-700">
-            نوع المنشأة <span className="text-red-500">*</span>
-          </label>
-          <select
-            id="facilityType"
-            name="facilityType"
-            value={formData.facilityType}
-            onChange={handleChange}
-            disabled={status === "loading"}
-            className="w-full rounded-md border border-gray-300 px-4 py-2 text-gray-900 focus:border-nebras-green focus:outline-none focus:ring-1 focus:ring-nebras-green disabled:bg-gray-100"
-          >
-            <option value="مجمع طبي">مجمع طبي</option>
-            <option value="مجمع لطب الأسنان">مجمع لطب الأسنان</option>
-            <option value="مختبر">مختبر</option>
-            <option value="مركز أشعة">مركز أشعة</option>
-            <option value="مستشفى">مستشفى</option>
+      <div className="mt-6 grid gap-5 sm:grid-cols-2">
+        <label className="text-sm font-bold text-slate-700">
+          اسم المنشأة
+          <input value={form.facilityName} onChange={(event) => update("facilityName", event.target.value)} maxLength={200} className={fieldClass} placeholder="مثال: مجمع الشفاء الطبي" aria-invalid={Boolean(errors.facilityName)} />
+          {errors.facilityName && <span className="mt-1 block text-xs text-red-600">{errors.facilityName[0]}</span>}
+        </label>
+        <label className="text-sm font-bold text-slate-700">
+          نوع المنشأة
+          <select value={form.facilityType} onChange={(event) => update("facilityType", event.target.value as LeadSubmissionPayload["facilityType"])} className={fieldClass}>
+            {FACILITY_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
           </select>
-          {errors.facilityType && <p className="mt-1 text-xs text-red-500">{errors.facilityType[0]}</p>}
-        </div>
+          {errors.facilityType && <span className="mt-1 block text-xs text-red-600">{errors.facilityType[0]}</span>}
+        </label>
+        <label className="text-sm font-bold text-slate-700">
+          رقم الجوال
+          <input value={form.phone} onChange={(event) => update("phone", event.target.value)} inputMode="tel" dir="ltr" className={`${fieldClass} text-left`} placeholder="0501234567" aria-invalid={Boolean(errors.phone)} />
+          {errors.phone && <span className="mt-1 block text-right text-xs text-red-600">{errors.phone[0]}</span>}
+        </label>
+        <label className="text-sm font-bold text-slate-700">
+          المدينة
+          <input value={form.city} onChange={(event) => update("city", event.target.value)} maxLength={100} className={fieldClass} placeholder="مثال: الرياض" aria-invalid={Boolean(errors.city)} />
+          {errors.city && <span className="mt-1 block text-xs text-red-600">{errors.city[0]}</span>}
+        </label>
+      </div>
 
-        <div>
-          <label htmlFor="city" className="mb-2 block text-sm font-medium text-gray-700">
-            المدينة <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            id="city"
-            name="city"
-            value={formData.city}
-            onChange={handleChange}
-            disabled={status === "loading"}
-            className="w-full rounded-md border border-gray-300 px-4 py-2 text-gray-900 focus:border-nebras-green focus:outline-none focus:ring-1 focus:ring-nebras-green disabled:bg-gray-100"
-            placeholder="الرياض"
-          />
-          {errors.city && <p className="mt-1 text-xs text-red-500">{errors.city[0]}</p>}
-        </div>
-
-        <div>
-          <label htmlFor="phone" className="mb-2 block text-sm font-medium text-gray-700">
-            رقم الجوال <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="tel"
-            id="phone"
-            name="phone"
-            value={formData.phone}
-            onChange={handleChange}
-            disabled={status === "loading"}
-            className="w-full rounded-md border border-gray-300 px-4 py-2 text-gray-900 focus:border-nebras-green focus:outline-none focus:ring-1 focus:ring-nebras-green disabled:bg-gray-100"
-            placeholder="05XXXXXXXX"
-            dir="ltr"
-          />
-          {errors.phone && <p className="mt-1 text-xs text-red-500 text-right">{errors.phone[0]}</p>}
-        </div>
-
-        <button
-          type="submit"
-          disabled={status === "loading"}
-          className="w-full rounded-md bg-nebras-gold px-4 py-3 font-bold text-white transition-colors hover:bg-yellow-500 disabled:opacity-70 disabled:cursor-not-allowed"
-        >
-          {status === "loading" ? "جاري الإرسال..." : "إرسال الطلب"}
-        </button>
-      </form>
-    </div>
+      <button type="submit" disabled={pending} className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-nebras-green px-6 py-3.5 font-extrabold text-white shadow-lg transition hover:bg-nebras-green/90 disabled:cursor-not-allowed disabled:opacity-60">
+        {pending && <Loader2 aria-hidden className="animate-spin" size={19} />}
+        {pending ? "جارٍ إرسال الطلب..." : "احجز تقييمك المجاني"}
+      </button>
+    </form>
   );
 }

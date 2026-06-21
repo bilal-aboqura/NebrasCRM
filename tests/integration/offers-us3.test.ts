@@ -1,13 +1,6 @@
-import { describe, expect, it } from "vitest";
-import { createOffer, createOfferRevision, sendOffer } from "@/lib/actions/offers";
-
-describe("offer revisions", () => {
-  it("increments versions and supersedes predecessor", async () => {
-    const offer = await createOffer({ facilityId: "fac-1", title: "Revision Test", validUntil: "2099-01-01", lineItems: [{ description: "Service", quantity: 1, unitPrice: 100 }] });
-    await sendOffer(offer.id);
-    const revision = await createOfferRevision(offer.id);
-    expect(revision.version).toBe(2);
-    expect(revision.parentOfferId).toBe(offer.id);
-    expect(offer.isSuperseded).toBe(true);
-  });
-});
+import { describe, expect, it, vi } from "vitest";
+const state = vi.hoisted(() => ({ rpc: vi.fn(), fetch: vi.fn(), context: { userId: "sales-a", companyId: "company-a", activeCompanyId: "company-a", role: "sales_user" } }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() })); vi.mock("@/lib/auth/context", () => ({ requireAuth: async () => state.context }));
+vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ rpc: state.rpc, from: () => ({ select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: state.fetch }) }) }) }) }) }));
+import { createOfferRevision } from "@/lib/actions/offers";
+describe("offer revisions", () => { it("delegates version locking and copying to one transaction", async () => { state.rpc.mockResolvedValueOnce({ data: { id: "offer-v2" }, error: null }); state.fetch.mockResolvedValueOnce({ data: { id: "offer-v2", company_id: "company-a", facility_id: "facility-a", created_by: "sales-a", root_offer_id: "offer-v1", parent_offer_id: "offer-v1", title: "عرض", status: "draft", subtotal: 100, discount_type: "fixed", discount_value: 0, discount_amount: 0, tax_rate: 15, tax_amount: 15, grand_total: 115, valid_until: "2026-12-01", version: 2, is_active: true, created_at: "x", updated_at: "x" }, error: null }); const result = await createOfferRevision("offer-v1"); expect(result.success && result.data.version).toBe(2); expect(state.rpc).toHaveBeenCalledWith("revise_offer_atomic", expect.objectContaining({ p_offer_id: "offer-v1" })); }); });

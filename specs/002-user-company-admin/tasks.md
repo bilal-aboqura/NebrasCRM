@@ -1,4 +1,4 @@
-﻿# Tasks: User and Company Administration
+# Tasks: User and Company Administration
 
 **Input**: Design documents from `/specs/002-user-company-admin/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
@@ -17,8 +17,8 @@
 
 **Purpose**: Project initialization and basic structure.
 
-- [ ] T001 Create routes and directories in `src/app/` per the implementation plan
-- [ ] T002 [P] Initialize routing structure for `/admin/companies`, `/admin/users`, `/profile`, and `/invite` in `src/app/`
+- [X] T001 Create routes and directories in `src/app/` per the implementation plan
+- [X] T002 [P] Initialize routing structure for `/admin/companies`, `/admin/users`, `/profile`, and `/invite` in `src/app/`
 
 ---
 
@@ -28,9 +28,9 @@
 
 **âš ï¸ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T003 Create database migrations for schemas, status columns, lockout prevention, and audit triggers in `supabase/migrations/20260616000000_user_company_admin.sql`
-- [ ] T004 Update the seed file with new company status and user status fields in `supabase/seed.sql`
-- [ ] T005 [P] Implement status validation and global session revocation check in Next.js middleware in `src/app/middleware.ts`
+- [X] T003 Create database migrations for schemas, status columns, lockout prevention, and audit triggers in `supabase/migrations/20260616000000_user_company_admin.sql`
+- [X] T004 Update the seed file with new company status and user status fields in `supabase/seed.sql`
+- [X] T005 [P] Implement status validation and global session revocation check in Next.js middleware in `src/app/middleware.ts`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin.
 
@@ -43,11 +43,11 @@
 **Independent Test**: Log in as a Super Admin. Navigate to `/admin/companies`. Create, edit, and deactivate a company, then verify that its users are blocked from logging in.
 
 ### Tests for User Story 1
-- [ ] T006 [P] [US1] Write pgTAP database tests for `companies` table RLS policies and company status updates in `supabase/tests/002-user-company-admin.test.sql`
+- [X] T006 [P] [US1] Write pgTAP database tests for `companies` table RLS policies and company status updates in `supabase/tests/002-user-company-admin.test.sql`
 
 ### Implementation for User Story 1
-- [ ] T007 [US1] Implement Server Actions `createCompany` and `updateCompany` with Super Admin server-side validation in `src/lib/actions/admin.ts`
-- [ ] T008 [US1] Create the Arabic-first, RTL company management UI page in `src/app/(dashboard)/admin/companies/page.tsx`
+- [X] T007 [US1] Implement Server Actions `createCompany` and `updateCompany` with Super Admin server-side validation in `src/lib/actions/admin.ts`
+- [X] T008 [US1] Create the Arabic-first, RTL company management UI page in `src/app/(dashboard)/admin/companies/page.tsx`
 
 **Checkpoint**: User Story 1 is fully functional and testable independently.
 
@@ -60,11 +60,11 @@
 **Independent Test**: Log in as a Super Admin. Navigate to `/admin/users`. View users from all companies, invite a new Super Admin, and attempt to deactivate the last Super Admin to verify the lockout error.
 
 ### Tests for User Story 2
-- [ ] T009 [P] [US2] Write pgTAP database tests for `profiles` table RLS policies and lockout prevention trigger in `supabase/tests/002-user-company-admin.test.sql`
+- [X] T009 [P] [US2] Write pgTAP database tests for `profiles` table RLS policies and lockout prevention trigger in `supabase/tests/002-user-company-admin.test.sql`
 
 ### Implementation for User Story 2
-- [ ] T010 [US2] Implement Server Actions `inviteUser` and `toggleUserStatus` for Super Admin scope with lockout prevention checks in `src/lib/actions/admin.ts`
-- [ ] T011 [US2] Create the Cross-Tenant User Directory UI for Super Admin in `src/app/(dashboard)/admin/users/page.tsx`
+- [X] T010 [US2] Implement Server Actions `inviteUser` and `toggleUserStatus` for Super Admin scope with lockout prevention checks in `src/lib/actions/admin.ts`
+- [X] T011 [US2] Create the Cross-Tenant User Directory UI for Super Admin in `src/app/(dashboard)/admin/users/page.tsx`
 
 **Checkpoint**: User Stories 1 and 2 work independently.
 
@@ -77,11 +77,11 @@
 **Independent Test**: Log in as Company Admin of Company A. Navigate to `/admin/users`. Verify Company B's users are invisible. Invite a Supervisor user to Company A. Attempt to access a Company B user's profile URL directly and verify 403.
 
 ### Tests for User Story 3
-- [ ] T012 [P] [US3] Write pgTAP database tests for Company Admin RLS boundaries (cannot read/write other company users) in `supabase/tests/002-user-company-admin.test.sql`
+- [X] T012 [P] [US3] Write pgTAP database tests for Company Admin RLS boundaries (cannot read/write other company users) in `supabase/tests/002-user-company-admin.test.sql`
 
 ### Implementation for User Story 3
-- [ ] T013 [US3] Update Server Actions `inviteUser` and `toggleUserStatus` in `src/lib/actions/admin.ts` to enforce Company Admin role constraints and scopes.
-- [ ] T014 [US3] Update the User Directory UI in `src/app/(dashboard)/admin/users/page.tsx` to conditionally render in company-scoped view when logged in as a Company Admin.
+- [X] T013 [US3] Update Server Actions `inviteUser` and `toggleUserStatus` in `src/lib/actions/admin.ts` to enforce Company Admin role constraints and scopes.
+- [X] T014 [US3] Update the User Directory UI in `src/app/(dashboard)/admin/users/page.tsx` to conditionally render in company-scoped view when logged in as a Company Admin.
 
 **Checkpoint**: User Stories 1, 2, and 3 are functional.
 
@@ -94,11 +94,11 @@
 **Independent Test**: Generate an invitation token. Navigate to `/invite?token=...`. Submit a breached or short password to verify errors, then submit a strong password to activate the account.
 
 ### Tests for User Story 4
-- [ ] T015 [P] [US4] Write integration tests for invitation token validation and password set logic in `tests/integration/invite.test.ts`
+- [X] T015 [P] [US4] Write integration tests for invitation token validation and password set logic in `tests/integration/invite.test.ts`
 
 ### Implementation for User Story 4
-- [ ] T016 [US4] Implement invitation token verification and the `completeInvitation` Server Action in `src/lib/actions/admin.ts`
-- [ ] T017 [US4] Create the `/invite` password creation page with RTL layout and breach-check validation in `src/app/(auth)/invite/page.tsx`
+- [X] T016 [US4] Implement invitation token verification and the `completeInvitation` Server Action in `src/lib/actions/admin.ts`
+- [X] T017 [US4] Create the `/invite` password creation page with RTL layout and breach-check validation in `src/app/(auth)/invite/page.tsx`
 
 **Checkpoint**: User Stories 1-4 are functional.
 
@@ -111,11 +111,11 @@
 **Independent Test**: Log in as a Sales User. Navigate to `/profile`. Update display name, and change password. Verify login with the new password works.
 
 ### Tests for User Story 5
-- [ ] T018 [P] [US5] Write integration tests for display name updates and password changes in `tests/integration/profile.test.ts`
+- [X] T018 [P] [US5] Write integration tests for display name updates and password changes in `tests/integration/profile.test.ts`
 
 ### Implementation for User Story 5
-- [ ] T019 [US5] Implement `updateProfileName` and `changePassword` Server Actions in `src/lib/actions/profile.ts`
-- [ ] T020 [US5] Create the `/profile` UI page for display name updates and password changes in `src/app/(dashboard)/profile/page.tsx`
+- [X] T019 [US5] Implement `updateProfileName` and `changePassword` Server Actions in `src/lib/actions/profile.ts`
+- [X] T020 [US5] Create the `/profile` UI page for display name updates and password changes in `src/app/(dashboard)/profile/page.tsx`
 
 **Checkpoint**: All user stories are independently functional.
 
@@ -125,10 +125,10 @@
 
 **Purpose**: Improvements that affect multiple user stories.
 
-- [ ] T021 [P] Write pgTAP database tests verifying audit log triggers capture detailed before/after diffs in `supabase/tests/002-user-company-admin.test.sql`
-- [ ] T022 Implement immediate session revocation server-side via the Supabase Admin API on password reset and user/company deactivations in `src/lib/actions/admin.ts`
-- [ ] T023 Verify the complete verification flow by running local Supabase migrations and executing all tests
-- [ ] T024 [P] Update project documentation and markdown references in `docs/`
+- [X] T021 [P] Write pgTAP database tests verifying audit log triggers capture detailed before/after diffs in `supabase/tests/002-user-company-admin.test.sql`
+- [X] T022 Implement immediate session revocation server-side via the Supabase Admin API on password reset and user/company deactivations in `src/lib/actions/admin.ts`
+- [X] T023 Verify the complete verification flow by running local Supabase migrations and executing all tests
+- [X] T024 [P] Update project documentation and markdown references in `docs/`
 
 ---
 

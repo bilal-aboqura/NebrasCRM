@@ -1,18 +1,22 @@
-import type { Facility, Role } from "@/lib/types/domain";
-import { canManageCompanyWide } from "@/lib/auth/context";
+import { redirect } from "next/navigation";
+import type { AppRole, AuthContext } from "./types";
 
-export function assertAllowed(role: Role, allowed: Role[]) {
-  if (!allowed.includes(role)) {
-    throw new Error("403 Forbidden");
-  }
+const ROLE_PATHS: Record<AppRole, readonly string[]> = {
+  super_admin: ["/", "/dashboard", "/admin", "/profile", "/reports", "/team", "/sales", "/dashboard/facilities", "/dashboard/pipeline", "/dashboard/followups", "/dashboard/offers", "/dashboard/contracts"],
+  company_admin: ["/", "/dashboard", "/admin/users", "/profile", "/reports", "/team", "/sales", "/dashboard/facilities", "/dashboard/pipeline", "/dashboard/followups", "/dashboard/offers", "/dashboard/contracts"],
+  supervisor: ["/", "/dashboard", "/admin/users", "/profile", "/reports", "/team", "/sales", "/dashboard/facilities", "/dashboard/pipeline", "/dashboard/followups", "/dashboard/offers", "/dashboard/contracts"],
+  sales_user: ["/", "/dashboard", "/profile", "/reports", "/sales", "/dashboard/facilities", "/dashboard/pipeline", "/dashboard/followups", "/dashboard/offers", "/dashboard/contracts"],
+};
+
+export function canAccessPath(role: AppRole, pathname: string) {
+  return ROLE_PATHS[role].some((path) => path === "/" ? pathname === "/" : pathname === path || pathname.startsWith(`${path}/`));
 }
 
-export function canManageFacility(role: Role, userId: string, facility: Facility) {
-  return canManageCompanyWide(role) || facility.ownerId === userId;
+export function hasAnyRole(role: AppRole, allowed: readonly AppRole[]) {
+  return allowed.includes(role);
 }
 
-export function assertCanManageFacility(role: Role, userId: string, facility: Facility) {
-  if (!canManageFacility(role, userId, facility)) {
-    throw new Error("403 Forbidden: facility is outside your scope");
-  }
+export function requireRole(context: AuthContext, allowed: readonly AppRole[]) {
+  if (!hasAnyRole(context.role, allowed)) redirect("/access-denied");
+  return context;
 }

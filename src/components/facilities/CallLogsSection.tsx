@@ -1,17 +1,29 @@
-import { channelLabels } from "@/lib/i18n";
-import type { CallLog } from "@/lib/types/domain";
+"use client";
 
-export default function CallLogsSection({ logs }: { logs: CallLog[] }) {
-  return (
-    <section className="space-y-3">
-      <h2 className="text-lg font-bold text-nebras-green">سجل التواصل</h2>
-      {logs.map((log) => (
-        <article key={log.id} className="rounded-lg border border-nebras-line bg-white p-3">
-          <p className="font-medium">{channelLabels[log.channel]} · {log.direction} · {log.outcome}</p>
-          <p className="text-sm text-slate-600">{log.notes ?? "لا توجد ملاحظات"}</p>
-          <time className="text-xs text-slate-500">{new Date(log.occurredAt).toLocaleString("ar-SA")}</time>
-        </article>
-      ))}
-    </section>
-  );
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Archive, MessageCircle, Pencil, Phone, RotateCcw } from "lucide-react";
+import { archiveCallLog, recoverCallLog, updateCallLog } from "@/lib/actions/call-logs";
+import { canEditCallLog, COMMUNICATION_LABELS, type CallLogPage, type CallLogRecord, type CommunicationOutcome } from "@/lib/types/call-logs";
+
+function relation<T>(value: T | T[] | null | undefined): T | null { return Array.isArray(value) ? value[0] ?? null : value ?? null; }
+
+function EditForm({ log, close }: { log: CallLogRecord; close: () => void }) {
+  const router = useRouter(); const [error, setError] = useState(""); const [pending, startTransition] = useTransition();
+  function submit(formData: FormData) { startTransition(async () => {
+    const minutes = Number(formData.get("duration_minutes") || 0);
+    const result = await updateCallLog(log.id, { outcome: String(formData.get("outcome")) as CommunicationOutcome, durationSeconds: minutes ? Math.round(minutes * 60) : undefined, notes: String(formData.get("notes") || ""), version: log.version });
+    if (!result.success) return setError(result.error); close(); router.refresh();
+  }); }
+  return <form action={submit} className="mt-3 grid gap-3 rounded-xl bg-slate-50 p-4 sm:grid-cols-2"><select name="outcome" defaultValue={log.outcome} className="rounded-lg border p-2">{Object.entries(COMMUNICATION_LABELS.outcomes).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><input name="duration_minutes" type="number" min="0" defaultValue={log.duration_seconds ? Math.round(log.duration_seconds / 60) : ""} placeholder="المدة بالدقائق" className="rounded-lg border p-2" /><textarea name="notes" defaultValue={log.notes ?? ""} rows={3} className="rounded-lg border p-2 sm:col-span-2" />{error && <p role="alert" className="text-red-700 sm:col-span-2">{error}</p>}<div className="flex gap-2"><button disabled={pending} className="rounded-lg bg-nebras-green px-4 py-2 font-bold text-white">حفظ</button><button type="button" onClick={close} className="rounded-lg border px-4 py-2">إلغاء</button></div></form>;
+}
+
+export function CallLogsSection({ page, canManage, currentUserId, showArchived = false }: { page: CallLogPage; canManage: boolean; currentUserId: string; showArchived?: boolean }) {
+  const router = useRouter(); const [editing, setEditing] = useState(""); const [error, setError] = useState(""); const [pendingId, setPendingId] = useState(""); const [, startTransition] = useTransition();
+  function toggleArchive(log: CallLogRecord) { setPendingId(log.id); startTransition(async () => { const result = log.is_archived ? await recoverCallLog(log.id) : await archiveCallLog(log.id); setPendingId(""); if (!result.success) return setError(result.error); setError(""); router.refresh(); }); }
+  return <article className="rounded-2xl bg-white p-5 shadow-sm sm:p-6" dir="rtl"><div className="mb-5 flex items-center justify-between gap-3"><div><h2 className="text-xl font-extrabold text-nebras-green">{showArchived ? "سجل الاتصالات المؤرشفة" : "سجل الاتصالات"}</h2><p className="text-sm text-slate-500">أحدث الاتصالات أولاً · {page.meta.total} سجل</p></div>{canManage && <button type="button" onClick={() => router.push(showArchived ? "?callsPage=1" : "?callsPage=1&archivedCalls=1")} className="rounded-lg border px-3 py-2 text-sm font-bold">{showArchived ? "عرض النشطة" : "عرض المؤرشفة"}</button>}</div>
+    {error && <p role="alert" className="mb-3 rounded-lg bg-red-50 p-3 text-red-700">{error}</p>}
+    {!page.records.length ? <p className="rounded-xl border border-dashed p-8 text-center text-slate-500">لا توجد اتصالات مسجلة بعد.</p> : <ul className="space-y-3">{page.records.map((log) => { const creator = relation(log.creator); const contact = relation(log.contact); const editable = canEditCallLog(log.created_at, log.created_by_id, currentUserId, canManage); return <li key={log.id} className="rounded-2xl border border-slate-200 p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div className="flex gap-3">{log.channel === "call" ? <Phone className="text-nebras-green" /> : <MessageCircle className="text-emerald-600" />}<div><div className="flex flex-wrap gap-2"><strong>{COMMUNICATION_LABELS.channels[log.channel]} · {COMMUNICATION_LABELS.directions[log.direction]}</strong><span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold">{COMMUNICATION_LABELS.outcomes[log.outcome]}</span></div><time className="text-sm text-slate-500">{new Intl.DateTimeFormat("ar-SA", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Riyadh" }).format(new Date(log.occurred_at))}</time><p className="text-sm">بواسطة {creator?.display_name ?? "—"}{contact ? ` · ${contact.name_ar}` : ""}{log.duration_seconds ? ` · ${Math.ceil(log.duration_seconds / 60)} دقيقة` : ""}</p></div></div><div className="flex gap-2">{editable && !log.is_archived && <button type="button" onClick={() => setEditing(editing === log.id ? "" : log.id)} className="inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-sm"><Pencil size={15} />تعديل</button>}{canManage && <button type="button" disabled={pendingId === log.id} onClick={() => toggleArchive(log)} className="inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-sm text-red-700">{log.is_archived ? <RotateCcw size={15} /> : <Archive size={15} />}{log.is_archived ? "استعادة" : "أرشفة"}</button>}</div></div>{log.notes && <p className="mt-3 whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm">{log.notes}</p>}{editing === log.id && <EditForm log={log} close={() => setEditing("")} />}</li>; })}</ul>}
+    {page.meta.pages > 1 && <nav className="mt-5 flex items-center justify-center gap-3"><button disabled={page.meta.page <= 1} onClick={() => router.push(`?callsPage=${page.meta.page - 1}${showArchived ? "&archivedCalls=1" : ""}`)} className="rounded-lg border px-4 py-2 disabled:opacity-40">السابق</button><span>{page.meta.page} / {page.meta.pages}</span><button disabled={page.meta.page >= page.meta.pages} onClick={() => router.push(`?callsPage=${page.meta.page + 1}${showArchived ? "&archivedCalls=1" : ""}`)} className="rounded-lg border px-4 py-2 disabled:opacity-40">التالي</button></nav>}
+  </article>;
 }

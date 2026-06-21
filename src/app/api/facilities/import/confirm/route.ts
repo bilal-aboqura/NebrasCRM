@@ -1,111 +1,30 @@
-/**
- * Route: POST /api/facilities/import/confirm
- * Confirms a previously previewed import batch:
- * - Bulk-inserts valid rows as facilities (status=new, ownerId=null)
- * - Logs an import_created activity for each facility
- * - Updates the batch status to confirmed
- * Access: super_admin, company_admin, supervisor only.
- */
+import { requireAuth } from "@/lib/auth/context";
+import { activeCompanyId, canImport, jsonError } from "@/lib/import-export/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthContext, assertRole } from "@/lib/auth/context";
-import { importBatches } from "@/lib/data/import-batches";
-import { db, addActivity, nextId, nowIso } from "@/lib/data/store";
-import type { Facility } from "@/lib/types/domain";
+export const runtime = "nodejs";
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export async function POST(request: Request) {
   try {
-    const { role, user, activeCompany } = await getAuthContext();
-    assertRole(role, ["super_admin", "company_admin", "supervisor"]);
-
-    const body = await request.json();
-    const { batchId } = body as { batchId?: string };
-    if (!batchId) {
-      return NextResponse.json({ error: "معرّف الدفعة مطلوب" }, { status: 400 });
-    }
-
-    const batch = importBatches.find((b) => b.id === batchId);
-    if (!batch) {
-      return NextResponse.json({ error: "الدفعة غير موجودة" }, { status: 404 });
-    }
-
-    // Tenant isolation check
-    if (role !== "super_admin" && batch.companyId !== activeCompany.id) {
-      return NextResponse.json({ error: "غير مصرح لك بتأكيد هذه الدفعة" }, { status: 403 });
-    }
-
-    if (batch.status !== "preview") {
-      return NextResponse.json(
-        { error: "هذه الدفعة تم تأكيدها مسبقاً أو فشلت" },
-        { status: 409 }
-      );
-    }
-
-    const validRows = (batch._rows ?? []).filter(
-      (r: { status: string }) => r.status === "valid"
-    );
-
-    let importedCount = 0;
-    let skippedCount = (batch._rows ?? []).length - validRows.length;
-
-    // "Transaction": insert all valid rows and activities atomically in mock store
-    const insertedFacilities: Facility[] = [];
-    try {
-      for (const row of validRows) {
-        const facility: Facility = {
-          id: nextId("fac", db.facilities),
-          companyId: batch.companyId,
-          name: row.data.name,
-          type: row.data.type,
-          city: row.data.city,
-          region: row.data.region,
-          primaryPhone: row.data.primary_phone,
-          secondaryPhone: row.data.secondary_phone ?? undefined,
-          ownerId: null,
-          status: "new",
-          isArchived: false,
-          updatedAt: nowIso()
-        };
-        db.facilities.push(facility);
-        insertedFacilities.push(facility);
-        importedCount++;
-      }
-
-      // Log activities for each inserted facility
-      for (const facility of insertedFacilities) {
-        addActivity({
-          companyId: facility.companyId,
-          facilityId: facility.id,
-          kind: "import_created",
-          message: `تم إنشاء المنشأة عبر الاستيراد من ملف ${batch.filename}`,
-          createdAt: nowIso()
-        });
-      }
-
-      // Update batch status
-      batch.status = "confirmed";
-      batch.validRows = importedCount;
-      batch.skippedRows = skippedCount;
-    } catch (insertError) {
-      // Rollback: remove any inserted facilities
-      for (const facility of insertedFacilities) {
-        const idx = db.facilities.findIndex((f) => f.id === facility.id);
-        if (idx !== -1) db.facilities.splice(idx, 1);
-      }
-      batch.status = "failed";
-      throw insertError;
-    }
-
-    return NextResponse.json({
-      success: true,
-      importedCount,
-      skippedCount
+    const context = await requireAuth();
+    if (!canImport(context)) return jsonError("غير مصرح لك باستيراد المنشآت.", 403);
+    const body = await request.json().catch(() => null) as { batchId?: string } | null;
+    if (!body?.batchId || !UUID.test(body.batchId)) return jsonError("معرف دفعة الاستيراد غير صالح.");
+    const { data, error } = await createAdminClient().rpc("confirm_bulk_facility_import", {
+      p_batch_id: body.batchId,
+      p_company_id: activeCompanyId(context),
+      p_actor_id: context.userId,
     });
+    if (error) throw error;
+    return Response.json(data);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "خطأ غير معروف";
-    if (message.includes("403")) {
-      return NextResponse.json({ error: "غير مصرح لك بتأكيد الاستيراد" }, { status: 403 });
-    }
-    return NextResponse.json({ error: message }, { status: 500 });
+    const candidate = error as { code?: string; message?: string };
+    if (candidate.code === "42501") return jsonError("غير مصرح لك بتأكيد هذه الدفعة.", 403);
+    if (candidate.code === "P0002") return jsonError("دفعة الاستيراد غير موجودة.", 404);
+    if (candidate.code === "23514") return jsonError("تمت معالجة دفعة الاستيراد مسبقاً.", 409);
+    return jsonError(candidate.message ?? "تعذر تأكيد الاستيراد.", 500);
   }
 }
+

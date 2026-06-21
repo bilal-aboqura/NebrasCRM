@@ -1,1 +1,0 @@
-افتح home.html أو index.html للصفحة الرئيسية. زر دخول CRM يفتح login.html ثم crm.html.

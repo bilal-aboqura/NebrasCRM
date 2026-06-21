@@ -1,12 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { normalizeSaudiPhone, toWaMe } from "@/lib/utils/phone";
+import { buildWhatsAppUrl, normalizePhone } from "./phone";
 
-describe("phone utilities", () => {
-  it("normalizes Saudi local mobile numbers", () => {
-    expect(normalizeSaudiPhone("050 111 2233")).toBe("+966501112233");
+describe("normalizePhone", () => {
+  it.each([
+    ["0501234567", "966501234567"],
+    ["+966 50 123 4567", "966501234567"],
+    ["00966-11-456-7890", "966114567890"],
+    ["0114567890", "966114567890"],
+  ])("normalizes %s", (input, expected) => expect(normalizePhone(input)).toBe(expected));
+
+  it("returns an empty value when no digits are supplied", () => {
+    expect(normalizePhone("---")).toBe("");
   });
+});
 
-  it("builds encoded WhatsApp links", () => {
-    expect(toWaMe("0501112233", "مرحبا")).toContain("text=%D9%85");
+describe("buildWhatsAppUrl", () => {
+  it("uses digits only and resolves every company placeholder", () => {
+    const url = buildWhatsAppUrl("+966 50-000-0000", "شركة نبراس", "مرحباً من [اسم الشركة] - [اسم الشركة]");
+    expect(url).toBe(`https://wa.me/966500000000?text=${encodeURIComponent("مرحباً من شركة نبراس - شركة نبراس")}`);
   });
 });

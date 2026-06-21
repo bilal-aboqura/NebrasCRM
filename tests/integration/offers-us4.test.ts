@@ -1,12 +1,6 @@
-import { describe, expect, it } from "vitest";
-import { createOffer, recordOfferDecision, sendOffer } from "@/lib/actions/offers";
-
-describe("offer decisions", () => {
-  it("records accepted and rejected decisions", async () => {
-    const offer = await createOffer({ facilityId: "fac-1", title: "Decision Test", validUntil: "2099-01-01", lineItems: [{ description: "Service", quantity: 1, unitPrice: 100 }] });
-    await sendOffer(offer.id);
-    const decided = await recordOfferDecision(offer.id, { decision: "accepted", decisionNote: "Approved" });
-    expect(decided.status).toBe("accepted");
-    expect(decided.decisionNote).toBe("Approved");
-  });
-});
+import { describe, expect, it, vi } from "vitest";
+const state = vi.hoisted(() => ({ rpc: vi.fn(), fetch: vi.fn(), context: { userId: "sales-a", companyId: "company-a", activeCompanyId: "company-a", role: "sales_user" } }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() })); vi.mock("@/lib/auth/context", () => ({ requireAuth: async () => state.context }));
+vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ rpc: state.rpc, from: () => ({ select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: state.fetch }) }) }) }) }) }));
+import { recordOfferDecision } from "@/lib/actions/offers";
+describe("offer decisions", () => { it("records acceptance and its note atomically", async () => { state.rpc.mockResolvedValueOnce({ data: { id: "offer-a" }, error: null }); state.fetch.mockResolvedValueOnce({ data: { id: "offer-a", company_id: "company-a", facility_id: "facility-a", created_by: "sales-a", title: "عرض", status: "accepted", subtotal: 100, discount_type: "fixed", discount_value: 0, discount_amount: 0, tax_rate: 15, tax_amount: 15, grand_total: 115, valid_until: "2026-01-01", version: 1, is_active: true, created_at: "x", updated_at: "x" }, error: null }); const result = await recordOfferDecision("offer-a", { decision: "accepted", decisionNote: "موافق" }); expect(result.success).toBe(true); expect(state.rpc).toHaveBeenCalledWith("decide_offer_atomic", expect.objectContaining({ p_decision: "accepted", p_note: "موافق" })); }); });

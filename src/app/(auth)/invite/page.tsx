@@ -1,22 +1,7 @@
-import { completeInvitation } from "@/lib/actions/admin";
+import Link from "next/link";
+import { InvitationForm } from "@/components/admin/InvitationForm";
 
-export default function InvitePage({ searchParams }: { searchParams?: { token?: string } }) {
-  async function submit(formData: FormData) {
-    "use server";
-    await completeInvitation(String(formData.get("token")), String(formData.get("password")));
-  }
-
-  return (
-    <main className="grid min-h-screen place-items-center bg-nebras-cream px-4">
-      <form action={submit} className="w-full max-w-sm rounded-lg border border-nebras-line bg-white p-6">
-        <h1 className="text-xl font-bold text-nebras-green">إكمال الدعوة</h1>
-        <input type="hidden" name="token" defaultValue={searchParams?.token ?? ""} />
-        <label className="mt-4 block text-sm font-medium">
-          كلمة المرور الجديدة
-          <input name="password" type="password" minLength={8} className="mt-1 w-full rounded-md border border-nebras-line px-3 py-2" />
-        </label>
-        <button className="mt-5 w-full rounded-md bg-nebras-green px-4 py-2 font-semibold text-white">تفعيل الحساب</button>
-      </form>
-    </main>
-  );
+export default function InvitePage({ searchParams }: { searchParams: { token?: string } }) {
+  return <main className="grid min-h-screen place-items-center px-4"><section className="w-full max-w-lg rounded-3xl bg-white p-8 shadow-xl"><h1 className="text-3xl font-extrabold text-nebras-green">تفعيل حسابك</h1><p className="mb-6 mt-2 text-slate-600">أنشئ كلمة مرور آمنة لإكمال الدعوة.</p>{searchParams.token ? <InvitationForm token={searchParams.token} /> : <div><p className="text-red-700">رابط الدعوة غير صالح.</p><Link href="/login" className="mt-4 inline-block font-bold text-nebras-green underline">العودة لتسجيل الدخول</Link></div>}</section></main>;
 }
+

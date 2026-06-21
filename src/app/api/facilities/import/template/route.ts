@@ -1,33 +1,15 @@
-/**
- * Route: GET /api/facilities/import/template
- * Returns a blank Arabic-labeled Excel template for facility imports.
- * Access: super_admin, company_admin, supervisor only.
- */
+import { requireAuth } from "@/lib/auth/context";
+import { excelDownloadHeaders, generateFacilityTemplate } from "@/lib/import-export/generator";
+import { canImport, jsonError } from "@/lib/import-export/server";
 
-import { NextResponse } from "next/server";
-import { getAuthContext, assertRole } from "@/lib/auth/context";
-import { generateFacilityTemplate } from "@/lib/import-export/generator";
+export const runtime = "nodejs";
 
-export async function GET(): Promise<NextResponse> {
-  try {
-    const { role } = await getAuthContext();
-    assertRole(role, ["super_admin", "company_admin", "supervisor"]);
-
-    const buffer = generateFacilityTemplate();
-
-    return new NextResponse(new Uint8Array(buffer), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": 'attachment; filename="template.xlsx"',
-        "Content-Length": String(buffer.length)
-      }
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "خطأ غير معروف";
-    if (message.includes("403")) {
-      return NextResponse.json({ error: "غير مصرح لك بتنزيل القالب" }, { status: 403 });
-    }
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
+export async function GET() {
+  const context = await requireAuth();
+  if (!canImport(context)) return jsonError("غير مصرح لك باستيراد المنشآت.", 403);
+  const workbook = generateFacilityTemplate();
+  return new Response(new Uint8Array(workbook), {
+    headers: excelDownloadHeaders("نموذج-استيراد-المنشآت.xlsx"),
+  });
 }
+

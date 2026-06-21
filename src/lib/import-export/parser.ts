@@ -1,88 +1,83 @@
-/**
- * parser.ts - SheetJS parser for import-export feature (Feature 011)
- *
- * Parses Excel (.xlsx) and CSV files server-side using SheetJS.
- * Maps Arabic column headers to internal field names.
- */
-
 import * as XLSX from "xlsx";
 
-/** Internal representation of a single parsed import row */
-export interface ParsedFacilityRow {
-  /** 1-based row index (excluding header) */
-  index: number;
+export const FACILITY_IMPORT_HEADERS = [
+  "اسم المنشأة",
+  "نوع المنشأة",
+  "المدينة",
+  "المنطقة",
+  "الهاتف الرئيسي",
+  "الهاتف الفرعي",
+  "مصدر العميل",
+  "ملاحظات",
+] as const;
+
+export type FacilityImportHeader = (typeof FACILITY_IMPORT_HEADERS)[number];
+
+export interface RawFacilityImportRow {
   name: string;
   type: string;
   city: string;
   region: string;
   primaryPhone: string;
-  secondaryPhone?: string;
-  leadSource?: string;
-  notes?: string;
+  secondaryPhone: string;
+  leadSource: string;
+  notes: string;
 }
 
-/** Arabic column header → internal field name mapping */
-const ARABIC_HEADER_MAP: Record<string, keyof ParsedFacilityRow> = {
-  "اسم المنشأة": "name",
-  "نوع المنشأة": "type",
-  "المدينة": "city",
-  "المنطقة": "region",
-  "الهاتف الرئيسي": "primaryPhone",
-  "الهاتف الفرعي": "secondaryPhone",
-  "مصدر العميل": "leadSource",
-  "ملاحظات": "notes"
-};
-
-export interface ParseResult {
-  rows: ParsedFacilityRow[];
-  /** total row count parsed (excluding header) */
-  totalRows: number;
+export class SpreadsheetParseError extends Error {
+  constructor(message: string, readonly code: "invalid_file" | "missing_columns" | "row_limit") {
+    super(message);
+    this.name = "SpreadsheetParseError";
+  }
 }
 
-/**
- * Parse a multipart-uploaded file buffer (Excel or CSV) into structured rows.
- * @param buffer  Raw file bytes
- * @param filename  Original filename used to determine format hint
- */
-export function parseImportFile(buffer: Buffer, filename: string): ParseResult {
-  const workbook = XLSX.read(buffer, {
-    type: "buffer",
-    // Let SheetJS auto-detect CSV vs XLSX from content
-    raw: false
-  });
+const INVALID_FILE = "الملف المرفوع غير صالح أو يحتوي على أعمدة غير متطابقة مع النموذج.";
 
-  const sheetName = workbook.SheetNames[0];
-  if (!sheetName) {
-    throw new Error("الملف لا يحتوي على أي ورقة بيانات");
-  }
+function text(value: unknown) {
+  return value == null ? "" : String(value).trim();
+}
 
-  const sheet = workbook.Sheets[sheetName];
-
-  // Read as array of arrays to handle header mapping manually
-  const rawRows: string[][] = XLSX.utils.sheet_to_json(sheet, {
-    header: 1,
-    defval: ""
-  });
-
-  if (rawRows.length < 2) {
-    return { rows: [], totalRows: 0 };
-  }
-
-  const headers = rawRows[0].map((h) => String(h).trim());
-  const dataRows = rawRows.slice(1);
-
-  const rows: ParsedFacilityRow[] = dataRows
-    .filter((row) => row.some((cell) => String(cell).trim() !== ""))
-    .map((row, rowIdx) => {
-      const parsed: Partial<ParsedFacilityRow> = { index: rowIdx + 1 };
-      headers.forEach((header, colIdx) => {
-        const fieldName = ARABIC_HEADER_MAP[header];
-        if (fieldName && fieldName !== "index") {
-          (parsed as Record<string, string>)[fieldName] = String(row[colIdx] ?? "").trim();
-        }
-      });
-      return parsed as ParsedFacilityRow;
+export function parseFacilitySpreadsheet(input: ArrayBuffer | Uint8Array, maxRows: number): RawFacilityImportRow[] {
+  try {
+    const bytes = input instanceof ArrayBuffer ? new Uint8Array(input) : input;
+    const isZipWorkbook = bytes[0] === 0x50 && bytes[1] === 0x4b;
+    const source = isZipWorkbook ? bytes : new TextDecoder("utf-8").decode(bytes).replace(/^\uFEFF/, "");
+    const workbook = XLSX.read(source, { type: isZipWorkbook ? "array" : "string", cellDates: false, raw: false });
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) throw new SpreadsheetParseError(INVALID_FILE, "invalid_file");
+    const matrix = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[sheetName], {
+      header: 1,
+      defval: "",
+      blankrows: false,
+      raw: false,
     });
+    if (!matrix.length) throw new SpreadsheetParseError(INVALID_FILE, "invalid_file");
 
-  return { rows, totalRows: rows.length };
+    const headers = matrix[0].map(text);
+    const missing = FACILITY_IMPORT_HEADERS.filter((header) => !headers.includes(header));
+    if (missing.length) {
+      throw new SpreadsheetParseError(`الأعمدة المطلوبة غير موجودة: ${missing.join("، ")}.`, "missing_columns");
+    }
+
+    const indexes = new Map(headers.map((header, index) => [header, index]));
+    const rows = matrix.slice(1).filter((row) => row.some((value) => text(value) !== ""));
+    if (rows.length > maxRows) {
+      throw new SpreadsheetParseError(`عدد الصفوف يتجاوز الحد الأقصى المسموح به (${maxRows} صف).`, "row_limit");
+    }
+
+    const cell = (row: unknown[], header: FacilityImportHeader) => text(row[indexes.get(header)!]);
+    return rows.map((row) => ({
+      name: cell(row, "اسم المنشأة"),
+      type: cell(row, "نوع المنشأة"),
+      city: cell(row, "المدينة"),
+      region: cell(row, "المنطقة"),
+      primaryPhone: cell(row, "الهاتف الرئيسي"),
+      secondaryPhone: cell(row, "الهاتف الفرعي"),
+      leadSource: cell(row, "مصدر العميل"),
+      notes: cell(row, "ملاحظات"),
+    }));
+  } catch (error) {
+    if (error instanceof SpreadsheetParseError) throw error;
+    throw new SpreadsheetParseError(INVALID_FILE, "invalid_file");
+  }
 }

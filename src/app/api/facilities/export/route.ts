@@ -1,70 +1,65 @@
-/**
- * Route: GET /api/facilities/export
- * Exports facilities matching active filters (status, city, type, assigned_to)
- * scoped by the user's company_id and role visibility.
- * Access: all authenticated roles (sales_user sees only owned facilities).
- */
+import { requireAuth } from "@/lib/auth/context";
+import { excelDownloadHeaders, generateExcel } from "@/lib/import-export/generator";
+import { activeCompanyId, jsonError } from "@/lib/import-export/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthContext, canManageCompanyWide } from "@/lib/auth/context";
-import { db } from "@/lib/data/store";
-import {
-  generateExcelExport,
-  FACILITY_EXPORT_HEADERS
-} from "@/lib/import-export/generator";
-import { facilityStatusLabels } from "@/lib/i18n";
-import type { FacilityStatus } from "@/lib/types/domain";
+export const runtime = "nodejs";
 
-export async function GET(request: NextRequest): Promise<NextResponse> {
+const TYPES = new Set(["medical_complex", "dental_complex", "lab", "radiology", "hospital"]);
+const STATUSES = new Set(["new", "contacted", "interested", "offer", "negotiation", "contract", "lost"]);
+const typeLabels: Record<string, string> = { medical_complex: "مجمع طبي", dental_complex: "مجمع أسنان", lab: "مختبر", radiology: "مركز أشعة", hospital: "مستشفى" };
+const statusLabels: Record<string, string> = { new: "جديد", contacted: "تم التواصل", interested: "مهتم", offer: "عرض", negotiation: "تفاوض", contract: "عقد", lost: "مفقود" };
+
+function relation<T>(value: unknown): T | null {
+  return Array.isArray(value) ? (value[0] as T | undefined) ?? null : (value as T | null) ?? null;
+}
+
+export async function GET(request: Request) {
   try {
-    const { role, user, activeCompany } = await getAuthContext();
+    const context = await requireAuth();
+    const companyId = activeCompanyId(context);
+    const params = new URL(request.url).searchParams;
+    const admin = createAdminClient();
+    const allRows: Record<string, unknown>[] = [];
+    const pageSize = 1000;
 
-    const { searchParams } = request.nextUrl;
-    const statusFilter = searchParams.get("status") as FacilityStatus | null;
-    const cityFilter = searchParams.get("city");
-    const typeFilter = searchParams.get("type");
-    const assignedToFilter = searchParams.get("assigned_to");
-
-    // Scope: company_id isolation
-    let rows = db.facilities.filter(
-      (f) => role === "super_admin" || f.companyId === activeCompany.id
-    );
-
-    // Sales user can only see owned facilities
-    if (!canManageCompanyWide(role)) {
-      rows = rows.filter((f) => f.ownerId === user.id);
+    for (let page = 0; ; page += 1) {
+      let query = admin.from("facilities").select(
+        "name_ar,type,primary_phone,secondary_phone,lead_source,status,notes,created_at,city_custom,cities(name_ar),regions(name_ar),owner:profiles!facilities_assigned_to_fkey(display_name)",
+      ).eq("company_id", companyId);
+      query = context.role === "sales_user"
+        ? query.eq("assigned_to", context.userId).eq("is_active", true)
+        : query.eq("is_active", params.get("archived") === "1" ? false : true);
+      const status = params.get("status"); if (status && STATUSES.has(status)) query = query.eq("status", status);
+      const type = params.get("type"); if (type && TYPES.has(type)) query = query.eq("type", type);
+      const city = params.get("city"); if (city) query = query.eq("city_id", city);
+      const region = params.get("region"); if (region) query = query.eq("region_id", region);
+      const owner = params.get("assigned_to") ?? params.get("owner"); if (owner && context.role !== "sales_user") query = query.eq("assigned_to", owner);
+      const search = params.get("search")?.trim().replace(/[,%]/g, "");
+      if (search) query = query.or(`name_ar.ilike.%${search}%,primary_phone.ilike.%${search}%,secondary_phone.ilike.%${search}%`);
+      const { data, error } = await query.order("created_at", { ascending: false }).range(page * pageSize, (page + 1) * pageSize - 1);
+      if (error) throw error;
+      const rows = (data ?? []) as unknown as Record<string, unknown>[];
+      allRows.push(...rows);
+      if (rows.length < pageSize) break;
     }
 
-    // Apply filters
-    if (statusFilter) rows = rows.filter((f) => f.status === statusFilter);
-    if (cityFilter) rows = rows.filter((f) => f.city === cityFilter);
-    if (typeFilter) rows = rows.filter((f) => f.type === typeFilter);
-    if (assignedToFilter) rows = rows.filter((f) => f.ownerId === assignedToFilter);
-
-    // Map to export rows with Arabic headers
-    const exportRows = rows.map((f) => ({
-      [FACILITY_EXPORT_HEADERS[0]]: f.name,
-      [FACILITY_EXPORT_HEADERS[1]]: f.type,
-      [FACILITY_EXPORT_HEADERS[2]]: f.city,
-      [FACILITY_EXPORT_HEADERS[3]]: f.region,
-      [FACILITY_EXPORT_HEADERS[4]]: f.primaryPhone,
-      [FACILITY_EXPORT_HEADERS[5]]: f.secondaryPhone ?? "",
-      [FACILITY_EXPORT_HEADERS[6]]: facilityStatusLabels[f.status],
-      [FACILITY_EXPORT_HEADERS[7]]: f.updatedAt
-    }));
-
-    const buffer = generateExcelExport(FACILITY_EXPORT_HEADERS, exportRows, "المنشآت");
-
-    return new NextResponse(new Uint8Array(buffer), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": 'attachment; filename="facilities-export.xlsx"',
-        "Content-Length": String(buffer.length)
-      }
-    });
+    const workbook = generateExcel("المنشآت", allRows, [
+      { header: "اسم المنشأة", value: (row) => String(row.name_ar ?? ""), width: 28 },
+      { header: "نوع المنشأة", value: (row) => typeLabels[String(row.type)] ?? String(row.type ?? "") },
+      { header: "المدينة", value: (row) => String(row.city_custom ?? relation<{ name_ar?: string }>(row.cities)?.name_ar ?? "") },
+      { header: "المنطقة", value: (row) => relation<{ name_ar?: string }>(row.regions)?.name_ar ?? "" },
+      { header: "الهاتف الرئيسي", value: (row) => String(row.primary_phone ?? "") },
+      { header: "الهاتف الفرعي", value: (row) => String(row.secondary_phone ?? "") },
+      { header: "مصدر العميل", value: (row) => row.lead_source === "imported" ? "مستورد" : row.lead_source === "website_form" ? "نموذج الموقع" : "يدوي" },
+      { header: "حالة العميل", value: (row) => statusLabels[String(row.status)] ?? String(row.status ?? "") },
+      { header: "المالك المعين", value: (row) => relation<{ display_name?: string }>(row.owner)?.display_name ?? "غير مسند" },
+      { header: "ملاحظات", value: (row) => String(row.notes ?? ""), width: 32 },
+      { header: "تاريخ الإنشاء", value: (row) => String(row.created_at ?? "") },
+    ]);
+    return new Response(new Uint8Array(workbook), { headers: excelDownloadHeaders("تصدير-المنشآت.xlsx") });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "خطأ غير معروف";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return jsonError(error instanceof Error ? error.message : "تعذر تصدير المنشآت.", 500);
   }
 }
+

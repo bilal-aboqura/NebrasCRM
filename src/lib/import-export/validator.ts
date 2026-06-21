@@ -1,180 +1,93 @@
-/**
- * validator.ts - Facility row validator for bulk import (Feature 011)
- *
- * Validates parsed facility rows against business rules:
- * - Required fields
- * - Phone number format (Saudi)
- * - Duplicate detection (in-file and against existing DB records)
- */
+import { isValidSaudiPhone, normalizePhone } from "@/lib/utils/phone";
+import type { RawFacilityImportRow } from "./parser";
 
-import { normalizeSaudiPhone } from "@/lib/utils/phone";
-import type { ParsedFacilityRow } from "./parser";
+export type ImportRowStatus = "valid" | "error" | "duplicate";
+export type ImportFacilityType = "medical_complex" | "dental_complex" | "lab" | "radiology" | "hospital";
 
-export type RowStatus = "valid" | "error" | "duplicate";
+export interface GeographyOption {
+  id: string;
+  name_ar: string;
+  region_id?: string;
+  name_en?: string;
+}
 
-export interface ValidatedRow {
+export interface ValidatedImportData {
+  name_ar: string;
+  type: ImportFacilityType | "";
+  region_id: string;
+  city_id: string;
+  city_custom: string | null;
+  primary_phone: string;
+  secondary_phone: string | null;
+  lead_source: "imported";
+  notes: string | null;
+}
+
+export interface ValidatedImportRow {
   index: number;
-  status: RowStatus;
-  data: {
-    name: string;
-    type: string;
-    city: string;
-    region: string;
-    primary_phone: string;
-    secondary_phone?: string | null;
-    lead_source: string;
-    notes?: string;
-  };
+  status: ImportRowStatus;
+  data: ValidatedImportData;
   errors: string[];
 }
 
-export interface ValidationSummary {
-  total: number;
-  valid: number;
-  errors: number;
-  duplicates: number;
-}
+const TYPE_MAP: Record<string, ImportFacilityType> = {
+  "مجمع طبي": "medical_complex",
+  "مجمع لطب الأسنان": "dental_complex",
+  "مجمع أسنان": "dental_complex",
+  "مختبر": "lab",
+  "مركز أشعة": "radiology",
+  "مستشفى": "hospital",
+};
 
-/**
- * Saudi phone format validation:
- * Must be a normalized string starting with +966 and 12 digits total.
- */
-function isValidSaudiPhone(phone: string): boolean {
-  if (!phone) return false;
-  try {
-    const normalized = normalizeSaudiPhone(phone);
-    return /^\+9665\d{8}$/.test(normalized);
-  } catch {
-    return false;
-  }
-}
+export function validateFacilityImportRows(
+  rows: RawFacilityImportRow[],
+  geography: { regions: GeographyOption[]; cities: GeographyOption[] },
+  existingPhones: Iterable<string> = [],
+): ValidatedImportRow[] {
+  const knownPhones = new Set(Array.from(existingPhones, normalizePhone));
+  const seenPhones = new Set<string>();
+  const regions = new Map(geography.regions.map((region) => [region.name_ar.trim(), region]));
 
-/**
- * Validate an array of parsed facility rows.
- *
- * @param rows           Parsed rows from the spreadsheet
- * @param existingPhones Set of existing primary_phone values already in the DB (for this company)
- */
-export function validateFacilityRows(
-  rows: ParsedFacilityRow[],
-  existingPhones: Set<string>
-): { validatedRows: ValidatedRow[]; summary: ValidationSummary } {
-  const seenPhonesInFile = new Set<string>();
-
-  const validatedRows: ValidatedRow[] = rows.map((row) => {
+  return rows.map((row, offset) => {
     const errors: string[] = [];
+    const normalizedPrimary = normalizePhone(row.primaryPhone);
+    const normalizedSecondary = row.secondaryPhone ? normalizePhone(row.secondaryPhone) : "";
+    const region = regions.get(row.region.trim());
+    const city = geography.cities.find((candidate) =>
+      candidate.region_id === region?.id && candidate.name_ar.trim() === row.city.trim(),
+    );
+    const type = TYPE_MAP[row.type.trim()] ?? "";
 
-    // Required: name
-    if (!row.name || row.name.trim() === "") {
-      errors.push("اسم المنشأة مطلوب ولا يمكن تركه فارغاً");
+    if (row.name.trim().length < 2) errors.push("اسم المنشأة مطلوب ولا يمكن تركه فارغاً.");
+    if (!type) errors.push("نوع المنشأة غير مدعوم.");
+    if (!region) errors.push("المنطقة غير موجودة في النظام.");
+    if (!city) errors.push("المدينة غير موجودة أو لا تتبع المنطقة المحددة.");
+    if (!row.primaryPhone || !isValidSaudiPhone(row.primaryPhone)) errors.push("رقم الهاتف الرئيسي غير صالح.");
+    if (row.secondaryPhone && !isValidSaudiPhone(row.secondaryPhone)) errors.push("رقم الهاتف الفرعي غير صالح.");
+
+    let status: ImportRowStatus = errors.length ? "error" : "valid";
+    if (!errors.length && (knownPhones.has(normalizedPrimary) || seenPhones.has(normalizedPrimary))) {
+      status = "duplicate";
+      errors.push("رقم الهاتف الرئيسي مستخدم بالفعل في منشأة أخرى للشركة أو مكرر داخل الملف.");
     }
-
-    // Required: type
-    if (!row.type || row.type.trim() === "") {
-      errors.push("نوع المنشأة مطلوب ولا يمكن تركه فارغاً");
-    }
-
-    // Required: city
-    if (!row.city || row.city.trim() === "") {
-      errors.push("المدينة مطلوبة ولا يمكن تركها فارغة");
-    }
-
-    // Required: region
-    if (!row.region || row.region.trim() === "") {
-      errors.push("المنطقة مطلوبة ولا يمكن تركها فارغة");
-    }
-
-    // Required: primary phone + format check
-    let normalizedPhone = "";
-    if (!row.primaryPhone || row.primaryPhone.trim() === "") {
-      errors.push("الهاتف الرئيسي مطلوب ولا يمكن تركه فارغاً");
-    } else if (!isValidSaudiPhone(row.primaryPhone)) {
-      errors.push("رقم الهاتف الرئيسي غير صحيح (يجب أن يكون رقماً سعودياً صالحاً)");
-    } else {
-      normalizedPhone = normalizeSaudiPhone(row.primaryPhone);
-    }
-
-    if (errors.length > 0) {
-      return {
-        index: row.index,
-        status: "error",
-        data: {
-          name: row.name ?? "",
-          type: row.type ?? "",
-          city: row.city ?? "",
-          region: row.region ?? "",
-          primary_phone: row.primaryPhone ?? "",
-          secondary_phone: row.secondaryPhone || null,
-          lead_source: row.leadSource || "imported",
-          notes: row.notes
-        },
-        errors
-      };
-    }
-
-    // Duplicate check: already in the database
-    if (existingPhones.has(normalizedPhone)) {
-      return {
-        index: row.index,
-        status: "duplicate",
-        data: {
-          name: row.name,
-          type: row.type,
-          city: row.city,
-          region: row.region,
-          primary_phone: normalizedPhone,
-          secondary_phone: row.secondaryPhone || null,
-          lead_source: row.leadSource || "imported",
-          notes: row.notes
-        },
-        errors: ["رقم الهاتف الرئيسي مستخدم بالفعل في منشأة أخرى للشركة"]
-      };
-    }
-
-    // Duplicate check: already seen in this file
-    if (seenPhonesInFile.has(normalizedPhone)) {
-      return {
-        index: row.index,
-        status: "duplicate",
-        data: {
-          name: row.name,
-          type: row.type,
-          city: row.city,
-          region: row.region,
-          primary_phone: normalizedPhone,
-          secondary_phone: row.secondaryPhone || null,
-          lead_source: row.leadSource || "imported",
-          notes: row.notes
-        },
-        errors: ["رقم الهاتف الرئيسي مكرر داخل الملف"]
-      };
-    }
-
-    seenPhonesInFile.add(normalizedPhone);
+    if (!errors.length) seenPhones.add(normalizedPrimary);
 
     return {
-      index: row.index,
-      status: "valid",
+      index: offset + 1,
+      status,
       data: {
-        name: row.name,
-        type: row.type,
-        city: row.city,
-        region: row.region,
-        primary_phone: normalizedPhone,
-        secondary_phone: row.secondaryPhone ? normalizeSaudiPhone(row.secondaryPhone) : null,
-        lead_source: row.leadSource || "imported",
-        notes: row.notes
+        name_ar: row.name.trim(),
+        type,
+        region_id: region?.id ?? "",
+        city_id: city?.id ?? "",
+        city_custom: city?.name_en === "Other" ? row.city.trim() : null,
+        primary_phone: normalizedPrimary,
+        secondary_phone: normalizedSecondary || null,
+        lead_source: "imported",
+        notes: row.notes.trim() || null,
       },
-      errors: []
+      errors,
     };
   });
-
-  const summary: ValidationSummary = {
-    total: validatedRows.length,
-    valid: validatedRows.filter((r) => r.status === "valid").length,
-    errors: validatedRows.filter((r) => r.status === "error").length,
-    duplicates: validatedRows.filter((r) => r.status === "duplicate").length
-  };
-
-  return { validatedRows, summary };
 }
+

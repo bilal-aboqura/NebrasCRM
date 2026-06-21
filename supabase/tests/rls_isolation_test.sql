@@ -1,6 +1,10 @@
 begin;
-select plan(2);
-select has_table('public', 'companies', 'companies table exists');
-select has_table('public', 'profiles', 'profiles table exists');
+select plan(4);
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb","role":"authenticated","user_role":"company_admin","company_id":"11111111-1111-4111-8111-111111111111"}', true);
+select is((select count(*)::integer from public.companies), 1, 'tenant admin sees one company');
+select is((select count(*)::integer from public.profiles), 3, 'tenant admin sees tenant peers and self');
+select is((select count(*)::integer from public.profiles where company_id = '22222222-2222-4222-8222-222222222222'), 0, 'other tenant profiles hidden');
+select is((select count(*)::integer from public.companies where id = '22222222-2222-4222-8222-222222222222'), 0, 'other tenant company hidden');
 select * from finish();
 rollback;

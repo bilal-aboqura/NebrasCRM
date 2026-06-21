@@ -1,78 +1,187 @@
 "use server";
 
-import { getAuthContext, canManageCompanyWide } from "@/lib/auth/context";
-import { assertCanManageFacility } from "@/lib/auth/rbac-guards";
-import { addActivity, db, nextId } from "@/lib/data/store";
-import type { Contact } from "@/lib/types/domain";
-import { normalizeSaudiPhone } from "@/lib/utils/phone";
+import { revalidatePath } from "next/cache";
+import { requireAuth } from "@/lib/auth/context";
+import type { AuthContext } from "@/lib/auth/types";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { isValidSaudiPhone } from "@/lib/utils/phone";
 
-export interface ContactInput {
-  facilityId: string;
-  name: string;
-  title: string;
-  phone: string;
+export type Contact = {
+  id: string;
+  company_id: string;
+  facility_id: string;
+  name_ar: string;
+  job_title: string;
+  primary_phone: string;
+  primary_phone_normalized: string;
+  secondary_phone: string | null;
+  email: string | null;
+  is_primary: boolean;
+  notes: string | null;
+  is_archived: boolean;
+  archived_at: string | null;
+  archived_by: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CreateContactInput = {
+  name_ar: string;
+  job_title: string;
+  primary_phone: string;
+  secondary_phone?: string;
   email?: string;
-  isPrimary?: boolean;
+  is_primary?: boolean;
+  notes?: string;
+};
+export type UpdateContactInput = Partial<CreateContactInput>;
+export type ContactActionResult<T> = { success: true; data: T } | { success: false; error: string };
+
+const MANAGEMENT_ROLES = new Set(["super_admin", "company_admin", "supervisor"]);
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const DENIED = "غير مصرح لك بإدارة جهات الاتصال لهذه المنشأة.";
+const ARCHIVED_FACILITY = "لا يمكن تعديل جهات الاتصال في منشأة مؤرشفة. استعد المنشأة أولاً.";
+const RECOVERY_DENIED = "استعادة جهات الاتصال المؤرشفة متاحة للمشرفين والمدراء فقط.";
+
+function activeCompany(context: AuthContext) {
+  const companyId = context.activeCompanyId ?? context.companyId;
+  if (!companyId) throw new Error("يرجى اختيار شركة نشطة أولاً.");
+  return companyId;
 }
 
-function clearPrimary(facilityId: string) {
-  db.contacts.forEach((contact) => {
-    if (contact.facilityId === facilityId) contact.isPrimary = false;
-  });
+function fail(error: unknown): { success: false; error: string } {
+  const candidate = error as { code?: string; message?: string };
+  if (candidate.code === "42501" || candidate.message?.includes("access denied")) return { success: false, error: DENIED };
+  if (candidate.code === "23505") return { success: false, error: "تعذر تعيين جهة الاتصال الرئيسية. يرجى المحاولة مرة أخرى." };
+  return { success: false, error: candidate.message ?? "تعذر إتمام العملية." };
 }
 
-export async function createContact(input: ContactInput) {
-  const context = await getAuthContext();
-  const facility = db.facilities.find((item) => item.id === input.facilityId);
-  if (!facility) throw new Error("Facility not found");
-  assertCanManageFacility(context.role, context.user.id, facility);
-  if (input.isPrimary) clearPrimary(input.facilityId);
-  const contact: Contact = {
-    id: nextId("con", db.contacts),
-    companyId: facility.companyId,
-    facilityId: input.facilityId,
-    name: input.name,
-    title: input.title,
-    phone: normalizeSaudiPhone(input.phone),
-    email: input.email,
-    isPrimary: Boolean(input.isPrimary),
-    isActive: true
-  };
-  db.contacts.push(contact);
-  addActivity({ companyId: contact.companyId, facilityId: contact.facilityId, kind: "contact_created", message: `تمت إضافة جهة الاتصال ${contact.name}` });
-  return contact;
+function validateInput(input: UpdateContactInput, creating = false) {
+  if (creating || input.name_ar !== undefined) {
+    if (!input.name_ar || input.name_ar.trim().length < 2 || input.name_ar.trim().length > 150) throw new Error("الاسم بالعربية مطلوب وبحد أقصى 150 حرفاً.");
+  }
+  if (creating || input.job_title !== undefined) {
+    if (!input.job_title || input.job_title.trim().length < 2 || input.job_title.trim().length > 100) throw new Error("المسمى الوظيفي مطلوب وبحد أقصى 100 حرف.");
+  }
+  if (creating || input.primary_phone !== undefined) {
+    if (!input.primary_phone || !isValidSaudiPhone(input.primary_phone)) throw new Error("رقم الهاتف غير صالح. أدخل رقماً سعودياً صحيحاً.");
+  }
+  if (input.secondary_phone?.trim() && !isValidSaudiPhone(input.secondary_phone)) throw new Error("رقم الهاتف الثانوي غير صالح.");
+  if (input.email?.trim() && !EMAIL_PATTERN.test(input.email.trim())) throw new Error("البريد الإلكتروني غير صالح.");
 }
 
-export async function updateContact(id: string, input: Partial<ContactInput>) {
-  const contact = db.contacts.find((item) => item.id === id);
-  if (!contact) throw new Error("Contact not found");
-  const facility = db.facilities.find((item) => item.id === contact.facilityId);
-  if (!facility) throw new Error("Facility not found");
-  const context = await getAuthContext();
-  assertCanManageFacility(context.role, context.user.id, facility);
-  if (input.isPrimary) clearPrimary(contact.facilityId);
-  Object.assign(contact, input, { phone: input.phone ? normalizeSaudiPhone(input.phone) : contact.phone });
-  addActivity({ companyId: contact.companyId, facilityId: contact.facilityId, kind: "contact_updated", message: `تم تحديث جهة الاتصال ${contact.name}` });
-  return contact;
+function cleanInput(input: UpdateContactInput) {
+  const clean: Record<string, string | boolean> = {};
+  if (input.name_ar !== undefined) clean.name_ar = input.name_ar.trim();
+  if (input.job_title !== undefined) clean.job_title = input.job_title.trim();
+  if (input.primary_phone !== undefined) clean.primary_phone = input.primary_phone.trim();
+  if (input.secondary_phone !== undefined) clean.secondary_phone = input.secondary_phone.trim();
+  if (input.email !== undefined) clean.email = input.email.trim().toLowerCase();
+  if (input.is_primary !== undefined) clean.is_primary = input.is_primary;
+  if (input.notes !== undefined) clean.notes = input.notes.trim();
+  return clean;
 }
 
-export async function archiveContact(id: string) {
-  const contact = db.contacts.find((item) => item.id === id);
-  if (!contact) throw new Error("Contact not found");
-  const context = await getAuthContext();
-  if (!canManageCompanyWide(context.role)) throw new Error("403 Forbidden");
-  contact.isActive = false;
-  contact.isPrimary = false;
-  addActivity({ companyId: contact.companyId, facilityId: contact.facilityId, kind: "contact_archived", message: "تمت أرشفة جهة اتصال" });
-  return contact;
+async function requireFacilityAccess(facilityId: string, context: AuthContext, requireActive = false) {
+  const companyId = activeCompany(context);
+  let query = createAdminClient().from("facilities").select("id,company_id,assigned_to,is_active").eq("id", facilityId).eq("company_id", companyId);
+  if (context.role === "sales_user") query = query.eq("assigned_to", context.userId);
+  const { data, error } = await query.maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error(DENIED);
+  if (requireActive && !data.is_active) throw new Error(ARCHIVED_FACILITY);
+  return { facility: data, companyId };
 }
 
-export async function recoverContact(id: string) {
-  const contact = db.contacts.find((item) => item.id === id);
-  if (!contact) throw new Error("Contact not found");
-  const context = await getAuthContext();
-  if (!canManageCompanyWide(context.role)) throw new Error("403 Forbidden");
-  contact.isActive = true;
-  addActivity({ companyId: contact.companyId, facilityId: contact.facilityId, kind: "contact_recovered", message: "تمت استعادة جهة اتصال" });
-  return contact;
+async function requireContactAccess(contactId: string, context: AuthContext, requireActiveFacility = false) {
+  const companyId = activeCompany(context);
+  const { data, error } = await createAdminClient().from("contacts").select("id,facility_id,company_id,is_archived").eq("id", contactId).eq("company_id", companyId).maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error(DENIED);
+  await requireFacilityAccess(data.facility_id, context, requireActiveFacility);
+  return { contact: data, companyId };
+}
+
+export async function getFacilityContacts(facilityId: string, showArchived = false): Promise<ContactActionResult<Contact[]>> {
+  try {
+    const context = await requireAuth();
+    const { companyId, facility } = await requireFacilityAccess(facilityId, context);
+    if (!facility.is_active) return { success: true, data: [] };
+    if (showArchived && !MANAGEMENT_ROLES.has(context.role)) throw new Error(RECOVERY_DENIED);
+    let query = createAdminClient().from("contacts").select("*").eq("facility_id", facilityId).eq("company_id", companyId);
+    query = query.eq("is_archived", showArchived);
+    const { data, error } = await query.order("is_primary", { ascending: false }).order("created_at", { ascending: true });
+    if (error) throw error;
+    return { success: true, data: (data ?? []) as Contact[] };
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+export async function createContact(facilityId: string, input: CreateContactInput): Promise<ContactActionResult<Contact>> {
+  try {
+    validateInput(input, true);
+    const context = await requireAuth();
+    const { companyId } = await requireFacilityAccess(facilityId, context, true);
+    const { data, error } = await createAdminClient().rpc("create_contact_atomic", {
+      p_company_id: companyId, p_facility_id: facilityId, p_actor_id: context.userId, p_input: cleanInput(input),
+    });
+    if (error) throw error;
+    revalidatePath(`/dashboard/facilities/${facilityId}`);
+    return { success: true, data: data as Contact };
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+export async function updateContact(contactId: string, input: UpdateContactInput): Promise<ContactActionResult<Contact>> {
+  try {
+    validateInput(input);
+    if (!Object.keys(input).length) throw new Error("لا توجد تغييرات للحفظ.");
+    const context = await requireAuth();
+    const { contact, companyId } = await requireContactAccess(contactId, context, true);
+    if (contact.is_archived) throw new Error("لا يمكن تعديل جهة اتصال مؤرشفة.");
+    const { data, error } = await createAdminClient().rpc("update_contact_atomic", {
+      p_company_id: companyId, p_contact_id: contactId, p_actor_id: context.userId, p_input: cleanInput(input),
+    });
+    if (error) throw error;
+    revalidatePath(`/dashboard/facilities/${contact.facility_id}`);
+    return { success: true, data: data as Contact };
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+export async function archiveContact(contactId: string): Promise<ContactActionResult<Contact>> {
+  try {
+    const context = await requireAuth();
+    const { contact, companyId } = await requireContactAccess(contactId, context, true);
+    if (contact.is_archived) throw new Error("جهة الاتصال مؤرشفة بالفعل.");
+    const { data, error } = await createAdminClient().rpc("archive_contact_atomic", {
+      p_company_id: companyId, p_contact_id: contactId, p_actor_id: context.userId,
+    });
+    if (error) throw error;
+    revalidatePath(`/dashboard/facilities/${contact.facility_id}`);
+    return { success: true, data: data as Contact };
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+export async function recoverContact(contactId: string): Promise<ContactActionResult<Contact>> {
+  try {
+    const context = await requireAuth();
+    if (!MANAGEMENT_ROLES.has(context.role)) throw new Error(RECOVERY_DENIED);
+    const { contact, companyId } = await requireContactAccess(contactId, context, true);
+    if (!contact.is_archived) throw new Error("جهة الاتصال نشطة بالفعل.");
+    const { data, error } = await createAdminClient().rpc("recover_contact_atomic", {
+      p_company_id: companyId, p_contact_id: contactId, p_actor_id: context.userId,
+    });
+    if (error) throw error;
+    revalidatePath(`/dashboard/facilities/${contact.facility_id}`);
+    return { success: true, data: data as Contact };
+  } catch (error) {
+    return fail(error);
+  }
 }

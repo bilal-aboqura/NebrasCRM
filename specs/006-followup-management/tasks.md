@@ -11,8 +11,8 @@
 
 **Purpose**: Initial project structures and environment settings
 
-- [ ] T001 Initialize database type definitions for new enums and tables in `src/lib/types/database.ts`
-- [ ] T002 Configure routing structure by creating the route directory for the dedicated view in `src/app/(dashboard)/dashboard/followups/`
+- [X] T001 Initialize database type definitions for new enums and tables in `src/lib/types/database.ts`
+- [X] T002 Configure routing structure by creating the route directory for the dedicated view in `src/app/(dashboard)/dashboard/followups/`
 
 ---
 
@@ -22,10 +22,10 @@
 
 **âš ï¸ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Create database migration file `supabase/migrations/20260616000004_followup_management.sql` containing followups table, enums, indexes, and composite contact-validation FK constraints
-- [ ] T004 Create database trigger `trg_followups_updated_at` to automatically manage the `updated_at` timestamp in `supabase/migrations/20260616000004_followup_management.sql`
-- [ ] T005 Create database trigger `trg_facility_owner_cascade` to automatically reassign pending followups when a facility's owner changes to a non-null sales user in `supabase/migrations/20260616000004_followup_management.sql`
-- [ ] T006 Create pgTAP tests `supabase/tests/006-followup-management.test.sql` to verify RLS policies, unique constraints, and the owner-change trigger cascade
+- [X] T003 Create database migration file `supabase/migrations/20260616000006_followup_management.sql` containing followups table, enums, indexes, and composite contact-validation FK constraints
+- [X] T004 Create database trigger `trg_followups_updated_at` to automatically manage the `updated_at` timestamp in `supabase/migrations/20260616000006_followup_management.sql`
+- [X] T005 Create database trigger `trg_facility_owner_cascade` to automatically reassign pending followups when a facility's owner changes to a non-null sales user in `supabase/migrations/20260616000006_followup_management.sql`
+- [X] T006 Create pgTAP tests `supabase/tests/006-followup-management.test.sql` to verify RLS policies, unique constraints, and the owner-change trigger cascade
 - [ ] T007 Apply migrations locally and verify tests using `supabase db reset && supabase db test`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
@@ -39,13 +39,13 @@
 **Independent Test**: Create a follow-up for an assigned facility, verify it defaults owner to yourself, inherits company isolation, and creates timeline logs.
 
 ### Tests for User Story 1
-- [ ] T008 [P] [US1] Write integration tests in `src/tests/integration/followups.test.ts` verifying `createFollowUp` permissions, future due-date enforcement, and contact-facility pairing validation.
+- [X] T008 [P] [US1] Write integration tests in `src/tests/integration/followups.test.ts` verifying `createFollowUp` permissions, future due-date enforcement, and contact-facility pairing validation.
 
 ### Implementation for User Story 1
-- [ ] T009 [P] [US1] Create type definitions and schema validators for `CreateFollowUpInput` in `src/lib/types/followups.ts`
-- [ ] T010 [US1] Implement Server Action `createFollowUp` in `src/lib/actions/followups.ts` enforcing tenant isolation and logging `followup_create` events on the timeline
-- [ ] T011 [US1] Design and build the frontend `FollowUpModal` component in `src/components/followups/FollowUpModal.tsx` supporting type selection, due date/time picking, contact selection, and notes
-- [ ] T012 [US1] Integrate `FollowUpModal` and pending list container within the facility detail page's follow-ups section in `src/components/facilities/FollowUpsSection.tsx`
+- [X] T009 [P] [US1] Create type definitions and schema validators for `CreateFollowUpInput` in `src/lib/types/followups.ts`
+- [X] T010 [US1] Implement Server Action `createFollowUp` in `src/lib/actions/followups.ts` enforcing tenant isolation and logging `followup_create` events on the timeline
+- [X] T011 [US1] Design and build the frontend `FollowUpModal` component in `src/components/followups/FollowUpModal.tsx` supporting type selection, due date/time picking, contact selection, and notes
+- [X] T012 [US1] Integrate `FollowUpModal` and pending list container within the facility detail page's follow-ups section in `src/components/facilities/FollowUpsSection.tsx`
 
 **Checkpoint**: User Story 1 is fully functional and testable independently.
 
@@ -58,12 +58,12 @@
 **Independent Test**: Open a pending follow-up, open the completion modal, select an outcome, and save. Verify the status updates to done and timeline event is generated.
 
 ### Tests for User Story 2
-- [ ] T013 [P] [US2] Write integration tests in `src/tests/integration/followups.test.ts` verifying that completing a follow-up removes it from overdue checks and updates the completion actor and timestamp.
+- [X] T013 [P] [US2] Write integration tests in `src/tests/integration/followups.test.ts` verifying that completing a follow-up removes it from overdue checks and updates the completion actor and timestamp.
 
 ### Implementation for User Story 2
-- [ ] T014 [US2] Implement Server Action `completeFollowUp` in `src/lib/actions/followups.ts` enforcing status transition validation and logging `followup_complete` events on the timeline
-- [ ] T015 [US2] Build `CompleteFollowUpModal` component in `src/components/followups/CompleteFollowUpModal.tsx` containing type-aware quick-select outcome tags and optional text area
-- [ ] T016 [US2] Update `FollowUpsSection.tsx` in `src/components/facilities/` to render completion triggers and styled checkmarks for completed follow-ups
+- [X] T014 [US2] Implement Server Action `completeFollowUp` in `src/lib/actions/followups.ts` enforcing status transition validation and logging `followup_complete` events on the timeline
+- [X] T015 [US2] Build `CompleteFollowUpModal` component in `src/components/followups/CompleteFollowUpModal.tsx` containing type-aware quick-select outcome tags and optional text area
+- [X] T016 [US2] Update `FollowUpsSection.tsx` in `src/components/facilities/` to render completion triggers and styled checkmarks for completed follow-ups
 
 **Checkpoint**: User Story 2 is fully functional and testable independently.
 
@@ -76,12 +76,12 @@
 **Independent Test**: Reschedule a follow-up and verify the new date is set and timeline updated. Cancel a follow-up and verify it is not deleted and logs the reason.
 
 ### Tests for User Story 3
-- [ ] T017 [P] [US3] Write integration tests in `src/tests/integration/followups.test.ts` verifying rescheduling bounds (must be in the future) and soft-cancellation record persistence (no hard delete).
+- [X] T017 [P] [US3] Write integration tests in `src/tests/integration/followups.test.ts` verifying rescheduling bounds (must be in the future) and soft-cancellation record persistence (no hard delete).
 
 ### Implementation for User Story 3
-- [ ] T018 [US3] Implement Server Actions `rescheduleFollowUp` and `cancelFollowUp` in `src/lib/actions/followups.ts` logging timeline events for rescheduling and cancellations
-- [ ] T019 [US3] Update `FollowUpModal.tsx` in `src/components/followups/` to support rescheduling inputs and cancellation reasons
-- [ ] T020 [US3] Integrate reschedule and cancel buttons and modals into `FollowUpsSection.tsx` in `src/components/facilities/`
+- [X] T018 [US3] Implement Server Actions `rescheduleFollowUp` and `cancelFollowUp` in `src/lib/actions/followups.ts` logging timeline events for rescheduling and cancellations
+- [X] T019 [US3] Update `FollowUpModal.tsx` in `src/components/followups/` to support rescheduling inputs and cancellation reasons
+- [X] T020 [US3] Integrate reschedule and cancel buttons and modals into `FollowUpsSection.tsx` in `src/components/facilities/`
 
 **Checkpoint**: User Story 3 is fully functional and testable independently.
 
@@ -94,12 +94,12 @@
 **Independent Test**: Open "Ø§Ù„Ù…ØªØ§Ø¨Ø¹Ø§Øª" page, verify it loads "All Pending" sorted by due_at with overdue items highlighted. Switch filters, verify manager owner-dropdown is available.
 
 ### Tests for User Story 4
-- [ ] T021 [P] [US4] Write integration tests in `src/tests/integration/followups.test.ts` verifying that `getFollowUpsList` filters out follow-ups of archived parent facilities, sorts pending by due date ascending, and enforces role-based scope boundaries.
+- [X] T021 [P] [US4] Write integration tests in `src/tests/integration/followups.test.ts` verifying that `getFollowUpsList` filters out follow-ups of archived parent facilities, sorts pending by due date ascending, and enforces role-based scope boundaries.
 
 ### Implementation for User Story 4
-- [ ] T022 [US4] Implement fetch Server Action `getFollowUpsList` in `src/lib/actions/followups.ts` with pagination, status filters, and manager-only assigned owner filters
-- [ ] T023 [US4] Create dedicated view route page `src/app/(dashboard)/dashboard/followups/page.tsx` containing consolidated pending list container, tabs (All Pending, Done, Overdue, Today, Upcoming), and manager owner filters
-- [ ] T024 [US4] Implement styling and visual highlights for overdue items (soft red backgrounds/text badges) in the row list component within `src/app/(dashboard)/dashboard/followups/page.tsx`
+- [X] T022 [US4] Implement fetch Server Action `getFollowUpsList` in `src/lib/actions/followups.ts` with pagination, status filters, and manager-only assigned owner filters
+- [X] T023 [US4] Create dedicated view route page `src/app/(dashboard)/dashboard/followups/page.tsx` containing consolidated pending list container, tabs (All Pending, Done, Overdue, Today, Upcoming), and manager owner filters
+- [X] T024 [US4] Implement styling and visual highlights for overdue items (soft red backgrounds/text badges) in the row list component within `src/app/(dashboard)/dashboard/followups/page.tsx`
 
 **Checkpoint**: User Story 4 is fully functional and testable independently.
 
@@ -112,11 +112,11 @@
 **Independent Test**: Log in as supervisor, open edit owner dropdown for a follow-up, change it, and verify the new owner receives it.
 
 ### Tests for User Story 5
-- [ ] T025 [P] [US5] Write integration tests in `src/tests/integration/followups.test.ts` verifying that `reassignFollowUp` is restricted to management roles and logs the reassignment event.
+- [X] T025 [P] [US5] Write integration tests in `src/tests/integration/followups.test.ts` verifying that `reassignFollowUp` is restricted to management roles and logs the reassignment event.
 
 ### Implementation for User Story 5
-- [ ] T026 [US5] Implement Server Action `reassignFollowUp` in `src/lib/actions/followups.ts` restricting execution to Supervisor, Company Admin, and Super Admin roles
-- [ ] T027 [US5] Add owner reattribution selection dropdown in `FollowUpModal.tsx` for manager roles
+- [X] T026 [US5] Implement Server Action `reassignFollowUp` in `src/lib/actions/followups.ts` restricting execution to Supervisor, Company Admin, and Super Admin roles
+- [X] T027 [US5] Add owner reattribution selection dropdown in `FollowUpModal.tsx` for manager roles
 
 **Checkpoint**: User Story 5 is fully functional and testable independently.
 
@@ -126,8 +126,8 @@
 
 **Purpose**: Multi-file updates, security auditing, and transaction wrappers
 
-- [ ] T028 Update Server Action `reassignFacility` in `src/lib/actions/facilities.ts` to wrap facility reassignment and follow-ups owner cascade in a single atomic transaction when reassigning a facility to `NULL` (unassigned), transferring pending follow-ups to the acting manager
-- [ ] T029 Audit all follow-up pages to ensure strict RTL layout flow, Tajawal font application, and proper translation keys for Arabic terminology
+- [X] T028 Update Server Action `reassignFacility` in `src/lib/actions/facilities.ts` to wrap facility reassignment and follow-ups owner cascade in a single atomic transaction when reassigning a facility to `NULL` (unassigned), transferring pending follow-ups to the acting manager
+- [X] T029 Audit all follow-up pages to ensure strict RTL layout flow, Tajawal font application, and proper translation keys for Arabic terminology
 - [ ] T030 Run full test suites `supabase db test` and `npm run test:integration` to verify comprehensive coverage and compliance with all principles
 
 ---

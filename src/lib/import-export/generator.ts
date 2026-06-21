@@ -1,111 +1,40 @@
-/**
- * generator.ts - Excel file generator using SheetJS (Feature 011)
- *
- * Generates RTL-oriented Arabic-labeled Excel (.xlsx) files for:
- * - Import templates (blank with headers)
- * - Export payloads (facilities, followups, offers, contracts)
- */
-
 import * as XLSX from "xlsx";
+import { FACILITY_IMPORT_HEADERS } from "./parser";
 
-/** Arabic column headers for the facilities import template */
-export const FACILITY_TEMPLATE_HEADERS = [
-  "اسم المنشأة",
-  "نوع المنشأة",
-  "المدينة",
-  "المنطقة",
-  "الهاتف الرئيسي",
-  "الهاتف الفرعي",
-  "مصدر العميل",
-  "ملاحظات"
-];
+export const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
-/**
- * Generate the blank facilities import template Excel file.
- * Returns a Buffer ready to be sent as a download response.
- */
+export interface ExportColumn<T> {
+  header: string;
+  value: (row: T) => string | number | boolean | null | undefined;
+  width?: number;
+}
+
+export function generateExcel<T>(sheetName: string, rows: T[], columns: ExportColumn<T>[]): Buffer {
+  const data = rows.map((row) => Object.fromEntries(columns.map((column) => [column.header, column.value(row) ?? ""])));
+  const sheet = XLSX.utils.json_to_sheet(data, { header: columns.map((column) => column.header) });
+  sheet["!dir"] = "rtl";
+  sheet["!cols"] = columns.map((column) => ({ wch: column.width ?? 20 }));
+  const workbook = XLSX.utils.book_new();
+  workbook.Workbook = { Views: [{ RTL: true }] };
+  XLSX.utils.book_append_sheet(workbook, sheet, sheetName.slice(0, 31));
+  return XLSX.write(workbook, { bookType: "xlsx", type: "buffer", compression: true }) as Buffer;
+}
+
 export function generateFacilityTemplate(): Buffer {
+  const sheet = XLSX.utils.aoa_to_sheet([Array.from(FACILITY_IMPORT_HEADERS)]);
+  sheet["!dir"] = "rtl";
+  sheet["!cols"] = FACILITY_IMPORT_HEADERS.map((header) => ({ wch: Math.max(18, header.length + 4) }));
   const workbook = XLSX.utils.book_new();
-  const worksheet = XLSX.utils.aoa_to_sheet([FACILITY_TEMPLATE_HEADERS]);
-
-  // RTL worksheet view
-  worksheet["!cols"] = FACILITY_TEMPLATE_HEADERS.map(() => ({ wch: 20 }));
-  if (!worksheet["!views"]) worksheet["!views"] = [];
-  worksheet["!views"][0] = { rightToLeft: true };
-
-  XLSX.utils.book_append_sheet(workbook, worksheet, "المنشآت");
-
-  return Buffer.from(XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }));
+  workbook.Workbook = { Views: [{ RTL: true }] };
+  XLSX.utils.book_append_sheet(workbook, sheet, "استيراد المنشآت");
+  return XLSX.write(workbook, { bookType: "xlsx", type: "buffer", compression: true }) as Buffer;
 }
 
-/** Generic row type for export (string/number values by Arabic column key) */
-export type ExportRow = Record<string, string | number | null | undefined>;
-
-/**
- * Generate an Excel file from a list of rows with Arabic headers.
- * @param headers  Array of Arabic column header strings (defines column order)
- * @param rows     Array of data rows (keyed by the same header strings)
- * @param sheetName  The Arabic sheet tab name
- */
-export function generateExcelExport(
-  headers: string[],
-  rows: ExportRow[],
-  sheetName: string
-): Buffer {
-  const aoa: (string | number | null | undefined)[][] = [
-    headers,
-    ...rows.map((row) => headers.map((header) => row[header] ?? ""))
-  ];
-
-  const workbook = XLSX.utils.book_new();
-  const worksheet = XLSX.utils.aoa_to_sheet(aoa);
-
-  // RTL view + auto column width
-  worksheet["!cols"] = headers.map(() => ({ wch: 22 }));
-  if (!worksheet["!views"]) worksheet["!views"] = [];
-  worksheet["!views"][0] = { rightToLeft: true };
-
-  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-
-  return Buffer.from(XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }));
+export function excelDownloadHeaders(filename: string) {
+  const asciiName = filename.replace(/[^\x20-\x7E]/g, "").replace(/^[-_.]+/, "") || "export.xlsx";
+  return {
+    "Content-Type": XLSX_MIME,
+    "Content-Disposition": `attachment; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
+    "Cache-Control": "private, no-store",
+  };
 }
-
-// ─── Convenience wrappers for each entity type ──────────────────────────────
-
-export const FACILITY_EXPORT_HEADERS = [
-  "اسم المنشأة",
-  "نوع المنشأة",
-  "المدينة",
-  "المنطقة",
-  "الهاتف الرئيسي",
-  "الهاتف الفرعي",
-  "الحالة",
-  "تاريخ التحديث"
-];
-
-export const FOLLOWUP_EXPORT_HEADERS = [
-  "المنشأة",
-  "نوع المتابعة",
-  "الحالة",
-  "تاريخ الاستحقاق",
-  "ملاحظات",
-  "النتيجة"
-];
-
-export const OFFER_EXPORT_HEADERS = [
-  "رقم العرض",
-  "المنشأة",
-  "الحالة",
-  "الإجمالي",
-  "صالح حتى",
-  "ملاحظات"
-];
-
-export const CONTRACT_EXPORT_HEADERS = [
-  "الرقم المرجعي",
-  "المنشأة",
-  "الحالة",
-  "القيمة",
-  "تاريخ البداية",
-  "تاريخ النهاية"
-];

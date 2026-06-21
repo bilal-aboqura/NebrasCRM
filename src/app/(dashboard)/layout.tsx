@@ -1,14 +1,13 @@
-import Header from "@/components/Header";
-import Sidebar from "@/components/Sidebar";
+import { Sidebar } from "@/components/Sidebar";
+import { Header } from "@/components/Header";
+import { requireAuth } from "@/lib/auth/context";
+import { createClient } from "@/lib/supabase/server";
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="min-h-screen bg-nebras-cream text-nebras-ink">
-      <Sidebar />
-      <div className="shell:mr-72">
-        <Header />
-        <main className="px-4 py-5 shell:px-8">{children}</main>
-      </div>
-    </div>
-  );
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const context = await requireAuth();
+  const companies = context.role === "super_admin"
+    ? (await createClient().from("companies").select("id,name").eq("status", "active").order("name")).data ?? []
+    : [];
+  return <div className="dashboard-shell min-h-screen"><Sidebar /><div className="app-content mr-64 min-h-screen"><Header context={context} companies={companies} /><main className="p-6 sm:p-8">{children}</main></div></div>;
 }
+

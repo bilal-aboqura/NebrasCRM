@@ -1,78 +1,72 @@
-import { describe, expect, it } from "vitest";
-import {
-  generateExcelExport,
-  FOLLOWUP_EXPORT_HEADERS,
-  OFFER_EXPORT_HEADERS,
-  CONTRACT_EXPORT_HEADERS
-} from "@/lib/import-export/generator";
 import * as XLSX from "xlsx";
-import { followUps, offers, contracts, facilities } from "@/lib/data/mock";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { TEST_CONTEXT } from "./import-export-test-utils";
 
-describe("US5: Other entity exports", () => {
-  it("exports follow-ups to xlsx with Arabic headers", () => {
-    const rows = followUps.map((f) => ({
-      [FOLLOWUP_EXPORT_HEADERS[0]]: facilities.find((fac) => fac.id === f.facilityId)?.name ?? "",
-      [FOLLOWUP_EXPORT_HEADERS[1]]: f.type,
-      [FOLLOWUP_EXPORT_HEADERS[2]]: f.status,
-      [FOLLOWUP_EXPORT_HEADERS[3]]: f.dueAt,
-      [FOLLOWUP_EXPORT_HEADERS[4]]: f.notes ?? "",
-      [FOLLOWUP_EXPORT_HEADERS[5]]: f.outcome ?? ""
-    }));
+const state = vi.hoisted(() => ({
+  context: { userId: "sales-a", role: "sales_user", companyId: "company-a", activeCompanyId: "company-a" } as Record<string, unknown>,
+  responses: new Map<string, Array<Record<string, unknown>>>(),
+  calls: [] as Array<{ table: string; method: string; args: unknown[] }>,
+}));
 
-    const buffer = generateExcelExport(FOLLOWUP_EXPORT_HEADERS, rows, "المتابعات");
-    const workbook = XLSX.read(buffer, { type: "buffer" });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const parsed: string[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+function builder(table: string): object {
+  return new Proxy({}, {
+    get(_target, property) {
+      if (property === "then") return (resolve: (value: unknown) => void) => resolve(state.responses.get(table)?.shift() ?? { data: [], error: null });
+      return (...args: unknown[]) => { state.calls.push({ table, method: String(property), args }); return builder(table); };
+    },
+  });
+}
 
-    expect(parsed[0]).toEqual(FOLLOWUP_EXPORT_HEADERS);
-    expect(parsed.length - 1).toBe(followUps.length);
+vi.mock("@/lib/auth/context", () => ({ requireAuth: async () => state.context }));
+vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ from: (table: string) => builder(table) }) }));
+
+import { GET as exportFollowUps } from "@/app/api/followups/export/route";
+import { GET as exportOffers } from "@/app/api/offers/export/route";
+import { GET as exportContracts } from "@/app/api/contracts/export/route";
+
+async function rows(response: Response) {
+  expect(response.status).toBe(200);
+  const workbook = XLSX.read(await response.arrayBuffer(), { type: "array" });
+  return XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[workbook.SheetNames[0]]);
+}
+
+describe("other CRM exports", () => {
+  beforeEach(() => {
+    state.context = { ...TEST_CONTEXT, role: "sales_user" };
+    state.responses.clear(); state.calls.length = 0;
   });
 
-  it("exports offers to xlsx with Arabic headers", () => {
-    const rows = offers.map((o) => ({
-      [OFFER_EXPORT_HEADERS[0]]: o.id,
-      [OFFER_EXPORT_HEADERS[1]]: facilities.find((f) => f.id === o.facilityId)?.name ?? "",
-      [OFFER_EXPORT_HEADERS[2]]: o.status,
-      [OFFER_EXPORT_HEADERS[3]]: o.total,
-      [OFFER_EXPORT_HEADERS[4]]: o.validUntil,
-      [OFFER_EXPORT_HEADERS[5]]: o.notes ?? ""
-    }));
-
-    const buffer = generateExcelExport(OFFER_EXPORT_HEADERS, rows, "العروض");
-    const workbook = XLSX.read(buffer, { type: "buffer" });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const parsed: string[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-    expect(parsed[0]).toEqual(OFFER_EXPORT_HEADERS);
-    expect(parsed.length - 1).toBe(offers.length);
+  it("exports follow-ups in the current view and forced owner scope", async () => {
+    state.responses.set("followups", [{ data: [{ type: "call", due_at: "2026-06-22T09:00:00Z", status: "done", outcome: "answered", notes: "تم", facility: { name_ar: "منشأة ألف" }, owner: { display_name: "مندوب" }, contact: { name_ar: "أحمد" } }], error: null }]);
+    const data = await rows(await exportFollowUps(new Request("http://localhost/api/followups/export?view=done&owner=other")));
+    expect(data[0]["المنشأة"]).toBe("منشأة ألف");
+    expect(state.calls).toEqual(expect.arrayContaining([
+      expect.objectContaining({ table: "followups", method: "eq", args: ["company_id", TEST_CONTEXT.companyId] }),
+      expect.objectContaining({ table: "followups", method: "eq", args: ["assigned_to", TEST_CONTEXT.userId] }),
+      expect.objectContaining({ table: "followups", method: "eq", args: ["status", "done"] }),
+    ]));
   });
 
-  it("exports contracts to xlsx with Arabic headers", () => {
-    const rows = contracts.map((c) => ({
-      [CONTRACT_EXPORT_HEADERS[0]]: c.referenceNumber,
-      [CONTRACT_EXPORT_HEADERS[1]]: facilities.find((f) => f.id === c.facilityId)?.name ?? "",
-      [CONTRACT_EXPORT_HEADERS[2]]: c.status,
-      [CONTRACT_EXPORT_HEADERS[3]]: c.value,
-      [CONTRACT_EXPORT_HEADERS[4]]: c.startDate ?? "",
-      [CONTRACT_EXPORT_HEADERS[5]]: c.endDate ?? ""
-    }));
-
-    const buffer = generateExcelExport(CONTRACT_EXPORT_HEADERS, rows, "العقود");
-    const workbook = XLSX.read(buffer, { type: "buffer" });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const parsed: string[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-    expect(parsed[0]).toEqual(CONTRACT_EXPORT_HEADERS);
-    expect(parsed.length - 1).toBe(contracts.length);
+  it("exports filtered offers through the facility ownership scope", async () => {
+    state.responses.set("offers", [{ data: [{ title: "عرض ألف", status: "accepted", grand_total: 1200, valid_until: "2026-12-01", version: 1, created_at: "2026-06-21", facilities: { name_ar: "منشأة ألف" }, contacts: { name_ar: "أحمد" }, owner: { display_name: "مندوب" } }], error: null }]);
+    const data = await rows(await exportOffers(new Request("http://localhost/api/offers/export?status=accepted&owner=other")));
+    expect(data[0]["العرض"]).toBe("عرض ألف");
+    expect(state.calls).toEqual(expect.arrayContaining([
+      expect.objectContaining({ table: "offers", method: "eq", args: ["company_id", TEST_CONTEXT.companyId] }),
+      expect.objectContaining({ table: "offers", method: "eq", args: ["facilities.assigned_to", TEST_CONTEXT.userId] }),
+      expect.objectContaining({ table: "offers", method: "eq", args: ["status", "accepted"] }),
+    ]));
   });
 
-  it("all export buffers are valid xlsx files (non-empty, readable)", () => {
-    const buf = generateExcelExport(FOLLOWUP_EXPORT_HEADERS, [], "المتابعات");
-    const workbook = XLSX.read(buf, { type: "buffer" });
-    expect(workbook.SheetNames.length).toBe(1);
-    // Header-only export still has 1 row
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const parsed: string[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-    expect(parsed.length).toBe(1); // just headers
+  it("exports filtered contracts through the facility ownership scope", async () => {
+    state.responses.set("contracts", [{ data: [{ reference_number: "CON-2026-0001", title: "عقد ألف", status: "completed", value: 8000, start_date: "2026-01-01", end_date: "2026-12-01", version: 1, created_at: "2026-06-21", facilities: { name_ar: "منشأة ألف" }, contacts: { name_ar: "أحمد" }, owner: { display_name: "مندوب" }, companies: { settings: {} } }], error: null }]);
+    const data = await rows(await exportContracts(new Request("http://localhost/api/contracts/export?status=completed&owner=other")));
+    expect(data[0]["رقم العقد"]).toBe("CON-2026-0001");
+    expect(state.calls).toEqual(expect.arrayContaining([
+      expect.objectContaining({ table: "contracts", method: "eq", args: ["company_id", TEST_CONTEXT.companyId] }),
+      expect.objectContaining({ table: "contracts", method: "eq", args: ["facilities.assigned_to", TEST_CONTEXT.userId] }),
+      expect.objectContaining({ table: "contracts", method: "eq", args: ["status", "completed"] }),
+    ]));
   });
 });
+

@@ -1,48 +1,42 @@
-/**
- * Route: GET /api/offers/export
- * Exports offers scoped to user's company and role visibility.
- */
+import { requireAuth } from "@/lib/auth/context";
+import { excelDownloadHeaders, generateExcel } from "@/lib/import-export/generator";
+import { activeCompanyId, jsonError } from "@/lib/import-export/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { deriveOfferStatus } from "@/lib/utils/offers";
 
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthContext, canManageCompanyWide } from "@/lib/auth/context";
-import { db } from "@/lib/data/store";
-import { generateExcelExport, OFFER_EXPORT_HEADERS } from "@/lib/import-export/generator";
-import { facilities } from "@/lib/data/mock";
+export const runtime = "nodejs";
+const labels: Record<string, string> = { draft: "مسودة", sent: "مرسل", accepted: "مقبول", rejected: "مرفوض", expired: "منتهي الصلاحية" };
+function relation<T>(value: unknown): T | null { return Array.isArray(value) ? (value[0] as T | undefined) ?? null : (value as T | null) ?? null; }
 
-export async function GET(request: NextRequest): Promise<NextResponse> {
+export async function GET(request: Request) {
   try {
-    const { role, user, activeCompany } = await getAuthContext();
-    void request;
-
-    let rows = db.offers.filter(
-      (o) => role === "super_admin" || o.companyId === activeCompany.id
-    );
-
-    if (!canManageCompanyWide(role)) {
-      rows = rows.filter((o) => o.ownerId === user.id);
+    const context = await requireAuth(); const companyId = activeCompanyId(context); const params = new URL(request.url).searchParams;
+    const filter = params.get("status"); const admin = createAdminClient(); const allRows: Record<string, unknown>[] = [];
+    for (let page = 0; ; page += 1) {
+      let query = admin.from("offers").select("title,status,grand_total,valid_until,version,created_at,facilities!inner(name_ar,assigned_to,is_active),contacts(name_ar),owner:profiles!offers_created_by_fkey(display_name)")
+        .eq("company_id", companyId).eq("is_active", true).eq("facilities.is_active", true);
+      query = context.role === "sales_user" ? query.eq("facilities.assigned_to", context.userId) : params.get("owner") ? query.eq("facilities.assigned_to", params.get("owner")!) : query;
+      if (filter && ["draft", "sent", "accepted", "rejected"].includes(filter)) query = query.eq("status", filter);
+      if (filter === "expired") query = query.eq("status", "sent");
+      const { data, error } = await query.order("created_at", { ascending: false }).range(page * 1000, (page + 1) * 1000 - 1);
+      if (error) throw error; const rows = (data ?? []) as unknown as Record<string, unknown>[]; allRows.push(...rows); if (rows.length < 1000) break;
     }
-
-    const exportRows = rows.map((o) => ({
-      [OFFER_EXPORT_HEADERS[0]]: o.title ?? o.id,
-      [OFFER_EXPORT_HEADERS[1]]: facilities.find((f) => f.id === o.facilityId)?.name ?? o.facilityId,
-      [OFFER_EXPORT_HEADERS[2]]: o.status,
-      [OFFER_EXPORT_HEADERS[3]]: o.total,
-      [OFFER_EXPORT_HEADERS[4]]: o.validUntil,
-      [OFFER_EXPORT_HEADERS[5]]: o.notes ?? ""
-    }));
-
-    const buffer = generateExcelExport(OFFER_EXPORT_HEADERS, exportRows, "العروض");
-
-    return new NextResponse(new Uint8Array(buffer), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": 'attachment; filename="offers-export.xlsx"',
-        "Content-Length": String(buffer.length)
-      }
+    const rows = allRows.filter((row) => {
+      const display = deriveOfferStatus(String(row.status) as "draft" | "sent" | "accepted" | "rejected", String(row.valid_until));
+      return filter === "expired" ? display === "expired" : filter === "sent" ? display === "sent" : true;
     });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "خطأ غير معروف";
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
+    const workbook = generateExcel("العروض", rows, [
+      { header: "العرض", value: (row) => String(row.title ?? ""), width: 28 },
+      { header: "الإصدار", value: (row) => Number(row.version ?? 1) },
+      { header: "المنشأة", value: (row) => relation<{ name_ar?: string }>(row.facilities)?.name_ar ?? "" },
+      { header: "جهة الاتصال", value: (row) => relation<{ name_ar?: string }>(row.contacts)?.name_ar ?? "" },
+      { header: "المسؤول", value: (row) => relation<{ display_name?: string }>(row.owner)?.display_name ?? "" },
+      { header: "الصلاحية", value: (row) => String(row.valid_until ?? "") },
+      { header: "الحالة", value: (row) => labels[deriveOfferStatus(String(row.status) as "draft" | "sent" | "accepted" | "rejected", String(row.valid_until))] },
+      { header: "القيمة (ر.س)", value: (row) => Number(row.grand_total ?? 0) },
+      { header: "تاريخ الإنشاء", value: (row) => String(row.created_at ?? "") },
+    ]);
+    return new Response(new Uint8Array(workbook), { headers: excelDownloadHeaders("تصدير-العروض.xlsx") });
+  } catch (error) { return jsonError(error instanceof Error ? error.message : "تعذر تصدير العروض.", 500); }
 }
+

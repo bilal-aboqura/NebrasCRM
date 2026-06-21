@@ -1,16 +1,30 @@
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+export type FollowUpType = "call" | "visit" | "send_offer" | "other";
+export type FollowUpStatus = "pending" | "done" | "cancelled";
+export type FollowUpOutcome =
+  | "answered" | "no_answer" | "callback_requested" | "not_interested"
+  | "met_decision_maker" | "no_show" | "rescheduled" | "followup_needed"
+  | "offer_sent" | "feedback_received" | "offer_rejected" | "offer_accepted"
+  | "task_completed" | "postponed";
 
-export interface Database {
-  public: {
-    Tables: Record<string, never>;
-    Views: Record<string, never>;
-    Functions: Record<string, never>;
-    Enums: {
-      app_role: "super_admin" | "company_admin" | "supervisor" | "sales_user";
-      facility_status: "new" | "contacted" | "qualified" | "proposal" | "contract" | "lost";
-      followup_status: "pending" | "done" | "cancelled";
-      offer_status: "draft" | "sent" | "accepted" | "rejected" | "superseded" | "archived";
-      contract_status: "draft" | "active" | "completed" | "terminated" | "archived";
-    };
-  };
+export interface FollowUpRow {
+  id: string;
+  company_id: string;
+  facility_id: string;
+  contact_id: string | null;
+  assigned_to: string;
+  type: FollowUpType;
+  due_at: string;
+  status: FollowUpStatus;
+  notes: string | null;
+  outcome: FollowUpOutcome | null;
+  outcome_note: string | null;
+  cancel_reason: string | null;
+  completed_by: string | null;
+  completed_at: string | null;
+  cancelled_by: string | null;
+  cancelled_at: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
 }
+

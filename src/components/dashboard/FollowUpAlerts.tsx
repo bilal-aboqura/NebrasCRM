@@ -1,74 +1,30 @@
 import Link from "next/link";
+import { ArrowUpLeft, CalendarClock } from "lucide-react";
 import type { DashboardData } from "@/lib/actions/dashboard";
 
-interface Props {
-  alerts: DashboardData["alerts"];
-}
+const TYPES: Record<string, string> = { call: "اتصال", visit: "زيارة", send_offer: "إرسال عرض", other: "مهمة أخرى" };
+const date = new Intl.DateTimeFormat("ar-SA", { timeZone: "Asia/Riyadh", dateStyle: "medium", timeStyle: "short" });
 
-const TYPE_LABELS: Record<string, string> = {
-  call: "مكالمة",
-  visit: "زيارة",
-  email: "بريد",
-  whatsapp: "واتساب"
-};
-
-const TYPE_ICONS: Record<string, string> = {
-  call: "📞",
-  visit: "🏢",
-  email: "📧",
-  whatsapp: "💬"
-};
-
-function formatDueAt(isoString: string): string {
-  const date = new Date(isoString);
-  return new Intl.DateTimeFormat("ar-SA", {
-    timeZone: "Asia/Riyadh",
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true
-  }).format(date);
-}
-
-export default function FollowUpAlerts({ alerts }: Props) {
-  return (
-    <section id="followup-alerts" className="rounded-xl border border-nebras-line bg-white p-5 shadow-sm">
-      <h2 className="mb-4 text-base font-semibold text-nebras-ink flex items-center gap-2">
-        <span>⚠️</span>
-        متابعات عاجلة
-        {alerts.length > 0 && (
-          <span className="mr-auto rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">
-            {alerts.length}
-          </span>
-        )}
-      </h2>
-
-      {alerts.length === 0 ? (
-        <p className="text-center text-slate-400 py-4 text-sm">لا توجد متابعات عاجلة</p>
-      ) : (
-        <ul className="divide-y divide-nebras-line">
-          {alerts.map((alert) => (
-            <li key={alert.id} className="flex items-center gap-3 py-3">
-              <span className="text-xl leading-none" aria-hidden="true">{TYPE_ICONS[alert.type] ?? "📌"}</span>
-              <div className="min-w-0 flex-1">
-                <Link
-                  href={`/dashboard/facilities/${alert.facilityId}`}
-                  className="block truncate text-sm font-medium text-nebras-ink hover:text-nebras-green"
-                >
-                  {alert.facilityName}
-                </Link>
-                <p className="text-xs text-slate-500">
-                  {TYPE_LABELS[alert.type] ?? alert.type} · {formatDueAt(alert.dueAt)}
-                </p>
-              </div>
-              <span className="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">
-                متأخرة
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
+export function FollowUpAlerts({ alerts }: { alerts: DashboardData["alerts"] }) {
+  return <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm" aria-labelledby="alerts-title">
+    <div className="mb-4 flex items-center justify-between gap-3">
+      <div>
+        <h2 id="alerts-title" className="text-lg font-extrabold text-nebras-green">تنبيهات المتابعة</h2>
+        <p className="mt-1 text-sm text-slate-500">الأقرب استحقاقاً حتى نهاية اليوم</p>
+      </div>
+      <span className="grid size-10 place-items-center rounded-xl bg-amber-50 text-amber-700"><CalendarClock aria-hidden size={20} /></span>
+    </div>
+    {alerts.length === 0 ? <p className="rounded-xl bg-slate-50 px-4 py-10 text-center text-sm font-bold text-slate-500">لا توجد متابعات مستحقة اليوم</p> :
+      <ul className="divide-y divide-slate-100">
+        {alerts.map((alert) => <li key={alert.id}>
+          <Link href={`/dashboard/facilities/${alert.facilityId}`} className="flex items-center justify-between gap-3 py-3 text-sm hover:text-nebras-gold">
+            <span className="min-w-0">
+              <strong className="block truncate text-slate-800">{alert.facilityName}</strong>
+              <span className="mt-1 block text-xs text-slate-500">{TYPES[alert.type] ?? alert.type} · {date.format(new Date(alert.dueAt))}</span>
+            </span>
+            <ArrowUpLeft aria-hidden className="shrink-0" size={17} />
+          </Link>
+        </li>)}
+      </ul>}
+  </section>;
 }

@@ -1,35 +1,8 @@
 import { notFound } from "next/navigation";
-import { offers, facilities, contacts, companies } from "@/lib/data/mock";
-import { formatSar } from "@/lib/data/store";
+import { PrintButton } from "@/components/offers/PrintButton";
+import { getOfferForPrint } from "@/lib/actions/offers";
 
-export default function OfferPrintPage({ params }: { params: { offerId: string } }) {
-  const offer = offers.find((item) => item.id === params.offerId);
-  if (!offer) notFound();
-  const facility = facilities.find((item) => item.id === offer.facilityId);
-  const contact = contacts.find((item) => item.id === offer.contactId);
-  const company = companies.find((item) => item.id === offer.companyId);
-  return (
-    <main className="mx-auto max-w-3xl bg-white p-8 print:p-0">
-      <header className="mb-8 border-b border-nebras-line pb-4">
-        <h1 className="text-2xl font-bold text-nebras-green">{company?.name}</h1>
-        <p className="text-sm text-slate-600">عرض سعر رقم {offer.id} · نسخة {offer.version}</p>
-      </header>
-      <section className="grid gap-3 text-sm md:grid-cols-2">
-        <p><strong>المنشأة:</strong> {facility?.name}</p>
-        <p><strong>جهة الاتصال:</strong> {contact?.name ?? "-"}</p>
-        <p><strong>العنوان:</strong> {offer.title}</p>
-        <p><strong>الصلاحية:</strong> {offer.validUntil}</p>
-      </section>
-      <table className="mt-8 w-full border-collapse text-sm">
-        <thead><tr className="bg-nebras-cream"><th className="border border-nebras-line p-2 text-right">البند</th><th className="border border-nebras-line p-2">الكمية</th><th className="border border-nebras-line p-2">السعر</th><th className="border border-nebras-line p-2">الإجمالي</th></tr></thead>
-        <tbody>{offer.lineItems.map((line) => <tr key={line.id}><td className="border border-nebras-line p-2">{line.description}</td><td className="border border-nebras-line p-2">{line.quantity}</td><td className="border border-nebras-line p-2">{formatSar(line.unitPrice)}</td><td className="border border-nebras-line p-2">{formatSar(line.quantity * line.unitPrice)}</td></tr>)}</tbody>
-      </table>
-      <dl className="mr-auto mt-6 w-64 space-y-2 text-sm">
-        <div className="flex justify-between"><dt>الإجمالي قبل الخصم</dt><dd>{formatSar(offer.subtotal)}</dd></div>
-        <div className="flex justify-between"><dt>الخصم</dt><dd>{formatSar(offer.discount)}</dd></div>
-        <div className="flex justify-between"><dt>الضريبة</dt><dd>{formatSar(offer.tax)}</dd></div>
-        <div className="flex justify-between border-t border-nebras-line pt-2 font-bold"><dt>المجموع</dt><dd>{formatSar(offer.total)}</dd></div>
-      </dl>
-    </main>
-  );
+export default async function OfferPrintPage({ params }: { params: { offerId: string } }) {
+  const result = await getOfferForPrint(params.offerId); if (!result.success) notFound(); const offer = result.data;
+  return <section className="print-document mx-auto max-w-4xl rounded-2xl bg-white p-8 shadow-sm" dir="rtl"><div className="no-print mb-6 flex justify-end"><PrintButton /></div><header className="border-b-2 border-nebras-green pb-6"><p className="text-sm text-nebras-gold">عرض سعر</p><div className="flex items-end justify-between gap-4"><div><h1 className="text-3xl font-extrabold text-nebras-green">{offer.title}</h1><p className="mt-2">{offer.companyName ?? "نبراس"}</p></div><strong>نسخة {offer.version}</strong></div></header><dl className="my-8 grid gap-4 sm:grid-cols-2"><div><dt className="text-sm text-slate-500">المنشأة</dt><dd className="font-bold">{offer.facilityName}</dd></div><div><dt className="text-sm text-slate-500">جهة الاتصال</dt><dd className="font-bold">{offer.contactName ?? "—"} {offer.contactPhone ? `· ${offer.contactPhone}` : ""}</dd></div><div><dt className="text-sm text-slate-500">صالح حتى</dt><dd className="font-bold">{offer.validUntil}</dd></div><div><dt className="text-sm text-slate-500">العملة</dt><dd className="font-bold">الريال السعودي (SAR)</dd></div></dl><table className="w-full"><thead><tr className="border-y bg-slate-50"><th className="p-3 text-right">#</th><th className="p-3 text-right">الخدمة</th><th className="p-3 text-left">المبلغ</th></tr></thead><tbody>{offer.lineItems?.map((item, index) => <tr key={item.id} className="border-b"><td className="p-3">{index + 1}</td><td className="p-3">{item.description}</td><td className="p-3 text-left">{item.amount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ر.س</td></tr>)}</tbody></table><dl className="mr-auto mt-6 w-full max-w-sm space-y-2"><div className="flex justify-between"><dt>الإجمالي الفرعي</dt><dd>{offer.subtotal.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ر.س</dd></div><div className="flex justify-between"><dt>الخصم</dt><dd>{offer.discountAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ر.س</dd></div><div className="flex justify-between"><dt>الضريبة ({offer.taxRate}٪)</dt><dd>{offer.taxAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ر.س</dd></div><div className="flex justify-between border-t-2 pt-3 text-xl font-extrabold text-nebras-green"><dt>الإجمالي</dt><dd>{offer.grandTotal.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ر.س</dd></div></dl>{offer.notes && <div className="mt-10 rounded-xl bg-slate-50 p-5"><h2 className="font-extrabold">ملاحظات وشروط</h2><p className="mt-2 whitespace-pre-wrap">{offer.notes}</p></div>}<footer className="mt-12 border-t pt-4 text-center text-sm text-slate-500">هذا العرض صالح حتى التاريخ الموضح أعلاه.</footer></section>;
 }

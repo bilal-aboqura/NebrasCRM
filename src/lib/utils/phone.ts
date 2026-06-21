@@ -1,12 +1,24 @@
-export function normalizeSaudiPhone(input: string) {
-  const digits = input.replace(/\D/g, "");
-  if (digits.startsWith("966")) return `+${digits}`;
-  if (digits.startsWith("05")) return `+966${digits.slice(1)}`;
-  if (digits.startsWith("5") && digits.length === 9) return `+966${digits}`;
-  return `+${digits}`;
+export const DEFAULT_WHATSAPP_TEMPLATE =
+  "السلام عليكم ورحمة الله وبركاته، نود التواصل معكم بخصوص خدمات اعتماد سباهي من شركة [اسم الشركة]";
+
+export function normalizePhone(phone: string): string {
+  let digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  if (digits.startsWith("966")) return digits;
+  digits = digits.replace(/^0+/, "");
+  return digits ? `966${digits}` : "";
 }
 
-export function toWaMe(phone: string, message: string) {
-  const normalized = normalizeSaudiPhone(phone).replace(/\D/g, "");
-  return `https://wa.me/${normalized}?text=${encodeURIComponent(message)}`;
+export function isValidSaudiPhone(phone: string): boolean {
+  return /^966(?:5\d{8}|1[1-7]\d{7})$/.test(normalizePhone(phone));
+}
+
+export function buildWhatsAppUrl(
+  phone: string,
+  companyName: string,
+  template = DEFAULT_WHATSAPP_TEMPLATE,
+): string {
+  const number = normalizePhone(phone);
+  const message = template.replaceAll("[اسم الشركة]", companyName);
+  return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
 }

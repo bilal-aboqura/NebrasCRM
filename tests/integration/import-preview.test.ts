@@ -1,94 +1,94 @@
-import { describe, expect, it, beforeEach } from "vitest";
-import { validateFacilityRows } from "@/lib/import-export/validator";
-import { parseImportFile } from "@/lib/import-export/parser";
-import { getMaxImportRows, importBatches } from "@/lib/data/import-batches";
-import * as XLSX from "xlsx";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { facilitySpreadsheet, TEST_CONTEXT } from "./import-export-test-utils";
+import { parseFacilitySpreadsheet } from "@/lib/import-export/parser";
 
-/** Helper: build an xlsx buffer from rows (including header row) */
-function buildXlsx(rows: string[][]): Buffer {
-  const workbook = XLSX.utils.book_new();
-  const sheet = XLSX.utils.aoa_to_sheet(rows);
-  XLSX.utils.book_append_sheet(workbook, sheet, "المنشآت");
-  return Buffer.from(XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }));
+const state = vi.hoisted(() => ({
+  context: { userId: "supervisor-a", role: "supervisor", companyId: "company-a", activeCompanyId: "company-a" } as Record<string, unknown>,
+  responses: new Map<string, Array<Record<string, unknown>>>(),
+  calls: [] as Array<{ table: string; method: string; args: unknown[] }>,
+}));
+
+function builder(table: string): object {
+  return new Proxy({}, {
+    get(_target, property) {
+      if (property === "then") return (resolve: (value: unknown) => void) => resolve(state.responses.get(table)?.shift() ?? { data: null, error: null });
+      if (property === "single" || property === "maybeSingle") return () => Promise.resolve(state.responses.get(table)?.shift() ?? { data: null, error: null });
+      return (...args: unknown[]) => { state.calls.push({ table, method: String(property), args }); return builder(table); };
+    },
+  });
 }
 
-const HEADER = [
-  "اسم المنشأة",
-  "نوع المنشأة",
-  "المدينة",
-  "المنطقة",
-  "الهاتف الرئيسي",
-  "الهاتف الفرعي",
-  "مصدر العميل",
-  "ملاحظات"
-];
+vi.mock("@/lib/auth/context", () => ({ requireAuth: async () => state.context }));
+vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ from: (table: string) => builder(table) }) }));
 
-function makeRow(overrides: Partial<Record<string, string>> = {}) {
-  return [
-    overrides["name"] ?? "مستشفى الأمل",
-    overrides["type"] ?? "مستشفى",
-    overrides["city"] ?? "الرياض",
-    overrides["region"] ?? "منطقة الرياض",
-    overrides["phone"] ?? "0551112233",
-    overrides["secondary"] ?? "",
-    overrides["source"] ?? "imported",
-    overrides["notes"] ?? ""
-  ];
+import { POST } from "@/app/api/facilities/import/preview/route";
+
+function upload(buffer: Buffer) {
+  const form = new FormData();
+  const bytes = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer;
+  form.append("file", new File([bytes], "facilities.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+  return new Request("http://localhost/api/facilities/import/preview", { method: "POST", body: form });
 }
 
-describe("US2: Import preview validation", () => {
+describe("facility import preview", () => {
   beforeEach(() => {
-    importBatches.length = 0;
+    state.context = { ...TEST_CONTEXT };
+    state.responses.clear();
+    state.calls.length = 0;
   });
 
-  it("parses a valid xlsx file and returns the correct row count", () => {
-    const buf = buildXlsx([HEADER, makeRow(), makeRow({ name: "عيادة النور", phone: "0551114455" })]);
-    const { rows, totalRows } = parseImportFile(buf, "test.xlsx");
-    expect(totalRows).toBe(2);
-    expect(rows[0].name).toBe("مستشفى الأمل");
+  it("categorizes valid, invalid, database duplicate, and file duplicate rows without creating facilities", async () => {
+    state.responses.set("system_settings", [{ data: { value: "1000" }, error: null }]);
+    state.responses.set("regions", [{ data: [{ id: "region-a", name_ar: "الرياض" }], error: null }]);
+    state.responses.set("cities", [{ data: [{ id: "city-a", region_id: "region-a", name_ar: "الرياض", name_en: "Riyadh" }], error: null }]);
+    state.responses.set("facilities", [{ data: [{ primary_phone_normalized: "966509999999" }], error: null }]);
+    state.responses.set("import_batches", [{ data: { id: "batch-a" }, error: null }]);
+    const file = facilitySpreadsheet([
+      ["منشأة سليمة", "مجمع طبي", "الرياض", "الرياض", "0501111111", "", "", ""],
+      ["", "مستشفى", "الرياض", "الرياض", "0502222222", "", "", ""],
+      ["منشأة موجودة", "مختبر", "الرياض", "الرياض", "0509999999", "", "", ""],
+      ["منشأة مكررة", "مجمع طبي", "الرياض", "الرياض", "0501111111", "", "", ""],
+    ]);
+
+    const response = await POST(upload(file));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.summary).toEqual({ total: 4, valid: 1, errors: 1, duplicates: 2 });
+    expect(body.batchId).toBe("batch-a");
+    expect(state.calls.some((call) => call.table === "facilities" && call.method === "insert")).toBe(false);
+    expect(state.calls).toContainEqual(expect.objectContaining({ table: "facilities", method: "eq", args: ["company_id", TEST_CONTEXT.companyId] }));
   });
 
-  it("validates rows and identifies valid, error, and duplicate rows", () => {
-    const existingPhones = new Set(["+966551116666"]);
-    const rows = [
-      { index: 1, name: "مستشفى الأمل", type: "مستشفى", city: "الرياض", region: "الرياض", primaryPhone: "0551112233" },
-      { index: 2, name: "", type: "مستشفى", city: "جدة", region: "مكة", primaryPhone: "0599999999" },
-      { index: 3, name: "مركز النور", type: "مجمع طبي", city: "الدمام", region: "الشرقية", primaryPhone: "0551116666" },
-      { index: 4, name: "عيادة الصفا", type: "عيادة", city: "الرياض", region: "الرياض", primaryPhone: "0551112233" } // dup of row 1 in file
-    ];
-
-    const { validatedRows, summary } = validateFacilityRows(rows as never, existingPhones);
-
-    expect(summary.total).toBe(4);
-    expect(summary.valid).toBe(1);
-    expect(summary.errors).toBe(1); // row 2: missing name
-    expect(summary.duplicates).toBe(2); // row 3: DB dup, row 4: in-file dup
-
-    expect(validatedRows[0].status).toBe("valid");
-    expect(validatedRows[1].status).toBe("error");
-    expect(validatedRows[2].status).toBe("duplicate");
-    expect(validatedRows[3].status).toBe("duplicate");
+  it("parses UTF-8 CSV files with the template headers", () => {
+    const csv = "اسم المنشأة,نوع المنشأة,المدينة,المنطقة,الهاتف الرئيسي,الهاتف الفرعي,مصدر العميل,ملاحظات\nمختبر CSV,مختبر,الرياض,الرياض,0501234567,,,تجربة";
+    expect(parseFacilitySpreadsheet(new TextEncoder().encode(csv), 1000)).toEqual([
+      expect.objectContaining({ name: "مختبر CSV", type: "مختبر", primaryPhone: "0501234567", notes: "تجربة" }),
+    ]);
   });
 
-  it("rejects files exceeding max_import_rows limit", () => {
-    const maxRows = getMaxImportRows();
-    expect(maxRows).toBe(1000);
-
-    // Build a file with maxRows + 1 data rows
-    const dataRows = Array.from({ length: maxRows + 1 }, (_, i) =>
-      makeRow({ name: `منشأة ${i}`, phone: `055${String(i).padStart(7, "0")}` })
-    );
-    const buf = buildXlsx([HEADER, ...dataRows]);
-    const { totalRows } = parseImportFile(buf, "big.xlsx");
-    expect(totalRows).toBeGreaterThan(maxRows);
+  it("enforces the configured maximum row count", async () => {
+    state.responses.set("system_settings", [{ data: { value: "2" }, error: null }]);
+    const file = facilitySpreadsheet([
+      ["أ", "مجمع طبي", "الرياض", "الرياض", "0501111111"],
+      ["ب", "مجمع طبي", "الرياض", "الرياض", "0502222222"],
+      ["ج", "مجمع طبي", "الرياض", "الرياض", "0503333333"],
+    ]);
+    const response = await POST(upload(file));
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toContain("2 صف");
   });
 
-  it("returns arabic error messages for invalid phone formats", () => {
-    const { validatedRows } = validateFacilityRows(
-      [{ index: 1, name: "مختبر", type: "مختبر", city: "الرياض", region: "الرياض", primaryPhone: "12345" }],
-      new Set()
-    );
-    expect(validatedRows[0].status).toBe("error");
-    expect(validatedRows[0].errors[0]).toContain("رقم الهاتف الرئيسي");
+  it("denies Sales Users before parsing", async () => {
+    state.context = { ...TEST_CONTEXT, role: "sales_user" };
+    expect((await POST(upload(facilitySpreadsheet([])))).status).toBe(403);
+    expect(state.calls).toHaveLength(0);
+  });
+
+  it("surfaces the actual database error message instead of a generic fallback", async () => {
+    state.responses.set("system_settings", [{ data: null, error: { code: "42P01", message: "relation \"public.system_settings\" does not exist" } }]);
+    const response = await POST(upload(facilitySpreadsheet([])));
+    const body = await response.json();
+    expect(body.error).toBe("relation \"public.system_settings\" does not exist");
+    expect(body.error).not.toBe("تعذر تحليل ملف الاستيراد.");
   });
 });

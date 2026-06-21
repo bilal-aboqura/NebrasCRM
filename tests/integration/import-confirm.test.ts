@@ -1,111 +1,53 @@
-import { describe, expect, it, beforeEach } from "vitest";
-import { importBatches } from "@/lib/data/import-batches";
-import { db } from "@/lib/data/store";
-import { facilities, activities } from "@/lib/data/mock";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { TEST_CONTEXT } from "./import-export-test-utils";
 
-// Helper: seed a preview batch with valid rows
-function seedPreviewBatch(batchId: string, companyId: string, uploadedBy: string) {
-  importBatches.push({
-    id: batchId,
-    companyId,
-    uploadedBy,
-    filename: "test.xlsx",
-    totalRows: 2,
-    validRows: 2,
-    skippedRows: 0,
-    errorRows: 0,
-    status: "preview",
-    createdAt: new Date().toISOString(),
-    _rows: [
-      {
-        index: 1,
-        status: "valid",
-        data: {
-          name: "مستشفى الاختبار",
-          type: "مستشفى",
-          city: "الرياض",
-          region: "منطقة الرياض",
-          primary_phone: "+966551110001",
-          secondary_phone: null,
-          lead_source: "imported",
-          notes: ""
-        },
-        errors: []
-      },
-      {
-        index: 2,
-        status: "valid",
-        data: {
-          name: "عيادة الاختبار",
-          type: "عيادة",
-          city: "جدة",
-          region: "منطقة مكة",
-          primary_phone: "+966551110002",
-          secondary_phone: null,
-          lead_source: "imported",
-          notes: ""
-        },
-        errors: []
-      }
-    ]
+const state = vi.hoisted(() => ({
+  context: { userId: "supervisor-a", role: "supervisor", companyId: "company-a", activeCompanyId: "company-a" } as Record<string, unknown>,
+  rpc: vi.fn(),
+  from: vi.fn(),
+}));
+
+vi.mock("@/lib/auth/context", () => ({ requireAuth: async () => state.context }));
+vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ rpc: state.rpc, from: state.from }) }));
+
+import { POST } from "@/app/api/facilities/import/confirm/route";
+
+function request(batchId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa") {
+  return new Request("http://localhost/api/facilities/import/confirm", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ batchId }),
   });
 }
 
-describe("US3: Confirm import & activity logs", () => {
-  const BATCH_ID = "batch-confirm-test";
-
+describe("facility import confirmation", () => {
   beforeEach(() => {
-    importBatches.length = 0;
-    // Keep only original mock facilities
-    facilities.splice(3);
-    // Keep only original mock activities
-    activities.splice(2);
+    state.context = { ...TEST_CONTEXT };
+    state.rpc.mockReset(); state.from.mockReset();
+    state.rpc.mockResolvedValue({ data: { success: true, importedCount: 3, skippedCount: 2 }, error: null });
   });
 
-  it("inserts valid rows as facilities with status=new and ownerId=null", async () => {
-    seedPreviewBatch(BATCH_ID, "company-a", "u-admin-a");
-    const batch = importBatches.find((b) => b.id === BATCH_ID)!;
-
-    const validRows = (batch._rows ?? []).filter((r: { status: string }) => r.status === "valid");
-    const facilityCountBefore = db.facilities.filter((f) => f.companyId === "company-a").length;
-
-    for (const row of validRows) {
-      db.facilities.push({
-        id: `fac-import-${row.index}`,
-        companyId: batch.companyId,
-        name: row.data.name,
-        type: row.data.type,
-        city: row.data.city,
-        region: row.data.region,
-        primaryPhone: row.data.primary_phone,
-        secondaryPhone: row.data.secondary_phone ?? undefined,
-        ownerId: null,
-        status: "new",
-        isArchived: false,
-        updatedAt: new Date().toISOString()
-      });
-    }
-
-    const facilityCountAfter = db.facilities.filter((f) => f.companyId === "company-a").length;
-    expect(facilityCountAfter).toBe(facilityCountBefore + 2);
-
-    const importedFacility = db.facilities.find((f) => f.name === "مستشفى الاختبار");
-    expect(importedFacility).toBeDefined();
-    expect(importedFacility?.status).toBe("new");
-    expect(importedFacility?.ownerId).toBeNull();
+  it("delegates the tenant-scoped import and activity logging to one atomic database function", async () => {
+    const response = await POST(request());
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ success: true, importedCount: 3, skippedCount: 2 });
+    expect(state.rpc).toHaveBeenCalledWith("confirm_bulk_facility_import", {
+      p_batch_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      p_company_id: TEST_CONTEXT.companyId,
+      p_actor_id: TEST_CONTEXT.userId,
+    });
+    expect(state.from).not.toHaveBeenCalled();
   });
 
-  it("updates batch status to confirmed after successful import", () => {
-    seedPreviewBatch(BATCH_ID, "company-a", "u-admin-a");
-    const batch = importBatches.find((b) => b.id === BATCH_ID)!;
-    batch.status = "confirmed";
-    expect(importBatches.find((b) => b.id === BATCH_ID)?.status).toBe("confirmed");
+  it("denies Sales Users without invoking the transaction", async () => {
+    state.context = { ...TEST_CONTEXT, role: "sales_user" };
+    expect((await POST(request())).status).toBe(403);
+    expect(state.rpc).not.toHaveBeenCalled();
   });
 
-  it("rejects confirming a batch that is already confirmed (idempotency guard)", () => {
-    seedPreviewBatch(BATCH_ID, "company-a", "u-admin-a");
-    const batch = importBatches.find((b) => b.id === BATCH_ID)!;
-    batch.status = "confirmed";
-    expect(batch.status).not.toBe("preview");
+  it("rejects a missing batch id", async () => {
+    expect((await POST(request(""))).status).toBe(400);
+    expect(state.rpc).not.toHaveBeenCalled();
   });
 });
+

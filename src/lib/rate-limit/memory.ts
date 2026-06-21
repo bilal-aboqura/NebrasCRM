@@ -1,19 +1,27 @@
-const rateLimitMap = new Map<string, number[]>();
-const WINDOW_MS = 60 * 60 * 1000; // 1 hour
-const MAX_REQUESTS = 5;
+const DEFAULT_LIMIT = 5;
+const DEFAULT_WINDOW_MS = 60 * 60 * 1000;
 
-export function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const timestamps = rateLimitMap.get(ip) || [];
+const attemptsByIp = new Map<string, number[]>();
 
-  // Filter timestamps within the current window
-  const validTimestamps = timestamps.filter((t) => now - t < WINDOW_MS);
+export function isRateLimited(
+  ip: string,
+  now = Date.now(),
+  limit = DEFAULT_LIMIT,
+  windowMs = DEFAULT_WINDOW_MS,
+): boolean {
+  const windowStart = now - windowMs;
+  const recentAttempts = (attemptsByIp.get(ip) ?? []).filter((timestamp) => timestamp > windowStart);
 
-  if (validTimestamps.length >= MAX_REQUESTS) {
-    return true; // Rate limited
+  if (recentAttempts.length >= limit) {
+    attemptsByIp.set(ip, recentAttempts);
+    return true;
   }
 
-  validTimestamps.push(now);
-  rateLimitMap.set(ip, validTimestamps);
+  recentAttempts.push(now);
+  attemptsByIp.set(ip, recentAttempts);
   return false;
+}
+
+export function resetRateLimitStore(): void {
+  attemptsByIp.clear();
 }

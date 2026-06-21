@@ -15,8 +15,8 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Install `xlsx` dependency in package.json
-- [ ] T002 Create database migration script in supabase/migrations/20260620000000_bulk_import_export.sql
+- [X] T001 Install `xlsx` dependency in package.json
+- [X] T002 Create database migration script in supabase/migrations/20260620000000_bulk_import_export.sql
 - [ ] T003 Apply database migration by executing supabase/migrations/20260620000000_bulk_import_export.sql
 
 ---
@@ -27,10 +27,10 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 [P] Create parser module in src/lib/import-export/parser.ts
-- [ ] T005 [P] Create generator module in src/lib/import-export/generator.ts
-- [ ] T006 [P] Create validator module in src/lib/import-export/validator.ts
-- [ ] T007 Setup mock/helper files for integration tests in tests/integration/
+- [X] T004 [P] Create parser module in src/lib/import-export/parser.ts
+- [X] T005 [P] Create generator module in src/lib/import-export/generator.ts
+- [X] T006 [P] Create validator module in src/lib/import-export/validator.ts
+- [X] T007 Setup mock/helper files for integration tests in tests/integration/
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -44,12 +44,12 @@
 
 ### Tests for User Story 1
 
-- [ ] T008 [US1] Write integration test for template download in tests/integration/import-template.test.ts
+- [X] T008 [US1] Write integration test for template download in tests/integration/import-template.test.ts
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Implement route handler in src/app/api/facilities/import/template/route.ts
-- [ ] T010 [US1] Add template download trigger button on facilities view in src/app/\(dashboard\)/dashboard/facilities/page.tsx
+- [X] T009 [US1] Implement route handler in src/app/api/facilities/import/template/route.ts
+- [X] T010 [US1] Add template download trigger button on facilities view in src/app/\(dashboard\)/dashboard/facilities/page.tsx
 
 **Checkpoint**: User Story 1 is fully functional and testable independently.
 
@@ -63,13 +63,13 @@
 
 ### Tests for User Story 2
 
-- [ ] T011 [US2] Write integration tests for preview validation and limits in tests/integration/import-preview.test.ts
+- [X] T011 [US2] Write integration tests for preview validation and limits in tests/integration/import-preview.test.ts
 
 ### Implementation for User Story 2
 
-- [ ] T012 [US2] Implement preview route handler in src/app/api/facilities/import/preview/route.ts
-- [ ] T013 [US2] Create import modal component in src/app/\(dashboard\)/dashboard/facilities/components/ImportModal.tsx
-- [ ] T014 [US2] Integrate ImportModal trigger button on facilities list page in src/app/\(dashboard\)/dashboard/facilities/page.tsx
+- [X] T012 [US2] Implement preview route handler in src/app/api/facilities/import/preview/route.ts
+- [X] T013 [US2] Create import modal component in src/app/\(dashboard\)/dashboard/facilities/components/ImportModal.tsx
+- [X] T014 [US2] Integrate ImportModal trigger button on facilities list page in src/app/\(dashboard\)/dashboard/facilities/page.tsx
 
 **Checkpoint**: User Stories 1 AND 2 work independently.
 
@@ -83,12 +83,12 @@
 
 ### Tests for User Story 3
 
-- [ ] T015 [US3] Write integration tests for confirm import transaction and logs in tests/integration/import-confirm.test.ts
+- [X] T015 [US3] Write integration tests for confirm import transaction and logs in tests/integration/import-confirm.test.ts
 
 ### Implementation for User Story 3
 
-- [ ] T016 [US3] Implement confirmation route handler in src/app/api/facilities/import/confirm/route.ts
-- [ ] T017 [US3] Connect confirm button to confirm API in src/app/\(dashboard\)/dashboard/facilities/components/ImportModal.tsx
+- [X] T016 [US3] Implement confirmation route handler in src/app/api/facilities/import/confirm/route.ts
+- [X] T017 [US3] Connect confirm button to confirm API in src/app/\(dashboard\)/dashboard/facilities/components/ImportModal.tsx
 
 **Checkpoint**: Import flow is fully operational.
 
@@ -102,13 +102,13 @@
 
 ### Tests for User Story 4
 
-- [ ] T018 [US4] Write integration test for facilities export in tests/integration/export-facilities.test.ts
+- [X] T018 [US4] Write integration test for facilities export in tests/integration/export-facilities.test.ts
 
 ### Implementation for User Story 4
 
-- [ ] T019 [US4] Implement export route handler in src/app/api/facilities/export/route.ts
-- [ ] T020 [US4] Create reusable export button component in src/app/\(dashboard\)/dashboard/facilities/components/ExportButton.tsx
-- [ ] T021 [US4] Add ExportButton to facilities list page in src/app/\(dashboard\)/dashboard/facilities/page.tsx
+- [X] T019 [US4] Implement export route handler in src/app/api/facilities/export/route.ts
+- [X] T020 [US4] Create reusable export button component in src/app/\(dashboard\)/dashboard/facilities/components/ExportButton.tsx
+- [X] T021 [US4] Add ExportButton to facilities list page in src/app/\(dashboard\)/dashboard/facilities/page.tsx
 
 **Checkpoint**: Facilities export is fully functional.
 
@@ -122,14 +122,14 @@
 
 ### Tests for User Story 5
 
-- [ ] T022 [US5] Write integration tests for other exports in tests/integration/export-other.test.ts
+- [X] T022 [US5] Write integration tests for other exports in tests/integration/export-other.test.ts
 
 ### Implementation for User Story 5
 
-- [ ] T023 [US5] Implement export route handler in src/app/api/followups/export/route.ts
-- [ ] T024 [US5] Implement export route handler in src/app/api/offers/export/route.ts
-- [ ] T025 [US5] Implement export route handler in src/app/api/contracts/export/route.ts
-- [ ] T026 [US5] Integrate ExportButton on follow-ups, offers, and contracts pages in src/app/\(dashboard\)/dashboard/followups/page.tsx, src/app/\(dashboard\)/dashboard/offers/page.tsx, and src/app/\(dashboard\)/dashboard/contracts/page.tsx
+- [X] T023 [US5] Implement export route handler in src/app/api/followups/export/route.ts
+- [X] T024 [US5] Implement export route handler in src/app/api/offers/export/route.ts
+- [X] T025 [US5] Implement export route handler in src/app/api/contracts/export/route.ts
+- [X] T026 [US5] Integrate ExportButton on follow-ups, offers, and contracts pages in src/app/\(dashboard\)/dashboard/followups/page.tsx, src/app/\(dashboard\)/dashboard/offers/page.tsx, and src/app/\(dashboard\)/dashboard/contracts/page.tsx
 
 **Checkpoint**: All exports are fully functional.
 
@@ -139,7 +139,7 @@
 
 **Purpose**: Cleanup, documentation, and final validation.
 
-- [ ] T027 [P] Create documentation in docs/import-export.md
+- [X] T027 [P] Create documentation in docs/import-export.md
 - [ ] T028 Validate all quickstart procedures in specs/011-bulk-import-export/quickstart.md and run test suite with npm test
 
 ---

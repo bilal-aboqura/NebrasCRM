@@ -1,7 +1,12 @@
 begin;
-select plan(3);
-select has_function('public', 'current_app_role', 'current_app_role helper exists');
-select has_function('public', 'current_company_id', 'current_company_id helper exists');
-select has_function('public', 'is_super_admin', 'is_super_admin helper exists');
+select plan(7);
+select has_table('public', 'companies', 'companies exists');
+select has_table('public', 'profiles', 'profiles exists');
+select has_table('public', 'login_attempts', 'login_attempts exists');
+select has_table('public', 'audit_logs', 'audit_logs exists');
+select has_function('public', 'jwt_company_id', array[]::text[], 'tenant helper exists');
+select has_function('public', 'jwt_role', array[]::text[], 'role helper exists');
+select has_function('public', 'custom_access_token_hook', array['jsonb'], 'claims hook exists');
 select * from finish();
 rollback;
+

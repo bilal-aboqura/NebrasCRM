@@ -1,52 +1,48 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
-import { companies, profiles } from "@/lib/data/mock";
-import type { Company, Profile, Role } from "@/lib/types/domain";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import type { AppRole, AuthContext } from "./types";
 
-export interface AuthContext {
-  user: Profile;
-  activeCompany: Company;
-  role: Role;
-}
+export const getAuthContext = cache(async (): Promise<AuthContext | null> => {
+  const supabase = createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { user } } = session?.access_token
+    ? await supabase.auth.getUser(session.access_token)
+    : { data: { user: null } };
+  if (!user) return null;
 
-export const MANAGEMENT_ROLES: Role[] = ["super_admin", "company_admin", "supervisor"];
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("company_id,email,display_name,role,status,companies(name,status)")
+    .eq("id", user.id)
+    .single();
+  if (!profile || !profile.role) return null;
 
-export function isManagementRole(role: Role) {
-  return MANAGEMENT_ROLES.includes(role);
-}
-
-export function canAccessAdmin(role: Role) {
-  return role === "super_admin" || role === "company_admin";
-}
-
-export function canManageCompanyWide(role: Role) {
-  return role === "super_admin" || role === "company_admin" || role === "supervisor";
-}
-
-export async function getAuthContext(): Promise<AuthContext> {
-  let userId = "u-super";
-  let activeCompanyId: string | undefined;
-
-  try {
-    const cookieStore = cookies();
-    userId = cookieStore.get("nebras_user")?.value ?? userId;
-    activeCompanyId = cookieStore.get("nebras_active_company")?.value;
-  } catch {
-    // Tests and static rendering do not always have a request store.
+  let activeCompanyId = profile.company_id as string | null;
+  let companyName = ((profile.companies as unknown as { name?: string } | null)?.name ?? "") as string;
+  if (profile.role === "super_admin") {
+    const requestedId = cookies().get("active_company_id")?.value;
+    const { data: companies } = await supabase.from("companies").select("id,name").eq("status", "active");
+    const selected = companies?.find((company) => company.id === requestedId) ?? companies?.[0];
+    activeCompanyId = selected?.id ?? null;
+    companyName = selected?.name ?? "كل الشركات";
   }
 
-  const user = profiles.find((profile) => profile.id === userId) ?? profiles[0];
-  const companyId = activeCompanyId ?? user.companyId ?? companies[0].id;
-  const activeCompany = companies.find((company) => company.id === companyId) ?? companies[0];
+  return {
+    userId: user.id,
+    email: profile.email,
+    fullName: profile.display_name || profile.email,
+    role: profile.role as AppRole,
+    companyId: profile.company_id,
+    activeCompanyId,
+    companyName,
+    status: profile.status,
+  };
+});
 
-  return { user, activeCompany, role: user.role };
-}
-
-export async function getUserRole() {
-  return (await getAuthContext()).role;
-}
-
-export function assertRole(role: Role, allowed: Role[]) {
-  if (!allowed.includes(role)) {
-    throw new Error("403 Forbidden: role is not authorized for this action");
-  }
+export async function requireAuth() {
+  const context = await getAuthContext();
+  if (!context) redirect("/login?reason=session_expired");
+  return context;
 }

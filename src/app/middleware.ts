@@ -25,7 +25,12 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  const { data: { user } } = await supabase.auth.getUser();
+  // Explicitly pass the stored access token. Edge middleware can fail to
+  // resolve ES256 cloud sessions when getUser() performs its implicit lookup.
+  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { user } } = session?.access_token
+    ? await supabase.auth.getUser(session.access_token)
+    : { data: { user: null } };
   const pathname = request.nextUrl.pathname;
   const isPublic = PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
   if (!user && !isPublic) return NextResponse.redirect(new URL("/login?reason=session_expired", request.url));

@@ -6,12 +6,15 @@ import type { AppRole, AuthContext } from "./types";
 
 export const getAuthContext = cache(async (): Promise<AuthContext | null> => {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { user } } = session?.access_token
+    ? await supabase.auth.getUser(session.access_token)
+    : { data: { user: null } };
   if (!user) return null;
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("company_id,email,full_name,display_name,role,status,companies(name,status)")
+    .select("company_id,email,display_name,role,status,companies(name,status)")
     .eq("id", user.id)
     .single();
   if (!profile || !profile.role) return null;
@@ -20,7 +23,7 @@ export const getAuthContext = cache(async (): Promise<AuthContext | null> => {
   let companyName = ((profile.companies as unknown as { name?: string } | null)?.name ?? "") as string;
   if (profile.role === "super_admin") {
     const requestedId = cookies().get("active_company_id")?.value;
-    const { data: companies } = await supabase.from("companies").select("id,name").eq("active", true);
+    const { data: companies } = await supabase.from("companies").select("id,name").eq("status", "active");
     const selected = companies?.find((company) => company.id === requestedId) ?? companies?.[0];
     activeCompanyId = selected?.id ?? null;
     companyName = selected?.name ?? "كل الشركات";
@@ -29,7 +32,7 @@ export const getAuthContext = cache(async (): Promise<AuthContext | null> => {
   return {
     userId: user.id,
     email: profile.email,
-    fullName: profile.display_name || profile.full_name,
+    fullName: profile.display_name || profile.email,
     role: profile.role as AppRole,
     companyId: profile.company_id,
     activeCompanyId,

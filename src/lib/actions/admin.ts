@@ -30,7 +30,7 @@ export async function createCompany(input: CompanyInput): Promise<ActionResult<{
     const name = input.name_ar.trim();
     if (name.length < 2) throw new Error("اسم الشركة مطلوب.");
     const admin = createAdminClient();
-    const { data, error } = await admin.from("companies").insert({ name, name_ar: name, contact_email: input.contact_email || null, contact_phone: input.contact_phone || null, status: input.status }).select("id").single();
+    const { data, error } = await admin.from("companies").insert({ name, contact_email: input.contact_email || null, contact_phone: input.contact_phone || null, status: input.status }).select("id").single();
     if (error) throw new Error(error.code === "23505" ? "اسم الشركة مسجل بالفعل في النظام." : error.message);
     await writeAudit({ actorUserId: context.userId, actorCompanyId: context.companyId, eventType: "company_create", targetCompanyId: data.id, outcome: "success" });
     revalidatePath("/admin/companies");
@@ -43,8 +43,8 @@ export async function updateCompany(input: CompanyInput & { id: string }): Promi
     const context = await requireAuth();
     if (context.role !== "super_admin") throw new Error("إدارة الشركات متاحة لمدير النظام فقط.");
     const admin = createAdminClient();
-    const { data: previous } = await admin.from("companies").select("name_ar,contact_email,contact_phone,status").eq("id", input.id).single();
-    const { data: company, error } = await admin.from("companies").update({ name_ar: input.name_ar.trim(), contact_email: input.contact_email || null, contact_phone: input.contact_phone || null, status: input.status }).eq("id", input.id).select("id").single();
+    const { data: previous } = await admin.from("companies").select("name,contact_email,contact_phone,status").eq("id", input.id).single();
+    const { data: company, error } = await admin.from("companies").update({ name: input.name_ar.trim(), contact_email: input.contact_email || null, contact_phone: input.contact_phone || null, status: input.status }).eq("id", input.id).select("id").single();
     if (error || !company) throw new Error(error?.message ?? "الشركة غير موجودة.");
     if (input.status === "inactive") {
       const { data: users } = await admin.from("profiles").select("id").eq("company_id", input.id);

@@ -1,0 +1,20 @@
+import { UserInviteForm } from "@/components/admin/UserInviteForm";
+import { toggleUserStatusAction } from "@/lib/actions/admin";
+import { requireAuth } from "@/lib/auth/context";
+import { requireRole } from "@/lib/auth/rbac-guards";
+import { createClient } from "@/lib/supabase/server";
+
+const roleLabels = { super_admin: "مدير النظام", company_admin: "مدير شركة", supervisor: "مشرف", sales_user: "مستخدم مبيعات" };
+
+export default async function UsersPage({ searchParams }: { searchParams: { role?: string; status?: string; company?: string } }) {
+  const context = requireRole(await requireAuth(), ["super_admin", "company_admin"]);
+  const supabase = createClient();
+  let query = supabase.from("profiles").select("id,email,display_name,role,status,company_id,companies(name_ar)").order("created_at", { ascending: false });
+  if (searchParams.role) query = query.eq("role", searchParams.role);
+  if (searchParams.status) query = query.eq("status", searchParams.status);
+  if (searchParams.company && context.role === "super_admin") query = query.eq("company_id", searchParams.company);
+  const { data: users } = await query;
+  const companies = context.role === "super_admin" ? (await supabase.from("companies").select("id,name_ar").eq("status", "active").order("name_ar")).data ?? [] : [];
+  return <section className="space-y-8"><div><p className="text-nebras-gold">الإدارة</p><h1 className="text-3xl font-extrabold text-nebras-green">إدارة المستخدمين</h1><p className="mt-2 text-slate-600">{context.role === "super_admin" ? "عرض شامل لجميع الشركات" : `المستخدمون ضمن ${context.companyName} فقط`}</p></div><UserInviteForm isSuperAdmin={context.role === "super_admin"} companies={companies} /><form className="flex flex-wrap gap-3 rounded-xl bg-white p-4"><select name="role" defaultValue={searchParams.role ?? ""} className="rounded border px-3 py-2"><option value="">كل الأدوار</option>{Object.entries(roleLabels).filter(([role]) => context.role === "super_admin" || role !== "super_admin").map(([role, label]) => <option key={role} value={role}>{label}</option>)}</select><select name="status" defaultValue={searchParams.status ?? ""} className="rounded border px-3 py-2"><option value="">كل الحالات</option><option value="active">نشط</option><option value="pending">بانتظار التفعيل</option><option value="inactive">غير نشط</option></select>{context.role === "super_admin" && <select name="company" defaultValue={searchParams.company ?? ""} className="rounded border px-3 py-2"><option value="">كل الشركات</option>{companies.map((company) => <option key={company.id} value={company.id}>{company.name_ar}</option>)}</select>}<button className="rounded bg-nebras-green px-4 py-2 font-bold text-white">تصفية</button></form><div className="overflow-x-auto rounded-2xl bg-white shadow-sm"><table className="w-full min-w-[750px] text-right"><thead className="bg-nebras-green text-white"><tr><th className="p-4">المستخدم</th><th className="p-4">الشركة</th><th className="p-4">الدور</th><th className="p-4">الحالة</th><th className="p-4">الإجراء</th></tr></thead><tbody>{users?.map((user) => <tr key={user.id} className="border-b last:border-0"><td className="p-4"><strong>{user.display_name}</strong><small dir="ltr" className="block text-slate-500">{user.email}</small></td><td className="p-4">{(user.companies as unknown as { name_ar?: string } | null)?.name_ar ?? "النظام"}</td><td className="p-4">{roleLabels[user.role as keyof typeof roleLabels]}</td><td className="p-4">{user.status === "active" ? "نشط" : user.status === "pending" ? "بانتظار التفعيل" : "غير نشط"}</td><td className="p-4">{user.id !== context.userId && <form action={toggleUserStatusAction}><input type="hidden" name="user_id" value={user.id} /><input type="hidden" name="status" value={user.status === "active" ? "inactive" : "active"} /><button className="rounded-lg border border-nebras-green px-3 py-2 text-nebras-green">{user.status === "active" ? "إيقاف" : "تفعيل"}</button></form>}</td></tr>)}</tbody></table></div></section>;
+}
+

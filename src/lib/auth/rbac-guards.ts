@@ -2,10 +2,10 @@ import { redirect } from "next/navigation";
 import type { AppRole, AuthContext } from "./types";
 
 const ROLE_PATHS: Record<AppRole, readonly string[]> = {
-  super_admin: ["/", "/admin", "/profile", "/reports", "/team", "/sales"],
-  company_admin: ["/", "/admin/users", "/profile", "/reports", "/team", "/sales"],
-  supervisor: ["/", "/profile", "/reports", "/team", "/sales"],
-  sales_user: ["/", "/profile", "/sales"],
+  super_admin: ["/", "/admin", "/profile", "/reports", "/team", "/sales", "/dashboard/facilities", "/dashboard/pipeline", "/dashboard/followups", "/dashboard/offers"],
+  company_admin: ["/", "/admin/users", "/profile", "/reports", "/team", "/sales", "/dashboard/facilities", "/dashboard/pipeline", "/dashboard/followups", "/dashboard/offers"],
+  supervisor: ["/", "/profile", "/reports", "/team", "/sales", "/dashboard/facilities", "/dashboard/pipeline", "/dashboard/followups", "/dashboard/offers"],
+  sales_user: ["/", "/profile", "/sales", "/dashboard/facilities", "/dashboard/pipeline", "/dashboard/followups", "/dashboard/offers"],
 };
 
 export function canAccessPath(role: AppRole, pathname: string) {

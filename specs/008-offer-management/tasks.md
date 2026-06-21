@@ -23,8 +23,8 @@
 
 **Purpose**: Project initialization and folder structure setup
 
-- [ ] T001 Create page and folder structures under `src/app/(dashboard)/dashboard/offers/` and `src/components/offers/` per implementation plan
-- [ ] T002 Configure tailwind print utilities and local timezone imports in `src/app/globals.css` or layout files
+- [X] T001 Create page and folder structures under `src/app/(dashboard)/dashboard/offers/` and `src/components/offers/` per implementation plan
+- [X] T002 Configure tailwind print utilities and local timezone imports in `src/app/globals.css` or layout files
 
 ---
 
@@ -34,12 +34,12 @@
 
 **âš ï¸ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Setup Supabase database migration file `supabase/migrations/20260617000008_offer_management.sql` defining custom enums (`public.offer_status`, `public.discount_type`), table schemas for `offers` and `offer_line_items`, and unique version constraint
-- [ ] T004 [P] Implement subtotal synchronization trigger (`trg_update_offer_subtotal`) in `supabase/migrations/20260617000008_offer_management.sql`
-- [ ] T005 [P] Implement server-side totals calculation trigger (`trg_calculate_offer_totals`) in `supabase/migrations/20260617000008_offer_management.sql`
-- [ ] T006 [P] Implement contact lookup and immutability validation trigger (`trg_validate_offer_and_immutability`) in `supabase/migrations/20260617000008_offer_management.sql`
-- [ ] T007 [P] Enable Row Level Security (RLS) policies on `offers` and `offer_line_items` in `supabase/migrations/20260617000008_offer_management.sql` for tenant isolation and visibility inheritance
-- [ ] T008 [P] Write pgTAP database unit tests `supabase/tests/008-offer-management.test.sql` to verify tenant isolation, RLS visibility, server-side math calculations, and immutability constraints
+- [X] T003 Setup Supabase database migration file `supabase/migrations/20260617000008_offer_management.sql` defining custom enums (`public.offer_status`, `public.discount_type`), table schemas for `offers` and `offer_line_items`, and unique version constraint
+- [X] T004 [P] Implement subtotal synchronization trigger (`trg_update_offer_subtotal`) in `supabase/migrations/20260617000008_offer_management.sql`
+- [X] T005 [P] Implement server-side totals calculation trigger (`trg_calculate_offer_totals`) in `supabase/migrations/20260617000008_offer_management.sql`
+- [X] T006 [P] Implement contact lookup and immutability validation trigger (`trg_validate_offer_and_immutability`) in `supabase/migrations/20260617000008_offer_management.sql`
+- [X] T007 [P] Enable Row Level Security (RLS) policies on `offers` and `offer_line_items` in `supabase/migrations/20260617000008_offer_management.sql` for tenant isolation and visibility inheritance
+- [X] T008 [P] Write pgTAP database unit tests `supabase/tests/008-offer-management.test.sql` to verify tenant isolation, RLS visibility, server-side math calculations, and immutability constraints
 - [ ] T009 Run `supabase db test` to verify database triggers and RLS policies fail/pass as expected
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
@@ -53,15 +53,15 @@
 **Independent Test**: Log in as a Sales User of Company A, go to Facility A detail page, click "Create Offer", add line items and discounts, save, and verify that totals are server-computed and matches SAR formats. Verify Company B users cannot access it.
 
 ### Tests for User Story 1
-- [ ] T010 [P] [US1] Write integration test in `tests/integration/offers-us1.test.ts` to verify draft offer creation, line items insertion, and server-side calculation of totals (subtotal, tax, discount, grand total)
-- [ ] T011 [P] [US1] Write test in `tests/integration/offers-us1.test.ts` verifying that discount exceeding subtotal throws a validation error
+- [X] T010 [P] [US1] Write integration test in `tests/integration/offers-us1.test.ts` to verify draft offer creation, line items insertion, and server-side calculation of totals (subtotal, tax, discount, grand total)
+- [X] T011 [P] [US1] Write test in `tests/integration/offers-us1.test.ts` verifying that discount exceeding subtotal throws a validation error
 
 ### Implementation for User Story 1
-- [ ] T012 [US1] Define Typescript interfaces for offers, line items, and server action inputs in `src/lib/actions/offers.ts` matching contracts
-- [ ] T013 [US1] Implement Server Action `createOffer` in `src/lib/actions/offers.ts` to insert draft offers and line items, logging the activity to `facility_activity`
-- [ ] T014 [US1] Implement Server Action `updateDraftOffer` in `src/lib/actions/offers.ts` to update draft details and line items, recalculating totals
-- [ ] T015 [P] [US1] Design the client-side component `OfferEditorModal.tsx` in `src/components/offers/OfferEditorModal.tsx` in Arabic RTL layout supporting additions/removals of line items, discount toggles, and tax-exempt option
-- [ ] T016 [US1] Integrate `OfferEditorModal` into the Offers tab on the Facility Detail page `src/app/(dashboard)/dashboard/facilities/[id]/page.tsx`
+- [X] T012 [US1] Define Typescript interfaces for offers, line items, and server action inputs in `src/lib/actions/offers.ts` matching contracts
+- [X] T013 [US1] Implement Server Action `createOffer` in `src/lib/actions/offers.ts` to insert draft offers and line items, logging the activity to `facility_activity`
+- [X] T014 [US1] Implement Server Action `updateDraftOffer` in `src/lib/actions/offers.ts` to update draft details and line items, recalculating totals
+- [X] T015 [P] [US1] Design the client-side component `OfferEditorModal.tsx` in `src/components/offers/OfferEditorModal.tsx` in Arabic RTL layout supporting additions/removals of line items, discount toggles, and tax-exempt option
+- [X] T016 [US1] Integrate `OfferEditorModal` into the Offers tab on the Facility Detail page `src/app/(dashboard)/dashboard/facilities/[id]/page.tsx`
 
 **Checkpoint**: User Story 1 is fully functional and testable independently.
 
@@ -74,13 +74,13 @@
 **Independent Test**: View a draft offer, click "Send Offer". Verify that the UI makes all inputs read-only. Navigate to the print route and verify browser print (Ctrl+P) displays a clean PDF layout without navigation bar.
 
 ### Tests for User Story 2
-- [ ] T017 [P] [US2] Write integration test in `tests/integration/offers-us2.test.ts` to verify that after marking an offer as sent, any further update request to its pricing or details throws a validation error
+- [X] T017 [P] [US2] Write integration test in `tests/integration/offers-us2.test.ts` to verify that after marking an offer as sent, any further update request to its pricing or details throws a validation error
 
 ### Implementation for User Story 2
-- [ ] T018 [US2] Implement Server Action `sendOffer` in `src/lib/actions/offers.ts` to update status to `'sent'`, record `sent_at`, and log the event in `facility_activity`
-- [ ] T019 [US2] Implement the printable page route `/dashboard/offers/[offerId]/print` in `src/app/(dashboard)/dashboard/offers/[offerId]/print/page.tsx` retrieving the offer details in a clean RTL layout
-- [ ] T020 [P] [US2] Add print-specific CSS rules in `src/app/globals.css` using `@media print` to hide navigation sidebars and headers, and setting A4 margins
-- [ ] T021 [US2] Add **Send Offer** button to the editor UI and enable read-only view state for sent offers
+- [X] T018 [US2] Implement Server Action `sendOffer` in `src/lib/actions/offers.ts` to update status to `'sent'`, record `sent_at`, and log the event in `facility_activity`
+- [X] T019 [US2] Implement the printable page route `/dashboard/offers/[offerId]/print` in `src/app/(dashboard)/dashboard/offers/[offerId]/print/page.tsx` retrieving the offer details in a clean RTL layout
+- [X] T020 [P] [US2] Add print-specific CSS rules in `src/app/globals.css` using `@media print` to hide navigation sidebars and headers, and setting A4 margins
+- [X] T021 [US2] Add **Send Offer** button to the editor UI and enable read-only view state for sent offers
 
 **Checkpoint**: User Story 1 AND 2 work together. Sent offers are immutable and print-ready.
 
@@ -93,12 +93,12 @@
 **Independent Test**: Open a sent offer, click "Revise/Edit". Verify a new draft (v2) is created copying details, the original is marked superseded, and the version list displays them in a chain.
 
 ### Tests for User Story 3
-- [ ] T022 [P] [US3] Write integration test in `tests/integration/offers-us3.test.ts` to verify that revising an offer increments the version, links the `parent_offer_id`, and sets predecessor `is_superseded = true`
+- [X] T022 [P] [US3] Write integration test in `tests/integration/offers-us3.test.ts` to verify that revising an offer increments the version, links the `parent_offer_id`, and sets predecessor `is_superseded = true`
 
 ### Implementation for User Story 3
-- [ ] T023 [US3] Implement Server Action `createOfferRevision` in `src/lib/actions/offers.ts` to generate a new draft revision, copy line items, increment `version`, set `parent_offer_id`, set predecessor `is_superseded = true`, and log the event
-- [ ] T024 [US3] Design revision rendering in `OffersSection.tsx` at `src/components/facilities/OffersSection.tsx` grouping offers by root chain and showing version numbers ("Ù†Ø³Ø®Ø© N")
-- [ ] T025 [US3] Add the **Revise/Edit** button on sent offers in the UI, invoking the revision action and redirecting to the editor
+- [X] T023 [US3] Implement Server Action `createOfferRevision` in `src/lib/actions/offers.ts` to generate a new draft revision, copy line items, increment `version`, set `parent_offer_id`, set predecessor `is_superseded = true`, and log the event
+- [X] T024 [US3] Design revision rendering in `OffersSection.tsx` at `src/components/facilities/OffersSection.tsx` grouping offers by root chain and showing version numbers ("Ù†Ø³Ø®Ø© N")
+- [X] T025 [US3] Add the **Revise/Edit** button on sent offers in the UI, invoking the revision action and redirecting to the editor
 
 **Checkpoint**: Versioning chains are functional. Concurrent edits fail version integrity checks.
 
@@ -111,12 +111,12 @@
 **Independent Test**: Open a sent offer, click "Accept Offer". Verify that a dialog box pops up to confirm advancing the facility stage (reusing Feature 005 logic), and the acceptance is logged in the activity timeline.
 
 ### Tests for User Story 4
-- [ ] T026 [P] [US4] Write integration test in `tests/integration/offers-us4.test.ts` to verify recording decisions updates offer status, logs events with values, and blocks editing of metadata
+- [X] T026 [P] [US4] Write integration test in `tests/integration/offers-us4.test.ts` to verify recording decisions updates offer status, logs events with values, and blocks editing of metadata
 
 ### Implementation for User Story 4
-- [ ] T027 [US4] Implement Server Action `recordOfferDecision` in `src/lib/actions/offers.ts` to update status, record timestamps/notes, and log the event in `facility_activity`
-- [ ] T028 [P] [US4] Design the client-side component `RecordDecisionModal.tsx` in `src/components/offers/RecordDecisionModal.tsx` in Arabic RTL for selecting decisions and inputs
-- [ ] T029 [US4] Update client-side callback to trigger the Feature 005 terminal-stage status prompt on offer acceptance
+- [X] T027 [US4] Implement Server Action `recordOfferDecision` in `src/lib/actions/offers.ts` to update status, record timestamps/notes, and log the event in `facility_activity`
+- [X] T028 [P] [US4] Design the client-side component `RecordDecisionModal.tsx` in `src/components/offers/RecordDecisionModal.tsx` in Arabic RTL for selecting decisions and inputs
+- [X] T029 [US4] Update client-side callback to trigger the Feature 005 terminal-stage status prompt on offer acceptance
 
 **Checkpoint**: Decided offers are closed, and acceptance guides facility stage advancement.
 
@@ -129,12 +129,12 @@
 **Independent Test**: Navigate to "Ø§Ù„Ø¹Ø±ÙˆØ¶". Verify Sales User A only sees active offers of assigned facilities, while Supervisor A sees all. Filter by "Draft" and verify total sum updates.
 
 ### Tests for User Story 5
-- [ ] T030 [P] [US5] Write integration test in `tests/integration/offers-us5.test.ts` verifying that Sales Users cannot query offers of unassigned facilities, and Company A users are blocked from querying Company B offers
+- [X] T030 [P] [US5] Write integration test in `tests/integration/offers-us5.test.ts` verifying that Sales Users cannot query offers of unassigned facilities, and Company A users are blocked from querying Company B offers
 
 ### Implementation for User Story 5
-- [ ] T031 [US5] Implement the Global Offers page at `src/app/(dashboard)/dashboard/offers/page.tsx` querying scoped offers
-- [ ] T032 [P] [US5] Implement filter logic (status and assigned owner dropdowns) and totals summary calculation on `src/app/(dashboard)/dashboard/offers/page.tsx`
-- [ ] T033 [US5] Ensure the active offers query automatically filters out offers belonging to soft-archived facilities via a dynamic join
+- [X] T031 [US5] Implement the Global Offers page at `src/app/(dashboard)/dashboard/offers/page.tsx` querying scoped offers
+- [X] T032 [P] [US5] Implement filter logic (status and assigned owner dropdowns) and totals summary calculation on `src/app/(dashboard)/dashboard/offers/page.tsx`
+- [X] T033 [US5] Ensure the active offers query automatically filters out offers belonging to soft-archived facilities via a dynamic join
 
 **Checkpoint**: Global directory is active, filterable, and strictly isolated.
 
@@ -144,9 +144,9 @@
 
 **Purpose**: Archival logic, localization keys, timezone validation, and final checks
 
-- [ ] T034 Implement soft-archiving (`archiveOffer`) and recovery (`recoverOffer`) Server Actions in `src/lib/actions/offers.ts`, updating the whole revision chain and logging the event in `facility_activity`
-- [ ] T035 [P] Add translation keys in translation dictionaries for offer statuses, actions, and audit logs
-- [ ] T036 Verify that expired offers (sent, past validity date, no decision) display with the derived "Expired" status in Riyadh timezone
+- [X] T034 Implement soft-archiving (`archiveOffer`) and recovery (`recoverOffer`) Server Actions in `src/lib/actions/offers.ts`, updating the whole revision chain and logging the event in `facility_activity`
+- [X] T035 [P] Add translation keys in translation dictionaries for offer statuses, actions, and audit logs
+- [X] T036 Verify that expired offers (sent, past validity date, no decision) display with the derived "Expired" status in Riyadh timezone
 - [ ] T037 Run quickstart.md validation steps to ensure all tests pass
 
 ---

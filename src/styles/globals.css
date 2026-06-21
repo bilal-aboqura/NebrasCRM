@@ -24,3 +24,13 @@ button, input, select { font: inherit; }
   .app-header { align-items: flex-start; }
   .user-details { display: none; }
 }
+
+@media print {
+  @page { size: A4; margin: 18mm; }
+  html, body { background: #fff !important; color: #111 !important; }
+  .app-sidebar, .app-header, .no-print { display: none !important; }
+  .app-content { margin: 0 !important; }
+  .app-content main { padding: 0 !important; }
+  .print-document { max-width: none !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; padding: 0 !important; }
+  .print-document table, .print-document tr, .print-document dl { break-inside: avoid; }
+}

@@ -1,10 +1,14 @@
 import Link from "next/link";
-import { BarChart3, BriefcaseBusiness, Building2, LayoutDashboard, UserRoundCog, Users } from "lucide-react";
+import { BarChart3, BriefcaseBusiness, Building2, CalendarCheck2, Columns3, FileText, LayoutDashboard, UserRoundCog, Users } from "lucide-react";
 import type { AppRole } from "@/lib/auth/types";
 import { canAccessPath } from "@/lib/auth/rbac-guards";
 
 const links = [
   { href: "/", label: "الرئيسية", icon: LayoutDashboard },
+  { href: "/dashboard/facilities", label: "المنشآت", icon: Building2 },
+  { href: "/dashboard/pipeline", label: "لوحة المبيعات", icon: Columns3 },
+  { href: "/dashboard/followups", label: "المتابعات", icon: CalendarCheck2 },
+  { href: "/dashboard/offers", label: "العروض", icon: FileText },
   { href: "/sales", label: "المبيعات", icon: BriefcaseBusiness },
   { href: "/team", label: "الفريق", icon: Users },
   { href: "/reports", label: "التقارير", icon: BarChart3 },

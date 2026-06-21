@@ -19,7 +19,7 @@
 
 **Purpose**: Project initialization and basic directory setup
 
-- [ ] T001 Create directories for contacts components and server actions in `src/components/facilities` and `src/lib/actions`
+- [X] T001 Create directories for contacts components and server actions in `src/components/facilities` and `src/lib/actions`
 
 ---
 
@@ -29,8 +29,8 @@
 
 **âš ï¸ CRITICAL**: No user story work can begin until this phase is complete and database checks pass.
 
-- [ ] T002 Create Supabase database migration for contacts table, indexes, and triggers in `supabase/migrations/20260616000002_contact_management.sql`
-- [ ] T003 [P] Create pgTAP unit tests for contacts RLS and index constraints in `supabase/tests/004-contact-management.test.sql`
+- [X] T002 Create Supabase database migration for contacts table, indexes, and triggers in `supabase/migrations/20260616000004_contact_management.sql`
+- [X] T003 [P] Create pgTAP unit tests for contacts RLS and index constraints in `supabase/tests/004-contact-management.test.sql`
 
 **Checkpoint**: Foundation ready - database tables, indexes, and RLS policies are applied and verified.
 
@@ -44,12 +44,12 @@
 Log in as a Sales User of Company A. Open an assigned facility. Add a contact and save. Verify the contact inherits Company A's company_id and a creation log appears on the facility activity timeline.
 
 ### Tests for User Story 1
-- [ ] T004 [P] [US1] Create integration tests verifying contact creation and tenant isolation in `tests/integration/contacts.test.ts`
+- [X] T004 [P] [US1] Create integration tests verifying contact creation and tenant isolation in `tests/integration/contacts.test.ts`
 
 ### Implementation for User Story 1
-- [ ] T005 [US1] Implement `createContact` Server Action with tenant-scoping, validation, and activity log inserts in `src/lib/actions/contacts.ts`
-- [ ] T006 [P] [US1] Create `ContactForm` component for contact creation in `src/components/facilities/ContactForm.tsx`
-- [ ] T007 [US1] Integrate contact creation modal triggering on the facility detail page in `src/app/(dashboard)/dashboard/facilities/[id]/page.tsx`
+- [X] T005 [US1] Implement `createContact` Server Action with tenant-scoping, validation, and activity log inserts in `src/lib/actions/contacts.ts`
+- [X] T006 [P] [US1] Create `ContactForm` component for contact creation in `src/components/facilities/ContactForm.tsx`
+- [X] T007 [US1] Integrate contact creation modal triggering on the facility detail page in `src/app/(dashboard)/dashboard/facilities/[id]/page.tsx`
 
 **Checkpoint**: User Story 1 is fully functional and testable independently.
 
@@ -63,13 +63,13 @@ Log in as a Sales User of Company A. Open an assigned facility. Add a contact an
 Set contact B as primary on a facility that already has primary contact A. Verify contact A is automatically unmarked, contact B is highlighted, and the event is recorded on the timeline.
 
 ### Tests for User Story 2
-- [ ] T008 [P] [US2] Write database pgTAP unit tests validating that at most one contact is primary in `supabase/tests/004-contact-management.test.sql`
-- [ ] T009 [P] [US2] Create integration tests validating atomic primary contact swap in `tests/integration/contacts.test.ts`
+- [X] T008 [P] [US2] Write database pgTAP unit tests validating that at most one contact is primary in `supabase/tests/004-contact-management.test.sql`
+- [X] T009 [P] [US2] Create integration tests validating atomic primary contact swap in `tests/integration/contacts.test.ts`
 
 ### Implementation for User Story 2
-- [ ] T010 [US2] Update `createContact` and implement `updateContact` Server Action logic to support atomic primary contact swaps in `src/lib/actions/contacts.ts`
-- [ ] T011 [US2] Create `ContactsSection` component to display active contacts and highlight the primary contact in `src/components/facilities/ContactsSection.tsx`
-- [ ] T012 [US2] Render `ContactsSection` on the facility detail page in `src/app/(dashboard)/dashboard/facilities/[id]/page.tsx`
+- [X] T010 [US2] Update `createContact` and implement `updateContact` Server Action logic to support atomic primary contact swaps in `src/lib/actions/contacts.ts`
+- [X] T011 [US2] Create `ContactsSection` component to display active contacts and highlight the primary contact in `src/components/facilities/ContactsSection.tsx`
+- [X] T012 [US2] Render `ContactsSection` on the facility detail page in `src/app/(dashboard)/dashboard/facilities/[id]/page.tsx`
 
 **Checkpoint**: User Stories 1 and 2 are fully functional and work together.
 
@@ -83,12 +83,12 @@ Set contact B as primary on a facility that already has primary contact A. Verif
 Click Edit on an assigned contact, modify their job title, save, and verify that the changes appear on the detail page and timeline.
 
 ### Tests for User Story 3
-- [ ] T013 [P] [US3] Create integration tests validating contact edit authorization and timeline logging in `tests/integration/contacts.test.ts`
+- [X] T013 [P] [US3] Create integration tests validating contact edit authorization and timeline logging in `tests/integration/contacts.test.ts`
 
 ### Implementation for User Story 3
-- [ ] T014 [US3] Update `updateContact` Server Action in `src/lib/actions/contacts.ts` to log contact edit events to the facility timeline.
-- [ ] T015 [US3] Update `ContactForm` component to support edit mode with prefilled values in `src/components/facilities/ContactForm.tsx`
-- [ ] T016 [US3] Integrate the contact edit form trigger inside the contact list in `src/components/facilities/ContactsSection.tsx`
+- [X] T014 [US3] Update `updateContact` Server Action in `src/lib/actions/contacts.ts` to log contact edit events to the facility timeline.
+- [X] T015 [US3] Update `ContactForm` component to support edit mode with prefilled values in `src/components/facilities/ContactForm.tsx`
+- [X] T016 [US3] Integrate the contact edit form trigger inside the contact list in `src/components/facilities/ContactsSection.tsx`
 
 **Checkpoint**: All P1 user stories (creation, editing, listing, primary highlighting) are functional.
 
@@ -102,12 +102,12 @@ Click Edit on an assigned contact, modify their job title, save, and verify that
 Archive the primary contact. Verify that it disappears from default views, their primary status is cleared, and it is logged. Log in as Supervisor, check the Show Archived toggle, click Recover, and verify it returns as a normal active contact.
 
 ### Tests for User Story 4
-- [ ] T017 [P] [US4] Create integration tests verifying archival (setting `is_active` false and clearing `is_primary`) and management-only recovery in `tests/integration/contacts.test.ts`
+- [X] T017 [P] [US4] Create integration tests verifying archival (setting `is_archived` true and clearing `is_primary`) and management-only recovery in `tests/integration/contacts.test.ts`
 
 ### Implementation for User Story 4
-- [ ] T018 [US4] Implement `archiveContact` and `recoverContact` Server Actions in `src/lib/actions/contacts.ts` with atomic primary clearing and role checks.
-- [ ] T019 [US4] Create `ArchivedContactsModal` component to display archived contacts for management in `src/components/facilities/ArchivedContactsModal.tsx`
-- [ ] T020 [US4] Update `ContactsSection` to render the Show Archived toggle and open `ArchivedContactsModal` for management roles in `src/components/facilities/ContactsSection.tsx`
+- [X] T018 [US4] Implement `archiveContact` and `recoverContact` Server Actions in `src/lib/actions/contacts.ts` with atomic primary clearing and role checks.
+- [X] T019 [US4] Create `ArchivedContactsModal` component to display archived contacts for management in `src/components/facilities/ArchivedContactsModal.tsx`
+- [X] T020 [US4] Update `ContactsSection` to render the Show Archived toggle and open `ArchivedContactsModal` for management roles in `src/components/facilities/ContactsSection.tsx`
 
 **Checkpoint**: Archiving and recovery are fully functional and restricted.
 
@@ -121,10 +121,10 @@ Archive the primary contact. Verify that it disappears from default views, their
 Click WhatsApp on a contact card. Verify it redirects to `https://wa.me/966...` with the active company's name and message template URL-encoded.
 
 ### Tests for User Story 5
-- [ ] T021 [P] [US5] Create integration tests verifying phone normalization and WhatsApp link construction in `tests/integration/contacts.test.ts`
+- [X] T021 [P] [US5] Create integration tests verifying phone normalization and WhatsApp link construction in `tests/integration/contacts.test.ts`
 
 ### Implementation for User Story 5
-- [ ] T022 [US5] Implement phone normalization and WhatsApp template resolver utility integrations inside the contact UI in `src/components/facilities/ContactsSection.tsx`
+- [X] T022 [US5] Implement phone normalization and WhatsApp template resolver utility integrations inside the contact UI in `src/components/facilities/ContactsSection.tsx`
 
 **Checkpoint**: All user stories are complete.
 
@@ -135,8 +135,8 @@ Click WhatsApp on a contact card. Verify it redirects to `https://wa.me/966...` 
 **Purpose**: Final verification, linting, and manual testing
 
 - [ ] T023 Run database tests to verify contacts RLS and constraints: `supabase db test`
-- [ ] T024 Run all integration tests: `npm run test:integration`
-- [ ] T025 Perform final layout validation, checking RTL styling, Tajawal font weights, and responsive break points in `src/app/(dashboard)/dashboard/facilities/[id]/page.tsx`
+- [X] T024 Run all integration tests: `npm run test:integration`
+- [X] T025 Perform final layout validation, checking RTL styling, Tajawal font weights, and responsive break points in `src/app/(dashboard)/dashboard/facilities/[id]/page.tsx`
 - [ ] T026 Validate all steps in `quickstart.md` function as written
 
 ---

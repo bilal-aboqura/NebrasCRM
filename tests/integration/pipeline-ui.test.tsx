@@ -6,8 +6,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ColumnPayload, PipelineStage } from "@/lib/actions/pipeline";
 import { PIPELINE_STAGES } from "@/lib/utils/pipeline";
 
-const { updateFacilityStatusAction } = vi.hoisted(() => ({ updateFacilityStatusAction: vi.fn() }));
+const { updateFacilityStatusAction, push } = vi.hoisted(() => ({ updateFacilityStatusAction: vi.fn(), push: vi.fn() }));
 vi.mock("@/lib/actions/pipeline", () => ({ getPipelineAction: vi.fn(), updateFacilityStatusAction }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
 import { KanbanBoard } from "@/components/pipeline/KanbanBoard";
 
@@ -56,6 +57,7 @@ describe("pipeline board accessibility", () => {
   beforeEach(() => {
     updateFacilityStatusAction.mockReset();
     updateFacilityStatusAction.mockResolvedValue({ success: true });
+    push.mockReset();
   });
 
   it("disables card dragging in the mobile column and labels communication actions", () => {
@@ -85,5 +87,13 @@ describe("pipeline board accessibility", () => {
     fireEvent.click(screen.getAllByRole("menuitem", { name: "تعاقد" })[0]);
     expect(screen.getByRole("dialog", { name: "تأكيد نقل المنشأة" })).toBeInTheDocument();
     expect(updateFacilityStatusAction).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("opens the facility when the card surface is clicked", () => {
+    setViewport(false);
+    renderBoard();
+    fireEvent.click(screen.getAllByRole("listitem")[0]);
+    expect(push).toHaveBeenCalledWith("/dashboard/facilities/facility-a");
   });
 });

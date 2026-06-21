@@ -7,7 +7,7 @@ Follow these steps to set up, run, and test the bulk import and export capabilit
 You must install `xlsx` (SheetJS) dependency for handling Excel/CSV files server-side:
 
 ```bash
-npm install xlsx
+npm install --save https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
 ```
 
 ## 2. Run Database Migrations
@@ -16,7 +16,7 @@ Apply the migration file to set up the new `system_settings` and `import_batches
 
 ```bash
 # If using supabase CLI locally:
-supabase migration db push
+supabase db push
 ```
 
 Or execute the SQL scripts in the Supabase Dashboard SQL Editor.

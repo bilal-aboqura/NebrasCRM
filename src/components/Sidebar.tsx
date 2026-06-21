@@ -1,22 +1,13 @@
-import Link from "next/link";
-import { BarChart3, BriefcaseBusiness, Building2, CalendarCheck2, Columns3, FileText, LayoutDashboard, UserRoundCog, Users } from "lucide-react";
-import type { AppRole } from "@/lib/auth/types";
-import { canAccessPath } from "@/lib/auth/rbac-guards";
+import { requireAuth } from "@/lib/auth/context";
+import { SidebarNav } from "./SidebarNav";
 
-const links = [
-  { href: "/", label: "الرئيسية", icon: LayoutDashboard },
-  { href: "/dashboard/facilities", label: "المنشآت", icon: Building2 },
-  { href: "/dashboard/pipeline", label: "لوحة المبيعات", icon: Columns3 },
-  { href: "/dashboard/followups", label: "المتابعات", icon: CalendarCheck2 },
-  { href: "/dashboard/offers", label: "العروض", icon: FileText },
-  { href: "/sales", label: "المبيعات", icon: BriefcaseBusiness },
-  { href: "/team", label: "الفريق", icon: Users },
-  { href: "/reports", label: "التقارير", icon: BarChart3 },
-  { href: "/admin/companies", label: "إدارة الشركات", icon: Building2 },
-  { href: "/admin/users", label: "إدارة المستخدمين", icon: Users },
-  { href: "/profile", label: "الملف الشخصي", icon: UserRoundCog },
-];
-
-export function Sidebar({ role }: { role: AppRole }) {
-  return <aside className="app-sidebar fixed inset-y-0 right-0 z-20 w-64 bg-nebras-green p-6 text-white"><div className="mb-10 text-2xl font-extrabold text-nebras-gold">نبراس CRM</div><nav aria-label="التنقل الرئيسي" className="space-y-2">{links.filter((link) => canAccessPath(role, link.href)).map(({ href, label, icon: Icon }) => <Link key={href} href={href} className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-white/10"><Icon aria-hidden size={20} />{label}</Link>)}</nav></aside>;
+export async function Sidebar() {
+  const { role } = await requireAuth();
+  return <aside className="app-sidebar fixed inset-y-0 right-0 z-20 w-64 overflow-y-auto bg-nebras-green p-6 text-white">
+    <div className="mb-8 flex items-center gap-3">
+      <span aria-hidden className="grid size-10 place-items-center rounded-xl bg-nebras-gold text-xl font-black text-nebras-green">ن</span>
+      <div><p className="text-xl font-extrabold text-nebras-gold">نبراس</p><p className="text-xs text-white/60">إدارة علاقات العملاء</p></div>
+    </div>
+    <SidebarNav role={role} />
+  </aside>;
 }

@@ -2,6 +2,9 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { FacilityForm } from "@/components/facilities/FacilityForm";
 import { getFacilitiesList, getFacilityOptions, type FacilityStatus, type FacilityType } from "@/lib/actions/facilities";
+import { FacilitiesClient, type FacilityListRecord } from "./FacilitiesClient";
+import { ImportModal } from "./components/ImportModal";
+import { ExportButton } from "./components/ExportButton";
 
 const statusLabels: Record<string, string> = { new: "جديد", contacted: "تم التواصل", interested: "مهتم", offer: "عرض", negotiation: "تفاوض", contract: "عقد", lost: "مفقود" };
 const typeLabels: Record<string, string> = { medical_complex: "مجمع طبي", dental_complex: "مجمع أسنان", lab: "مختبر", radiology: "مركز أشعة", hospital: "مستشفى" };
@@ -26,7 +29,7 @@ export default async function FacilitiesPage({ searchParams }: { searchParams: R
   const cities = options.cities.filter((city) => !param("region") || city.region_id === param("region"));
 
   return <section className="space-y-6" dir="rtl">
-    <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="font-bold text-nebras-gold">إدارة العملاء</p><h1 className="text-3xl font-extrabold text-nebras-green">قائمة المنشآت</h1><p className="mt-2 text-slate-600">{meta.total} منشأة ضمن النطاق المسموح لك</p></div><FacilityForm {...options} /></div>
+    <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="font-bold text-nebras-gold">إدارة العملاء</p><h1 className="text-3xl font-extrabold text-nebras-green">قائمة المنشآت</h1><p className="mt-2 text-slate-600">{meta.total} منشأة ضمن النطاق المسموح لك</p></div><div className="flex flex-wrap gap-2"><ExportButton endpoint="/api/facilities/export" params={searchParams} />{options.canAssign && <ImportModal />}<FacilityForm {...options} /></div></div>
     <form className="grid gap-3 rounded-2xl bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
       <label className="relative sm:col-span-2"><span className="sr-only">بحث</span><Search className="absolute right-3 top-3 text-slate-400" size={18} /><input name="search" defaultValue={param("search")} placeholder="بحث بالاسم أو الهاتف" className={`${control} w-full pr-10`} /></label>
       <select name="status" defaultValue={param("status")} className={control} aria-label="الحالة"><option value="">كل الحالات</option>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
@@ -38,12 +41,7 @@ export default async function FacilitiesPage({ searchParams }: { searchParams: R
       <button className="rounded-xl bg-nebras-green px-4 py-2 font-bold text-white">تطبيق</button>
     </form>
     {!result.success && <p className="rounded-xl bg-red-50 p-4 text-red-700">{result.error}</p>}
-    <div className="overflow-x-auto rounded-2xl bg-white shadow-sm"><table className="w-full min-w-[850px] text-right"><thead className="bg-nebras-green text-white"><tr><th className="p-4">المنشأة</th><th className="p-4">النوع</th><th className="p-4">المدينة</th><th className="p-4">الهاتف</th><th className="p-4">المسؤول</th><th className="p-4">الحالة</th></tr></thead><tbody>{records.map((facility) => {
-      const region = facility.regions as unknown as { name_ar?: string } | null;
-      const city = facility.cities as unknown as { name_ar?: string } | null;
-      const owner = facility.owner as unknown as { display_name?: string; status?: string } | null;
-      return <tr key={facility.id} className="border-b last:border-0 hover:bg-slate-50"><td className="p-4"><Link href={`/dashboard/facilities/${facility.id}`} className="font-bold text-nebras-green hover:underline">{facility.name_ar}</Link>{!facility.is_active && <span className="mr-2 rounded-full bg-slate-200 px-2 py-1 text-xs">مؤرشف</span>}</td><td className="p-4">{typeLabels[facility.type]}</td><td className="p-4">{facility.city_custom || city?.name_ar}<small className="block text-slate-400">{region?.name_ar}</small></td><td className="p-4" dir="ltr">{facility.primary_phone}</td><td className="p-4">{owner?.display_name ?? "غير مسندة"}{owner?.status === "inactive" && <small className="block text-amber-700">المسؤول غير نشط</small>}</td><td className="p-4"><span className="rounded-full bg-emerald-50 px-3 py-1 text-sm text-emerald-800">{statusLabels[facility.status]}</span></td></tr>;
-    })}{!records.length && <tr><td colSpan={6} className="p-10 text-center text-slate-500">لا توجد منشآت مطابقة.</td></tr>}</tbody></table></div>
+    <div className="overflow-x-auto rounded-2xl bg-white shadow-sm"><table className="w-full min-w-[850px] text-right"><thead className="bg-nebras-green text-white"><tr><th className="p-4">المنشأة</th><th className="p-4">النوع</th><th className="p-4">المدينة</th><th className="p-4">الهاتف</th><th className="p-4">المسؤول</th><th className="p-4">الحالة</th></tr></thead><FacilitiesClient records={records as FacilityListRecord[]} typeLabels={typeLabels} statusLabels={statusLabels} /></table></div>
     <nav className="flex items-center justify-center gap-4" aria-label="صفحات المنشآت"><Link aria-disabled={meta.page <= 1} href={`?${queryFor(Math.max(1, meta.page - 1))}`} className={`rounded-lg border p-2 ${meta.page <= 1 ? "pointer-events-none opacity-40" : ""}`}><ChevronRight /></Link><span>صفحة {meta.page} من {meta.pages}</span><Link aria-disabled={meta.page >= meta.pages} href={`?${queryFor(Math.min(meta.pages, meta.page + 1))}`} className={`rounded-lg border p-2 ${meta.page >= meta.pages ? "pointer-events-none opacity-40" : ""}`}><ChevronLeft /></Link></nav>
   </section>;
 }

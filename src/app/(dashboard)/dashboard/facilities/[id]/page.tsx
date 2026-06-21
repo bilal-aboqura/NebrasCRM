@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import { ActivityTimeline } from "@/components/facilities/ActivityTimeline";
 import { CallLogsSection } from "@/components/facilities/CallLogsSection";
 import { ContactsSection } from "@/components/facilities/ContactsSection";
+import { ContractsSection } from "@/components/facilities/ContractsSection";
 import { FacilityArchiveButton } from "@/components/facilities/FacilityArchiveButton";
 import { FacilityForm } from "@/components/facilities/FacilityForm";
 import { FollowUpsSection } from "@/components/facilities/FollowUpsSection";
@@ -12,6 +13,7 @@ import { LogCommunicationModal } from "@/components/facilities/LogCommunicationM
 import { QuickLogBanner, TrackedCommunicationLink } from "@/components/facilities/QuickLogBanner";
 import { getFacilityCallLogs } from "@/lib/actions/call-logs";
 import { getFacilityContacts } from "@/lib/actions/contacts";
+import { getContractOptions, getFacilityContracts } from "@/lib/actions/contracts";
 import { getFacilityActivity, getFacilityDetail, getFacilityOptions } from "@/lib/actions/facilities";
 import { getFacilityFollowUps, getFollowUpOptions } from "@/lib/actions/followups";
 import { getFacilityOffers, getOfferOptions } from "@/lib/actions/offers";
@@ -24,12 +26,13 @@ export default async function FacilityDetailPage({ params, searchParams }: { par
   const detail = await getFacilityDetail(params.id);
   if (!detail.success) notFound();
   const callsPage = Math.max(1, Number(searchParams?.callsPage) || 1);
-  const [activity, options, contactsResult, archivedResult, followUpsResult, followUpOptions, callLogsResult, offersResult, offerOptions] = await Promise.all([
+  const [activity, options, contactsResult, archivedResult, followUpsResult, followUpOptions, callLogsResult, offersResult, offerOptions, contractsResult, contractOptions] = await Promise.all([
     getFacilityActivity(params.id), getFacilityOptions(), getFacilityContacts(params.id),
     detail.canManage ? getFacilityContacts(params.id, true) : Promise.resolve({ success: true as const, data: [] }),
     getFacilityFollowUps(params.id), getFollowUpOptions(params.id),
     getFacilityCallLogs(params.id, callsPage, searchParams?.archivedCalls === "1"),
     getFacilityOffers(params.id), detail.data.is_active ? getOfferOptions(params.id) : Promise.resolve({ success: true as const, data: { contacts: [], canManage: detail.canManage } }),
+    getFacilityContracts(params.id), detail.data.is_active ? getContractOptions(params.id) : Promise.resolve({ success: true as const, data: { contacts: [], offers: [], canManage: detail.canManage, facilityStatus: detail.data.status } }),
   ]);
   const facility = detail.data;
   const company = facility.companies as unknown as { name_ar?: string; whatsapp_template?: string } | null;
@@ -52,6 +55,7 @@ export default async function FacilityDetailPage({ params, searchParams }: { par
     {followUpsResult.success && followUpOptions.success ? <FollowUpsSection facilityId={facility.id} followUps={followUps} contacts={followUpOptions.data.contacts} owners={followUpOptions.data.owners} canEdit={Boolean(facility.is_active)} canManage={followUpOptions.data.canManage && Boolean(facility.is_active)} defaultOwnerId={followUpOptions.data.defaultOwnerId} /> : <article className="rounded-2xl bg-white p-6 text-red-700 shadow-sm">{followUpsResult.success ? (followUpOptions.success ? "" : followUpOptions.error) : followUpsResult.error}</article>}
     {callLogsResult.success ? <CallLogsSection page={callLogsResult.data} canManage={Boolean(callLogsResult.canManage)} currentUserId={callLogsResult.currentUserId ?? ""} showArchived={searchParams?.archivedCalls === "1"} /> : <article className="rounded-2xl bg-white p-6 text-red-700 shadow-sm">{callLogsResult.error}</article>}
     {offersResult.success && offerOptions.success ? <OffersSection facilityId={facility.id} facilityName={facility.name_ar} facilityStatus={facility.status} offers={offersResult.data} contacts={offerOptions.data.contacts} canEdit={Boolean(facility.is_active)} /> : <article className="rounded-2xl bg-white p-6 text-red-700 shadow-sm">{offersResult.success ? (offerOptions.success ? "" : offerOptions.error.message) : offersResult.error.message}</article>}
+    {contractsResult.success && contractOptions.success ? <ContractsSection facilityId={facility.id} facilityName={facility.name_ar} facilityStatus={facility.status} contracts={contractsResult.data} contacts={contractOptions.data.contacts} offers={contractOptions.data.offers} canEdit={Boolean(facility.is_active)} canManage={contractOptions.data.canManage && Boolean(facility.is_active)} /> : <article className="rounded-2xl bg-white p-6 text-red-700 shadow-sm">{contractsResult.success ? (contractOptions.success ? "" : contractOptions.error.message) : contractsResult.error.message}</article>}
     <article className="rounded-2xl bg-white p-6 shadow-sm"><h2 className="mb-6 text-xl font-extrabold">سجل النشاط</h2>{activity.success ? <ActivityTimeline activities={activity.data} /> : <p className="text-red-700">{activity.error}</p>}</article>
     <QuickLogBanner facilityId={facility.id} />
   </section>;

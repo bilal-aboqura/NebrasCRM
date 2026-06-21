@@ -18,7 +18,9 @@ button, input, select { font: inherit; }
 @media (max-width: 700px) {
   .app-sidebar { position: static; width: 100%; min-height: auto; padding: 1rem; }
   .app-sidebar > div { margin-bottom: .75rem; }
-  .app-sidebar nav { display: flex; overflow-x: auto; }
+  .app-sidebar nav { display: flex; gap: .75rem; overflow-x: auto; }
+  .app-sidebar nav > div { display: flex; flex: 0 0 auto; gap: .25rem; border: 0; padding: 0; }
+  .app-sidebar nav > div > p { display: none; }
   .app-sidebar nav a { flex: 0 0 auto; }
   .app-content { margin-right: 0; }
   .app-header { align-items: flex-start; }

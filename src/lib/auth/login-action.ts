@@ -12,6 +12,6 @@ export async function loginAction(_: LoginState, formData: FormData): Promise<Lo
   if (!email || !password) return { error: "يرجى إدخال البريد الإلكتروني وكلمة المرور." };
   const result = await loginWithPassword(createClient(), email, password);
   if (!result.success) return { error: result.error };
-  redirect("/");
+  redirect("/dashboard");
 }
 

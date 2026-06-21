@@ -17,7 +17,7 @@ import type { AppRole } from "@/lib/auth/types";
 import { canAccessPath } from "@/lib/auth/rbac-guards";
 
 const mainItems = [
-  { href: "/", label: "لوحة التحكم", icon: LayoutDashboard },
+  { href: "/dashboard", label: "لوحة التحكم", icon: LayoutDashboard },
   { href: "/dashboard/facilities", label: "المنشآت", icon: Building2 },
   { href: "/dashboard/pipeline", label: "المسار", icon: Columns3 },
   { href: "/dashboard/followups", label: "المتابعات", icon: CalendarCheck2 },
@@ -35,7 +35,7 @@ const accountItems = [
 ] as const;
 
 function isActive(pathname: string, href: string) {
-  return href === "/" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export function SidebarNav({ role }: { role: AppRole }) {

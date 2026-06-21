@@ -5,7 +5,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        nebras: { green: "#0b4d3b", gold: "#c5a253", cream: "#f7f2e8" },
+        nebras: {
+          green: "#003d2f",
+          gold: "#c4a35a",
+          cream: "#fbfaf7",
+        },
       },
       fontFamily: { sans: ["var(--font-tajawal)", "Tahoma", "sans-serif"] },
     },

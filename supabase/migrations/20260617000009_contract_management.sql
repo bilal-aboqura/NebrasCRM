@@ -168,7 +168,7 @@ begin
   management_only := p_transition in ('completed','terminated');
   if not found or not public.can_manage_contract_facility(p_company_id,current_row.facility_id,p_actor_id,management_only)
     then raise exception 'contract transition denied' using errcode = '42501'; end if;
-  if current_row.status <> case when p_transition = 'active' then 'draft'::public.contract_status else 'active'::public.contract_status end
+  if current_row.status <> (case when p_transition = 'active' then 'draft'::public.contract_status else 'active'::public.contract_status end)
     then raise exception 'invalid contract transition' using errcode = '23514'; end if;
   if p_transition = 'active' and current_row.document_path is null then raise exception 'signed document required' using errcode = '23514'; end if;
   if p_transition = 'terminated' and (p_terminated_at is null or p_terminated_at < current_row.start_date or nullif(trim(p_reason),'') is null)

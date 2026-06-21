@@ -2,10 +2,10 @@ import { redirect } from "next/navigation";
 import type { AppRole, AuthContext } from "./types";
 
 const ROLE_PATHS: Record<AppRole, readonly string[]> = {
-  super_admin: ["/", "/admin", "/profile", "/reports", "/team", "/sales", "/dashboard/facilities", "/dashboard/pipeline", "/dashboard/followups", "/dashboard/offers", "/dashboard/contracts"],
-  company_admin: ["/", "/admin/users", "/profile", "/reports", "/team", "/sales", "/dashboard/facilities", "/dashboard/pipeline", "/dashboard/followups", "/dashboard/offers", "/dashboard/contracts"],
-  supervisor: ["/", "/admin/users", "/profile", "/reports", "/team", "/sales", "/dashboard/facilities", "/dashboard/pipeline", "/dashboard/followups", "/dashboard/offers", "/dashboard/contracts"],
-  sales_user: ["/", "/profile", "/reports", "/sales", "/dashboard/facilities", "/dashboard/pipeline", "/dashboard/followups", "/dashboard/offers", "/dashboard/contracts"],
+  super_admin: ["/", "/dashboard", "/admin", "/profile", "/reports", "/team", "/sales", "/dashboard/facilities", "/dashboard/pipeline", "/dashboard/followups", "/dashboard/offers", "/dashboard/contracts"],
+  company_admin: ["/", "/dashboard", "/admin/users", "/profile", "/reports", "/team", "/sales", "/dashboard/facilities", "/dashboard/pipeline", "/dashboard/followups", "/dashboard/offers", "/dashboard/contracts"],
+  supervisor: ["/", "/dashboard", "/admin/users", "/profile", "/reports", "/team", "/sales", "/dashboard/facilities", "/dashboard/pipeline", "/dashboard/followups", "/dashboard/offers", "/dashboard/contracts"],
+  sales_user: ["/", "/dashboard", "/profile", "/reports", "/sales", "/dashboard/facilities", "/dashboard/pipeline", "/dashboard/followups", "/dashboard/offers", "/dashboard/contracts"],
 };
 
 export function canAccessPath(role: AppRole, pathname: string) {

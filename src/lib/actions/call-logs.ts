@@ -33,7 +33,7 @@ function fail(error: unknown): { success: false; error: string } {
   if (message.includes("24 hours")) return { success: false, error: "لا يمكن تعديل السجل بعد مرور 24 ساعة من إنشائه." };
   if (candidate.code === "23503" || message.includes("does not belong")) return { success: false, error: "جهة الاتصال أو المتابعة لا تنتمي إلى هذه المنشأة." };
   if (candidate.code === "23514" || message.includes("future")) return { success: false, error: "لا يمكن أن يكون وقت الاتصال في المستقبل." };
-  return { success: false, error: error instanceof Error ? error.message : "تعذر إتمام العملية." };
+  return { success: false, error: candidate.message ?? "تعذر إتمام العملية." };
 }
 
 async function requireFacilityAccess(facilityId: string, context: AuthContext, requireActive = true) {

@@ -1,0 +1,12 @@
+import { DateRangePicker } from "@/components/reports/DateRangePicker";
+import { ExportButton } from "@/components/reports/ExportButton";
+import { FilterBar } from "@/components/reports/FilterBar";
+import { InflowOutflowChart } from "@/components/reports/InflowOutflowChart";
+import { EmptyState, MetricCard, ReportHeader } from "@/components/reports/ReportUi";
+import { getPipelineReport } from "@/lib/actions/reports-actions";
+import { filterLabels, reportFilter, type ReportSearchParams } from "@/lib/reports/filters";
+
+export default async function PipelineReportPage({ searchParams }: { searchParams: ReportSearchParams }) {
+  const filter = reportFilter(searchParams); const data = await getPipelineReport(filter); const rows = data.stages.map((row) => ({ ...row }));
+  return <section className="space-y-6"><ReportHeader title="تقرير تدفق المبيعات" description="الدخول والخروج وصافي الحركة ومتوسط المدة لكل مرحلة." action={<ExportButton filename="تقرير-تدفق-المبيعات" title="تقرير تدفق المبيعات" filters={filterLabels(filter)} columns={[{ key: "stage", label: "المرحلة" }, { key: "inflow", label: "الدخول" }, { key: "outflow", label: "الخروج" }, { key: "netChange", label: "صافي التغير" }, { key: "avgDuration", label: "متوسط الأيام" }]} rows={rows} summary={{ stage: "الإجمالي", inflow: rows.reduce((n, r) => n + r.inflow, 0), outflow: rows.reduce((n, r) => n + r.outflow, 0) }} />} /><FilterBar><DateRangePicker value={filter} /></FilterBar><div className="grid gap-4 sm:grid-cols-2"><MetricCard label="المنشآت النشطة" value={data.totalActiveFacilities} /><MetricCard label="صافي الحركة" value={rows.reduce((n, row) => n + row.netChange, 0)} /></div>{rows.some((row) => row.inflow || row.outflow) ? <><article className="rounded-2xl bg-white p-5 shadow-sm"><InflowOutflowChart data={rows} /></article><div className="overflow-x-auto rounded-2xl bg-white shadow-sm"><table className="w-full min-w-[650px] text-right"><thead className="bg-nebras-green text-white"><tr>{["المرحلة", "الدخول", "الخروج", "صافي التغير", "متوسط المدة (يوم)"].map((item) => <th className="p-4" key={item}>{item}</th>)}</tr></thead><tbody>{rows.map((row) => <tr className="border-b last:border-0" key={row.stage}><td className="p-4 font-bold">{row.stage}</td><td className="p-4">{row.inflow}</td><td className="p-4">{row.outflow}</td><td className="p-4">{row.netChange}</td><td className="p-4">{row.avgDuration}</td></tr>)}</tbody></table></div></> : <EmptyState />}</section>;
+}

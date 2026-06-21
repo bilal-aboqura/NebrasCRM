@@ -1,0 +1,12 @@
+import { CommunicationBarChart } from "@/components/reports/CommunicationBarChart";
+import { DateRangePicker } from "@/components/reports/DateRangePicker";
+import { ExportButton } from "@/components/reports/ExportButton";
+import { FilterBar } from "@/components/reports/FilterBar";
+import { EmptyState, MetricCard, ReportHeader } from "@/components/reports/ReportUi";
+import { getCommunicationReport } from "@/lib/actions/reports-actions";
+import { filterLabels, reportFilter, type ReportSearchParams } from "@/lib/reports/filters";
+
+export default async function CommunicationPage({ searchParams }: { searchParams: ReportSearchParams }) {
+  const filter = reportFilter(searchParams); const data = await getCommunicationReport(filter); const rows = data.outcomes.map((row) => ({ ...row }));
+  return <section className="space-y-6"><ReportHeader title="تقرير نشاط التواصل" description="قنوات التواصل واتجاهاتها ونتائجها خلال الفترة." action={<ExportButton filename="تقرير-نشاط-التواصل" title="تقرير نشاط التواصل" filters={filterLabels(filter)} columns={[{ key: "outcome", label: "النتيجة" }, { key: "count", label: "العدد" }]} rows={rows} summary={{ outcome: "الإجمالي", count: data.totalCalls + data.totalWhatsapp }} />} /><FilterBar><DateRangePicker value={filter} /></FilterBar><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><MetricCard label="المكالمات" value={data.totalCalls} /><MetricCard label="واتساب" value={data.totalWhatsapp} /><MetricCard label="وارد" value={data.inboundCount} /><MetricCard label="صادر" value={data.outboundCount} /></div>{rows.length ? <article className="rounded-2xl bg-white p-5 shadow-sm"><CommunicationBarChart data={rows} /></article> : <EmptyState />}{data.repBreakdown && <div className="overflow-x-auto rounded-2xl bg-white shadow-sm"><h2 className="p-5 text-lg font-bold text-nebras-green">النشاط حسب المندوب</h2><table className="w-full min-w-[650px] text-right"><thead className="bg-nebras-green text-white"><tr>{["المندوب", "المكالمات", "واتساب", "وارد", "صادر"].map((item) => <th className="p-4" key={item}>{item}</th>)}</tr></thead><tbody>{data.repBreakdown.map((row) => <tr className="border-b last:border-0" key={row.repId}><td className="p-4 font-bold">{row.repName}</td><td className="p-4">{row.calls}</td><td className="p-4">{row.whatsapp}</td><td className="p-4">{row.inbound}</td><td className="p-4">{row.outbound}</td></tr>)}</tbody></table></div>}</section>;
+}

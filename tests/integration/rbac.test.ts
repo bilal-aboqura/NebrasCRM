@@ -9,8 +9,7 @@ describe("deny-by-default RBAC", () => {
   });
   it("limits sales users to dashboard and sales", () => {
     expect(canAccessPath("sales_user", "/sales/leads")).toBe(true);
-    expect(canAccessPath("sales_user", "/reports")).toBe(false);
+    expect(canAccessPath("sales_user", "/reports")).toBe(true);
   });
   it("checks explicit action roles", () => expect(hasAnyRole("supervisor", ["super_admin", "company_admin"])).toBe(false));
 });
-

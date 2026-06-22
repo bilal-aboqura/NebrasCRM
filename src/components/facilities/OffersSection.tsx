@@ -10,11 +10,12 @@ import { archiveOffer, createOfferRevision, sendOffer, type Offer } from "@/lib/
 import type { FacilityStatus } from "@/lib/actions/facilities";
 import { updateFacilityStatusAction } from "@/lib/actions/pipeline";
 import { OFFER_STATUS_LABELS } from "@/lib/utils/offers";
+import { ArchivedOffersModal } from "./ArchivedOffersModal";
 
 const colors = { draft: "bg-slate-100 text-slate-700", sent: "bg-blue-100 text-blue-800", accepted: "bg-emerald-100 text-emerald-800", rejected: "bg-red-100 text-red-800", expired: "bg-amber-100 text-amber-800" } as const;
 type ContactOption = { id: string; name_ar: string; job_title?: string };
 
-export function OffersSection({ facilityId, facilityName, facilityStatus, offers, contacts, canEdit }: { facilityId: string; facilityName: string; facilityStatus: FacilityStatus; offers: Offer[]; contacts: ContactOption[]; canEdit: boolean }) {
+export function OffersSection({ facilityId, facilityName, facilityStatus, offers, archivedOffers, contacts, canEdit, canManage }: { facilityId: string; facilityName: string; facilityStatus: FacilityStatus; offers: Offer[]; archivedOffers: Offer[]; contacts: ContactOption[]; canEdit: boolean; canManage: boolean }) {
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
   const [stagePrompt, setStagePrompt] = useState<"negotiation" | "contract" | null>(null);
@@ -23,7 +24,7 @@ export function OffersSection({ facilityId, facilityName, facilityStatus, offers
   const run = (action: () => Promise<any>) => startTransition(async () => { setError(""); const result = await action(); if (!result.success) setError(result.error.message); });
 
   return <article className="rounded-2xl bg-white p-6 shadow-sm" dir="rtl">
-    <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-extrabold">العروض</h2><p className="mt-1 text-sm text-slate-500">عروض الأسعار والإصدارات السابقة</p></div>{canEdit && <OfferEditorModal facilityId={facilityId} contacts={contacts} />}</div>
+    <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-extrabold">العروض</h2><p className="mt-1 text-sm text-slate-500">عروض الأسعار والإصدارات السابقة</p></div><div className="flex flex-wrap gap-2">{canManage && <ArchivedOffersModal offers={archivedOffers} />}{canEdit && <OfferEditorModal facilityId={facilityId} contacts={contacts} />}</div></div>
     {error && <p className="mt-4 rounded-xl bg-red-50 p-3 text-red-700">{error}</p>}
     {!offers.length ? <p className="mt-6 rounded-xl border border-dashed p-6 text-center text-slate-500">لا توجد عروض لهذه المنشأة بعد.</p> : <div className="mt-6 space-y-5">{Array.from(chains.entries()).map(([root, versions]) => <section key={root} className="rounded-xl border p-4"><div className="space-y-3">{versions.sort((a,b) => b.version-a.version).map((offer,index) => <div key={offer.id} className={`rounded-xl p-4 ${index === 0 ? "bg-emerald-50/60" : "bg-slate-50"}`}>
       <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><h3 className="font-extrabold text-nebras-green">{offer.title}</h3><span className="rounded-full bg-white px-2 py-1 text-xs font-bold">نسخة {offer.version}</span><span className={`rounded-full px-2 py-1 text-xs font-bold ${colors[offer.displayStatus]}`}>{OFFER_STATUS_LABELS[offer.displayStatus]}</span></div><p className="mt-2 text-sm text-slate-500">صالح حتى {offer.validUntil} · {offer.contactName ?? "دون جهة اتصال"}</p></div><strong className="text-lg">{offer.grandTotal.toLocaleString("ar-SA",{minimumFractionDigits:2})} ر.س</strong></div>

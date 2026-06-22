@@ -249,7 +249,7 @@ async function setOfferActive(id: string, active: boolean): Promise<ActionRespon
 export async function archiveOffer(id: string) { return setOfferActive(id, false); }
 export async function recoverOffer(id: string) { return setOfferActive(id, true); }
 
-export async function getFacilityOffers(facilityId: string): Promise<ActionResponse<Offer[]>> {
+export async function getFacilityOffers(facilityId: string, includeArchived = false): Promise<ActionResponse<Offer[]>> {
   try {
     const context = await requireAuth(); const companyId = activeCompany(context);
     let facilityQuery = createAdminClient().from("facilities").select("id,assigned_to,is_active")
@@ -258,10 +258,12 @@ export async function getFacilityOffers(facilityId: string): Promise<ActionRespo
     const { data: facility, error: facilityError } = await facilityQuery.maybeSingle();
     if (facilityError) throw facilityError;
     if (!facility) throw Object.assign(new Error("غير مصرح لك بعرض عروض هذه المنشأة."), { code: "42501" });
-    const { data, error } = await createAdminClient().from("offers")
+    let query = createAdminClient().from("offers")
       .select("*,offer_line_items(*),contacts(name_ar,primary_phone)")
-      .eq("company_id", companyId).eq("facility_id", facilityId).eq("is_active", true)
-      .order("created_at", { ascending: false });
+      .eq("company_id", companyId).eq("facility_id", facilityId);
+    if (includeArchived) query = query.eq("is_active", false);
+    else query = query.eq("is_active", true);
+    const { data, error } = await query.order("created_at", { ascending: false });
     if (error) throw error;
     return { success: true, data: (data ?? []).map(mapOffer) };
   } catch (error) { return failure(error); }

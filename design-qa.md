@@ -48,6 +48,8 @@ Not completed. The missing implementation screenshot prevents a reliable compari
 - Added one-time, viewport-triggered count-up animations for all four statistics.
 - Preserved static target values for server rendering and reduced-motion users.
 - Staggered the hero headline, supporting copy, and CTA group over the existing restrained image drift.
+- Replaced the temporary letter badge with the supplied Nebras quality artwork in both header and footer brand lockups.
+- Used responsive 56px and 80px framed logo sizes while preserving the adjacent readable wordmark.
 
 **Implementation Checklist**
 

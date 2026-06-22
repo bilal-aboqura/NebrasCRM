@@ -134,9 +134,10 @@ function mapOffer(row: Record<string, any>): Offer {
     isSuperseded: Boolean(row.is_superseded), isActive: Boolean(row.is_active),
     archivedAt: row.archived_at ?? null, archivedBy: row.archived_by ?? null,
     notes: row.notes ?? null, createdAt: row.created_at, updatedAt: row.updated_at,
-    lineItems: items?.sort((a: any, b: any) => a.ordering - b.ordering).map((item: any) => ({
+    lineItems: items?.sort((a: any, b: any) => (a.ordering ?? 0) - (b.ordering ?? 0)).map((item: any) => ({
       id: item.id, offerId: item.offer_id, description: item.description,
-      amount: Number(item.amount), ordering: Number(item.ordering), createdAt: item.created_at,
+      amount: Number(item.amount ?? (item.unit_price ?? 0) * (item.quantity ?? 1)),
+      ordering: Number(item.ordering ?? 0), createdAt: item.created_at ?? null,
     })),
     facilityName: facility?.name_ar, contactName: contact?.name_ar ?? null,
     contactPhone: contact?.primary_phone ?? null, ownerName: owner?.display_name ?? null,

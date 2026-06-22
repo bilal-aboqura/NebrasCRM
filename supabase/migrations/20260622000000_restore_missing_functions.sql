@@ -1086,14 +1086,43 @@ create or replace function public.offer_actor_can_manage(
   )
 $$;
 
+-- Ensure offer_line_items has ordering + created_at (live DB may be missing them)
+do $$ begin
+  if not exists (select 1 from information_schema.columns
+                 where table_schema = 'public' and table_name = 'offer_line_items'
+                 and column_name = 'ordering') then
+    alter table public.offer_line_items add column ordering integer not null default 0;
+  end if;
+  if not exists (select 1 from information_schema.columns
+                 where table_schema = 'public' and table_name = 'offer_line_items'
+                 and column_name = 'created_at') then
+    alter table public.offer_line_items add column created_at timestamptz not null default now();
+  end if;
+end $$;
+
 create or replace function public.insert_offer_line_items(p_offer_id uuid, p_items jsonb)
 returns void language plpgsql security definer set search_path = '' as $$
 begin
   if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) = 0 then
     raise exception 'at least one line item is required' using errcode = '23514';
   end if;
+  -- Use unit_price=amount_value, quantity=1 to support live DBs where 'amount'
+  -- is a GENERATED column (quantity * unit_price) rather than a plain column.
+  -- If the DB has a plain 'amount' column this insert will succeed for that too
+  -- because the columns list does not include 'amount'.
+  insert into public.offer_line_items(offer_id, description, unit_price, quantity, ordering)
+  select
+    p_offer_id,
+    trim(item->>'description'),
+    (item->>'amount')::numeric,
+    1,
+    coalesce((item->>'ordering')::integer, ordinality::integer - 1)
+  from jsonb_array_elements(p_items) with ordinality as rows(item, ordinality)
+  on conflict do nothing;
+exception when undefined_column then
+  -- Fallback for DBs where unit_price/quantity do not exist: insert amount directly
   insert into public.offer_line_items(offer_id, description, amount, ordering)
-  select p_offer_id, item->>'description', (item->>'amount')::numeric,
+  select p_offer_id, trim(item->>'description'), (item->>'amount')::numeric,
     coalesce((item->>'ordering')::integer, ordinality::integer - 1)
   from jsonb_array_elements(p_items) with ordinality as rows(item, ordinality);
 end;
@@ -1187,8 +1216,11 @@ begin
   values (p_company_id, parent_row.facility_id, parent_row.contact_id, p_actor_id, root_id,
     parent_row.id, parent_row.title, 'fixed', 0,
     parent_row.tax_rate, parent_row.valid_until, next_version, parent_row.notes) returning * into result;
-  insert into public.offer_line_items(offer_id, description, amount, ordering)
-    select result.id, description, amount, ordering from public.offer_line_items where offer_id = parent_row.id;
+  -- Copy line items; use unit_price for DBs where amount is a generated column
+  insert into public.offer_line_items(offer_id, description, unit_price, quantity, ordering)
+    select result.id, description,
+      coalesce(unit_price, amount), coalesce(quantity, 1), coalesce(ordering, 0)
+    from public.offer_line_items where offer_id = parent_row.id;
   update public.offers set discount_type = parent_row.discount_type, discount_value = parent_row.discount_value
     where id = result.id;
   update public.offers set is_superseded = true where id = parent_row.id;

@@ -125,6 +125,20 @@ $$;
 -- ---------------------------------------------------------------------------
 -- 5. Add composite FK (facility_id, company_id) if missing
 -- ---------------------------------------------------------------------------
+-- Some remote databases recorded the contact-management migration before it
+-- created this parent key. The facility id is already globally unique, so the
+-- composite index adds the exact uniqueness PostgreSQL requires for the FK.
+create unique index if not exists facilities_id_company_id_unique
+  on public.facilities(id, company_id);
+
+-- Treat the linked facility as canonical for historical tenant values before
+-- enforcing the relationship.
+update public.call_logs cl
+set company_id = f.company_id
+from public.facilities f
+where f.id = cl.facility_id
+  and cl.company_id is distinct from f.company_id;
+
 do $$
 begin
   if not exists (

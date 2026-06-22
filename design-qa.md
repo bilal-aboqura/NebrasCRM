@@ -50,6 +50,9 @@ Not completed. The missing implementation screenshot prevents a reliable compari
 - Staggered the hero headline, supporting copy, and CTA group over the existing restrained image drift.
 - Replaced the temporary letter badge with the supplied Nebras quality artwork in both header and footer brand lockups.
 - Used responsive 56px and 80px framed logo sizes while preserving the adjacent readable wordmark.
+- Centralized the supplied logo in a reusable `BrandLogo` component.
+- Replaced remaining placeholders in the CRM sidebar, dashboard header, login page, and assessment header.
+- Added the real logo to the assessment footer for consistent public-page branding.
 
 **Implementation Checklist**
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { ArrowDown, Mail, Phone, RotateCcw, ShieldCheck } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 import AssessmentPanel from "@/components/assessment/AssessmentPanel";
 import FacilityTypeSelector from "@/components/assessment/FacilityTypeSelector";
 import GapReportSection from "@/components/assessment/GapReportSection";
@@ -48,7 +49,7 @@ function AssessmentContent() {
     <header className="sticky top-0 z-40 border-b border-[#e7ddc9] bg-white/95 shadow-sm backdrop-blur print:hidden">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-5 px-5 py-3 lg:px-8">
         <Link href="/" className="flex items-center gap-3">
-          <span className="grid size-12 place-items-center rounded-full border-2 border-nebras-gold bg-nebras-green text-xl font-black text-nebras-gold">N</span>
+          <BrandLogo size="md" />
           <span><strong className="block text-lg tracking-wide text-nebras-green">NEBRASGOO</strong><small className="text-slate-500">التقييم الذاتي لاعتماد سباهي</small></span>
         </Link>
         <nav className="hidden items-center gap-7 text-sm font-bold text-slate-700 md:flex">
@@ -109,7 +110,7 @@ function AssessmentContent() {
         </ul>
       </div>
     </section>
-    <footer className="bg-[#002b22] px-5 py-10 text-center text-white print:hidden"><h2 className="text-xl font-extrabold text-nebras-gold">NEBRASGOO · نبراس الجودة</h2><p className="mt-2 text-white/60">منصة التقييم الذاتي لاعتماد سباهي للمجمعات الطبية ومراكز الأسنان</p></footer>
+    <footer className="bg-[#002b22] px-5 py-10 text-center text-white print:hidden"><BrandLogo size="lg" className="mx-auto mb-4" /><h2 className="text-xl font-extrabold text-nebras-gold">NEBRASGOO · نبراس الجودة</h2><p className="mt-2 text-white/60">منصة التقييم الذاتي لاعتماد سباهي للمجمعات الطبية ومراكز الأسنان</p></footer>
   </main>;
 }
 

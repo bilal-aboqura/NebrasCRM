@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatedCounter } from "@/components/public/AnimatedCounter";
+import { BrandLogo } from "@/components/BrandLogo";
 import { HomepageMotion } from "@/components/public/HomepageMotion";
 import { LeadCaptureForm } from "@/components/public/LeadCaptureForm";
 import heroImage from "../../../heroimage.webp";
-import brandLogo from "../../../WhatsApp Image 2026-06-13 at 1.39.04 AM.jpeg";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -131,15 +131,7 @@ const trustFeatures = [
 function Brand({ compact = false }: { compact?: boolean }) {
   return (
     <span className="flex items-center gap-3">
-      <span className={`${compact ? "size-14" : "size-20"} relative block shrink-0 overflow-hidden rounded-2xl border border-nebras-gold/50 bg-nebras-cream shadow-md`}>
-        <Image
-          src={brandLogo}
-          alt=""
-          fill
-          sizes={compact ? "56px" : "80px"}
-          className="object-cover"
-        />
-      </span>
+      <BrandLogo size={compact ? "md" : "lg"} />
       <span className="leading-tight">
         <strong className={`${compact ? "text-lg" : "text-xl"} block tracking-wide text-nebras-green`}>
           NEBRASGOO

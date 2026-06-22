@@ -56,7 +56,10 @@ $$;
 -- If event_type is TEXT with a CHECK constraint, convert it to the enum type.
 -- This removes the restrictive CHECK constraint and uses the enum instead.
 do $$
-declare col_type text;
+declare
+  col_type text;
+  constraint_name text;
+  has_unknown_values boolean;
 begin
   select data_type into col_type from information_schema.columns
     where table_schema = 'public' and table_name = 'audit_logs' and column_name = 'event_type';
@@ -66,27 +69,42 @@ begin
     null;
   else
     -- It's text or varchar — drop any CHECK constraint on it, then convert
-    -- First drop the auto-named check constraint if present
-    if exists (
-      select 1 from information_schema.table_constraints
-      where constraint_schema = 'public' and table_name = 'audit_logs'
-        and constraint_name = 'audit_logs_event_type_check'
-    ) then
-      alter table public.audit_logs drop constraint audit_logs_event_type_check;
-    end if;
+    -- Drop every legacy check involving event_type, regardless of its name.
+    for constraint_name in
+      select distinct con.conname
+      from pg_constraint con
+      join pg_class rel on rel.oid = con.conrelid
+      join pg_namespace nsp on nsp.oid = rel.relnamespace
+      join pg_attribute att
+        on att.attrelid = con.conrelid and att.attnum = any(con.conkey)
+      where nsp.nspname = 'public'
+        and rel.relname = 'audit_logs'
+        and con.contype = 'c'
+        and att.attname = 'event_type'
+    loop
+      execute format('alter table public.audit_logs drop constraint %I', constraint_name);
+    end loop;
 
-    -- Convert to enum (values that don't match the enum will cause an error,
-    -- but existing data should only contain valid values)
-    begin
+    select exists (
+      select 1
+      from public.audit_logs logs
+      where logs.event_type is not null
+        and not exists (
+          select 1
+          from pg_enum enum_value
+          join pg_type enum_type on enum_type.oid = enum_value.enumtypid
+          join pg_namespace enum_schema on enum_schema.oid = enum_type.typnamespace
+          where enum_schema.nspname = 'public'
+            and enum_type.typname = 'audit_event'
+            and enum_value.enumlabel = logs.event_type::text
+        )
+    ) into has_unknown_values;
+
+    -- Keep unknown historical values as text instead of losing audit data.
+    if not has_unknown_values then
       alter table public.audit_logs alter column event_type type public.audit_event
         using event_type::public.audit_event;
-    exception when others then
-      -- If cast fails (bad data), keep as text but expand the check constraint
-      alter table public.audit_logs add constraint audit_logs_event_type_check
-        check (event_type in ('login', 'logout', 'failed_login', 'company_switch',
-          'company_create', 'company_update', 'user_invite', 'profile_update',
-          'unauthorized_admin_attempt'));
-    end;
+    end if;
   end if;
 end;
 $$;
@@ -103,29 +121,53 @@ begin
 end;
 $$;
 
--- If outcome is TEXT, convert to enum
+-- If outcome is TEXT, convert to enum when all historical values are valid.
 do $$
-declare col_type text;
+declare
+  col_type text;
+  constraint_name text;
+  has_unknown_values boolean;
 begin
   select data_type into col_type from information_schema.columns
     where table_schema = 'public' and table_name = 'audit_logs' and column_name = 'outcome';
 
   if col_type <> 'USER-DEFINED' then
-    if exists (
-      select 1 from information_schema.table_constraints
-      where constraint_schema = 'public' and table_name = 'audit_logs'
-        and constraint_name = 'audit_logs_outcome_check'
-    ) then
-      alter table public.audit_logs drop constraint audit_logs_outcome_check;
-    end if;
+    for constraint_name in
+      select distinct con.conname
+      from pg_constraint con
+      join pg_class rel on rel.oid = con.conrelid
+      join pg_namespace nsp on nsp.oid = rel.relnamespace
+      join pg_attribute att
+        on att.attrelid = con.conrelid and att.attnum = any(con.conkey)
+      where nsp.nspname = 'public'
+        and rel.relname = 'audit_logs'
+        and con.contype = 'c'
+        and att.attname = 'outcome'
+    loop
+      execute format('alter table public.audit_logs drop constraint %I', constraint_name);
+    end loop;
 
-    begin
+    select exists (
+      select 1
+      from public.audit_logs logs
+      where logs.outcome is not null
+        and not exists (
+          select 1
+          from pg_enum enum_value
+          join pg_type enum_type on enum_type.oid = enum_value.enumtypid
+          join pg_namespace enum_schema on enum_schema.oid = enum_type.typnamespace
+          where enum_schema.nspname = 'public'
+            and enum_type.typname = 'audit_outcome'
+            and enum_value.enumlabel = logs.outcome::text
+        )
+    ) into has_unknown_values;
+
+    if not has_unknown_values then
+      alter table public.audit_logs alter column outcome drop default;
       alter table public.audit_logs alter column outcome type public.audit_outcome
         using outcome::public.audit_outcome;
-    exception when others then
-      alter table public.audit_logs add constraint audit_logs_outcome_check
-        check (outcome in ('success', 'failure', 'throttled'));
-    end;
+      alter table public.audit_logs alter column outcome set default 'success'::public.audit_outcome;
+    end if;
   end if;
 end;
 $$;

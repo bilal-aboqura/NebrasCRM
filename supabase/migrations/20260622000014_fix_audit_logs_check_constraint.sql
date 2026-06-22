@@ -25,15 +25,26 @@ begin
 end;
 $$;
 
--- 3. Add a new check constraint with ALL values used by the application
-alter table public.audit_logs
-  add constraint audit_logs_event_type_all check (
-    event_type in (
-      'login', 'logout', 'failed_login', 'company_switch',
-      'company_create', 'company_update', 'user_invite',
-      'profile_update', 'unauthorized_admin_attempt'
-    )
-  );
+-- 3. Preserve unknown historical text values while enforcing the application
+-- contract for all future inserts and updates.
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'audit_logs'
+      and column_name = 'event_type' and data_type <> 'USER-DEFINED'
+  ) then
+    alter table public.audit_logs
+      add constraint audit_logs_event_type_all check (
+        event_type in (
+          'login', 'logout', 'failed_login', 'company_switch',
+          'company_create', 'company_update', 'user_invite',
+          'profile_update', 'unauthorized_admin_attempt'
+        )
+      ) not valid;
+  end if;
+end;
+$$;
 
 -- 4. Same for outcome column if it has a restrictive check
 alter table public.audit_logs drop constraint if exists audit_logs_outcome_check;
@@ -57,7 +68,17 @@ begin
 end;
 $$;
 
-alter table public.audit_logs
-  add constraint audit_logs_outcome_all check (
-    outcome in ('success', 'failure', 'throttled')
-  );
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'audit_logs'
+      and column_name = 'outcome' and data_type <> 'USER-DEFINED'
+  ) then
+    alter table public.audit_logs
+      add constraint audit_logs_outcome_all check (
+        outcome in ('success', 'failure', 'throttled')
+      ) not valid;
+  end if;
+end;
+$$;

@@ -49,7 +49,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   const role = (user?.app_metadata.user_role ?? user?.user_metadata.role) as AppRole | undefined;
-  if (user && role && !pathname.startsWith("/api/") && !canAccessPath(role, pathname) && pathname !== "/access-denied") {
+  if (user && role && !isPublic && !pathname.startsWith("/api/") && !canAccessPath(role, pathname) && pathname !== "/access-denied") {
     return NextResponse.redirect(new URL("/access-denied", request.url));
   }
   return response;

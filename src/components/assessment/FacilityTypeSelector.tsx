@@ -1,29 +1,48 @@
 "use client";
 
 import { Building2, Stethoscope } from "lucide-react";
+import type { AssessmentDataSet } from "@/lib/data/cbahi-data";
 import type { FacilityType } from "@/hooks/use-cbahi-session";
 
 interface FacilitySelectorProps {
+  assessmentData: AssessmentDataSet;
   currentType: FacilityType;
   onChange: (type: FacilityType) => void;
   hasAnswers: boolean;
 }
 
-export default function FacilityTypeSelector({ currentType, onChange, hasAnswers }: FacilitySelectorProps) {
+function metrics(assessmentData: AssessmentDataSet, facilityType: FacilityType) {
+  const config = assessmentData[facilityType];
+  return {
+    chapters: config.chapters.length,
+    items: config.chapters.reduce((total, chapter) => total + chapter.items.length, 0),
+  };
+}
+
+export default function FacilityTypeSelector({
+  assessmentData,
+  currentType,
+  onChange,
+  hasAnswers,
+}: FacilitySelectorProps) {
+  const general = metrics(assessmentData, "general");
+  const dental = metrics(assessmentData, "dental");
+
   const handleSelect = (type: FacilityType) => {
     if (type === currentType) return;
-    
+
     if (hasAnswers) {
       if (confirm("تغيير نوع المنشأة سيؤدي إلى مسح جميع الإجابات الحالية. هل أنت متأكد؟")) {
         onChange(type);
       }
-    } else {
-      onChange(type);
+      return;
     }
+
+    onChange(type);
   };
 
   return (
-    <div className="flex flex-col gap-4 sm:flex-row print:hidden">
+    <div className="flex flex-col gap-4 print:hidden sm:flex-row">
       <button
         onClick={() => handleSelect("general")}
         className={`flex flex-1 items-center gap-3 rounded-xl border-2 p-4 text-right transition-all ${
@@ -37,9 +56,9 @@ export default function FacilityTypeSelector({ currentType, onChange, hasAnswers
         </div>
         <div>
           <h3 className={`font-bold ${currentType === "general" ? "text-nebras-green" : "text-gray-700"}`}>
-            المجمعات الطبية العامة
+            المنشآت الطبية الخارجية
           </h3>
-          <p className="text-xs">33 معيار - 11 فصل</p>
+          <p className="text-xs">{general.items} معيار - {general.chapters} فصول</p>
         </div>
       </button>
 
@@ -56,9 +75,9 @@ export default function FacilityTypeSelector({ currentType, onChange, hasAnswers
         </div>
         <div>
           <h3 className={`font-bold ${currentType === "dental" ? "text-nebras-green" : "text-gray-700"}`}>
-            مجمعات وعيادات الأسنان
+            منشآت الأسنان
           </h3>
-          <p className="text-xs">23 معيار - 6 فصول</p>
+          <p className="text-xs">{dental.items} معيار - {dental.chapters} فصول</p>
         </div>
       </button>
     </div>

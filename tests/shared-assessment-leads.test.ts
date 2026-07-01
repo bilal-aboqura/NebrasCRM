@@ -70,15 +70,24 @@ describe("shared assessment lead submission", () => {
       answers,
     });
 
-    expect(result).toEqual({ success: true, leadId: "lead-1", score: 98 });
+    const applicableItems = codes.length - 1;
+    const expectedScore = Math.round((codes.length - 1.5) / applicableItems * 100);
+
+    expect(result).toEqual({ success: true, leadId: "lead-1", score: expectedScore });
 
     const sharedInsert = state.calls.find((call) => call.table === "shared_assessment_leads" && call.method === "insert");
     expect(sharedInsert?.args[0]).toMatchObject({
       facility_name: "مجمع الاختبار الطبي",
-      overall_score: 98,
+      overall_score: expectedScore,
       readiness_tier: "high",
-      answered_count: 33,
-      counts: { available: 31, partial: 1, unavailable: 0, not_applicable: 1, unanswered: 0 },
+      answered_count: codes.length,
+      counts: {
+        available: applicableItems - 1,
+        partial: 1,
+        unavailable: 0,
+        not_applicable: 1,
+        unanswered: 0,
+      },
     });
 
     const facilityInsert = state.calls.find((call) => call.table === "facilities" && call.method === "insert");
@@ -92,7 +101,7 @@ describe("shared assessment lead submission", () => {
       status: "new",
     });
     expect(String((facilityInsert?.args[0] as Record<string, unknown>).notes)).toContain("اسم مسؤول التواصل: أحمد محمد");
-    expect(String((facilityInsert?.args[0] as Record<string, unknown>).notes)).toContain("درجة الجاهزية: 98%");
+    expect(String((facilityInsert?.args[0] as Record<string, unknown>).notes)).toContain(`درجة الجاهزية: ${expectedScore}%`);
   });
 
   test("rejects invalid contact data before writing", async () => {

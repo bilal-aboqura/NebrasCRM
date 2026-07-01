@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { CBAHI_DATA } from "@/lib/data/cbahi-data";
+import { CBAHI_DATA, type AssessmentDataSet } from "@/lib/data/cbahi-data";
 
 export type FacilityType = "general" | "dental";
 export type AnswerValue = "1" | "0.5" | "0" | "na" | "";
@@ -24,7 +24,7 @@ export interface ScoreBreakdown {
   tierDescription: string;
 }
 
-export function useCbahisession() {
+export function useCbahisession(assessmentData: AssessmentDataSet = CBAHI_DATA) {
   const [state, setState] = useState<AssessmentSessionState>({
     facilityType: "general",
     answers: {},
@@ -76,7 +76,7 @@ export function useCbahisession() {
   };
 
   const calculateScore = useMemo((): ScoreBreakdown => {
-    const config = CBAHI_DATA[state.facilityType];
+    const config = assessmentData[state.facilityType];
     let pointsEarned = 0;
     let applicableItems = 0;
     let answeredCount = 0;
@@ -136,7 +136,7 @@ export function useCbahisession() {
       tierLabel,
       tierDescription,
     };
-  }, [state.answers, state.facilityType]);
+  }, [assessmentData, state.answers, state.facilityType]);
 
   return {
     state,

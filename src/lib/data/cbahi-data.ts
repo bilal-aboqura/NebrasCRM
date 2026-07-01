@@ -17,115 +17,81 @@ export interface FacilityTypeConfig {
   chapters: Chapter[];
 }
 
-const item = (code: string, question: string, suggestedEvidence: string): AssessmentItem => ({ code, question, suggestedEvidence });
-const chapter = (code: string, title: string, items: AssessmentItem[]): Chapter => ({ code, title, items });
+export type AssessmentVisibilityRule = {
+  disabledChapterCodes: string[];
+  disabledItemCodes: string[];
+};
 
-const generalChapters: Chapter[] = [
-  chapter("LD", "القيادة والإدارة", [
-    item("LD-01", "هل يوجد ترخيص ساري وهيكل تنظيمي معتمد؟", "الترخيص، الهيكل التنظيمي، الوصف الوظيفي، التفويضات."),
-    item("LD-02", "هل توجد لجان فعالة ومحاضر اجتماعات موثقة؟", "محاضر اللجان، خطط العمل، متابعة التوصيات."),
-    item("LD-03", "هل يوجد برنامج مؤشرات أداء ومشاريع تحسين؟", "KPI، خطط تحسين، تحليل نتائج، FOCUS-PDCA."),
-  ]),
-  chapter("PC", "تقديم الرعاية", [
-    item("PC-01", "هل يتم تقييم المريض وتوثيق خطة الرعاية؟", "السجل الطبي، التقييم، خطة العلاج."),
-    item("PC-02", "هل يتم تطبيق حقوق المرضى والموافقة المستنيرة؟", "نموذج موافقة، تثقيف المريض، حقوق المرضى."),
-    item("PC-03", "هل توجد آلية للتعامل مع الحالات الطارئة والإحالة؟", "سياسة طوارئ، سجل إحالات، تدريب."),
-  ]),
-  chapter("LB", "خدمات المختبر", [
-    item("LB-01", "هل يتم ضبط جودة الفحوصات المخبرية؟", "IQC/EQA، سجلات معايرة، نتائج ضبط الجودة."),
-    item("LB-02", "هل يتم تعريف العينات ونقلها وحفظها بطريقة آمنة؟", "سياسة عينات، سجلات نقل، نتائج حرجة."),
-    item("LB-03", "هل تتوفر إجراءات سلامة العاملين في المختبر؟", "PPE، SDS، سجلات مخاطر ونفايات."),
-  ]),
-  chapter("RD", "خدمات الأشعة", [
-    item("RD-01", "هل توجد متطلبات السلامة الإشعاعية والتراخيص؟", "رخصة، قياسات إشعاع، صيانة ومعايرة."),
-    item("RD-02", "هل يتم توثيق طلبات وتقارير الأشعة؟", "طلبات أشعة، تقارير، تعريف المريض."),
-    item("RD-03", "هل توجد إجراءات حماية للمرضى والعاملين؟", "لوحات تحذير، وسائل حماية، سجلات تدريب."),
-  ]),
-  chapter("DN", "خدمات الأسنان", [
-    item("DN-01", "هل يتم تطبيق مكافحة العدوى في عيادات الأسنان؟", "سجلات تعقيم، تدقيق، مؤشرات."),
-    item("DN-02", "هل يتم توثيق خطة علاج الأسنان والموافقة؟", "Dental chart، treatment plan، consent."),
-    item("DN-03", "هل تتم صيانة كراسي الأسنان والأجهزة؟", "سجلات صيانة، عقود، تقارير أعطال."),
-  ]),
-  chapter("MM", "إدارة الأدوية", [
-    item("MM-01", "هل توجد سياسة شراء وتخزين وصرف الأدوية؟", "سياسات، سجل مخزون، درجات حرارة."),
-    item("MM-02", "هل يتم تمييز الأدوية عالية الخطورة والمتشابهة؟", "High alert، LASA، ملصقات."),
-    item("MM-03", "هل يتم التعامل مع التحسس وانتهاء الصلاحية؟", "Allergy documentation، سجل إتلاف."),
-  ]),
-  chapter("MOI", "إدارة المعلومات", [
-    item("MOI-01", "هل توجد سياسة حفظ وسرية السجلات الطبية؟", "سياسة خصوصية، صلاحيات، سجلات."),
-    item("MOI-02", "هل توجد قائمة اختصارات معتمدة؟", "قائمة اختصارات، تدقيق ملفات."),
-    item("MOI-03", "هل توجد خطة تعطل النظام الإلكتروني؟", "Downtime policy، نماذج ورقية، تجربة."),
-  ]),
-  chapter("IPC", "مكافحة العدوى", [
-    item("IPC-01", "هل يوجد برنامج مكافحة عدوى وخطة سنوية؟", "برنامج IPC، خطة، مسؤوليات."),
-    item("IPC-02", "هل يتم رصد نظافة اليدين والتطهير البيئي؟", "Hand hygiene audit، checklist."),
-    item("IPC-03", "هل تدار النفايات الطبية بطريقة آمنة؟", "حاويات، عقود، سجلات نفايات."),
-  ]),
-  chapter("FMS", "إدارة المرافق والسلامة", [
-    item("FMS-01", "هل توجد خطة سلامة ومخاطر وإخلاء؟", "FMS plan، risk register، fire drill."),
-    item("FMS-02", "هل تتم صيانة المعدات وأنظمة الحريق؟", "PPM، عقود، شهادات، تقارير."),
-    item("FMS-03", "هل مخارج الطوارئ والطفايات جاهزة؟", "تفتيش، لوحات، طفايات، تدريب."),
-  ]),
-  chapter("DPU", "وحدة إجراءات اليوم الواحد", [
-    item("DPU-01", "هل توجد سياسات قبول وخروج لإجراءات اليوم الواحد؟", "سياسات، نماذج قبول وخروج."),
-    item("DPU-02", "هل يتم تقييم ما قبل وبعد الإجراء؟", "Pre/post assessment، recovery record."),
-    item("DPU-03", "هل توجد خطة تحويل للحالات الطارئة؟", "اتفاقيات إحالة، سياسة طوارئ."),
-  ]),
-  chapter("DA", "الجلدية والطب التجميلي", [
-    item("DA-01", "هل توجد موافقات مستنيرة للإجراءات التجميلية؟", "Consent، assessment، صور قبل/بعد."),
-    item("DA-02", "هل يتم ضمان سلامة الليزر والأجهزة؟", "Laser safety، صيانة، نظارات حماية."),
-    item("DA-03", "هل تدار المواد والأدوية التجميلية بأمان؟", "مخزون، صلاحية، تعليمات استخدام."),
-  ]),
-];
+export type AssessmentVisibilitySettings = Record<"general" | "dental", AssessmentVisibilityRule>;
+export type AssessmentDataSet = Record<"general" | "dental", FacilityTypeConfig>;
 
-const dentalChapters: Chapter[] = [
-  chapter("LD", "القيادة والإدارة", [
-    item("LD-01", "هل توجد حوكمة وترخيص وهيكل تنظيمي؟", "ترخيص، هيكل، مسؤوليات."),
-    item("LD-02", "هل يوجد برنامج جودة وسلامة مرضى للأسنان؟", "KPI، شكاوى، رضا مرضى، OVR."),
-    item("LD-03", "هل ملفات العاملين والامتيازات السريرية مكتملة؟", "SCFHS، privileges، competencies."),
-  ]),
-  chapter("PC", "تقديم الرعاية في الأسنان", [
-    item("PC-01", "هل يتم توثيق التاريخ المرضي والخطة العلاجية؟", "Dental record، charting، treatment plan."),
-    item("PC-02", "هل يتم تعريف المريض بمعرفين قبل الإجراء؟", "سياسة تعريف، تدقيق، سجلات."),
-    item("PC-03", "هل توجد تعليمات وتثقيف بعد الإجراءات؟", "Post-op instructions، patient education."),
-    item("PC-04", "هل توجد آلية طوارئ داخل عيادة الأسنان؟", "Emergency kit، training، referral."),
-  ]),
-  chapter("DL", "مختبر الأسنان", [
-    item("DL-01", "هل توجد إجراءات لاستقبال ونقل الانطباعات والأجهزة؟", "سجل مختبر، سياسة استلام وتسليم."),
-    item("DL-02", "هل يتم تعريف الانطباعات والأجهزة بمعرفين؟", "Labels، two identifiers."),
-    item("DL-03", "هل يطبق المختبر مكافحة العدوى وفصل مناطق الاستلام والإنتاج؟", "PPE، تطهير، منطقة استقبال."),
-    item("DL-04", "هل بنية المختبر وتجهيزاته آمنة؟", "تهوية، إضاءة، غسيل عين، تخزين آمن."),
-  ]),
-  chapter("MOI", "إدارة المعلومات", [
-    item("MOI-01", "هل تحفظ السجلات السنية بسرية وسهولة استرجاع؟", "Dental records، صلاحيات، سياسة خصوصية."),
-    item("MOI-02", "هل يتم توثيق الخطة العلاجية والأشعة والموافقات؟", "Record audit، radiographs، consent."),
-    item("MOI-03", "هل توجد سياسة توثيق واختصارات آمنة؟", "Abbreviations، correction policy."),
-  ]),
-  chapter("IPC", "مكافحة العدوى في الأسنان", [
-    item("IPC-01", "هل يوجد برنامج مكافحة عدوى خاص بالأسنان؟", "IPC program، sterilization policy."),
-    item("IPC-02", "هل يتم توثيق دورة التعقيم والمؤشرات؟", "Sterilization log، chemical/biological indicators."),
-    item("IPC-03", "هل يتم استخدام PPE والتعامل الآمن مع الأدوات الحادة؟", "PPE، sharps safety، training."),
-    item("IPC-04", "هل يتم تطهير الكراسي والأسطح بين المرضى؟", "Checklist، disinfectants، audit."),
-  ]),
-  chapter("FMS", "إدارة المرافق والسلامة", [
-    item("FMS-01", "هل توجد خطة سلامة ومخاطر وإخلاء؟", "FMS plan، fire drill، risk register."),
-    item("FMS-02", "هل تتم صيانة كراسي الأسنان والضواغط والشفط؟", "PPM، maintenance logs."),
-    item("FMS-03", "هل تدار المواد الكيميائية والغازات بأمان؟", "SDS، storage، signage."),
-    item("FMS-04", "هل توجد حقيبة طوارئ ومتابعة لصلاحيتها؟", "Emergency kit، checklist، expiry dates."),
-  ]),
-];
+export const MASTER_AMB_CHAPTERS: Chapter[] = [{"code":"LD","title":"I Leadership of the Organization","items":[{"code":"LD.1","question":"The governing body defines its structure and operational responsibilities in a written document.","suggestedEvidence":""},{"code":"LD.2","question":"The governing body approves and evaluates the center’s quality and patient safety program and risk management program.","suggestedEvidence":""},{"code":"LD.3","question":"The center has a current organizational chart.","suggestedEvidence":""},{"code":"LD.4","question":"The center is managed effectively by a qualified director.","suggestedEvidence":""},{"code":"LD.5","question":"The leaders together with governance develop the center’s scope of services based on community needs.","suggestedEvidence":""},{"code":"LD.6","question":"The leaders work collaboratively to develop the center’s strategic plan.","suggestedEvidence":""},{"code":"LD.7","question":"The leaders transform the approved strategic plan into an operational plan.","suggestedEvidence":""},{"code":"LD.8","question":"The leaders work collaboratively to develop the operational budget.","suggestedEvidence":""},{"code":"LD.9","question":"The leaders work collaboratively to fulfill the mission and provide quality care.","suggestedEvidence":""},{"code":"LD.10","question":"The leaders develop a staffing plan for the center.","suggestedEvidence":""},{"code":"LD.11","question":"The leaders develop a policy and procedure for staff recruitment.","suggestedEvidence":""},{"code":"LD.12","question":"All categories of staff have clearly written job descriptions.","suggestedEvidence":""},{"code":"LD.13","question":"The leaders develop an effective process for credentialing and (C) recredentialing all healthcare providers.","suggestedEvidence":""},{"code":"LD.14","question":"All medical staff members have current delineated clinical privileges. (C)","suggestedEvidence":""},{"code":"LD.15","question":"All new employees attend a mandatory orientation program.","suggestedEvidence":""},{"code":"LD.16","question":"The leaders develop and implement a policy that ensures nurses and other allied healthcare staff are competent in specific procedures.","suggestedEvidence":""},{"code":"LD.17","question":"The leaders ensure staff are trained and test competent in the safe operation of equipment including medical devices.","suggestedEvidence":""},{"code":"LD.18","question":"The leaders support continuing education and training for all categories of staff.","suggestedEvidence":""},{"code":"LD.19","question":"Staff are trained and kept up to date with cardiopulmonary resuscitation.","suggestedEvidence":""},{"code":"LD.20","question":"The leaders develop an effective process to evaluate staff performance at least annually.","suggestedEvidence":""},{"code":"LD.21","question":"The leaders implement a comprehensive program to protect the health and safety of staff.","suggestedEvidence":""},{"code":"LD.22","question":"The leaders support and protect the patient and family rights.","suggestedEvidence":""},{"code":"LD.23","question":"The leaders ensure that patients/families have the right to be involved in their own care and treatment.","suggestedEvidence":""},{"code":"LD.24","question":"The leaders develop and implement a policy and procedure to describe the patients’ right to voice their complaints and concerns.","suggestedEvidence":""},{"code":"LD.25","question":"The leaders ensure that patients/families have the right to accurate billing for provided services.","suggestedEvidence":""},{"code":"LD.26","question":"The leaders develop ethical standards to guide patients’ care and employees’ code of conduct.","suggestedEvidence":""},{"code":"LD.27","question":"The center provides assistance to patients with special needs.","suggestedEvidence":""},{"code":"LD.28","question":"The center has an implemented policy for controlling the development and maintenance of key documents.","suggestedEvidence":""},{"code":"LD.29","question":"The center develops a comprehensive quality improvement and patient safety program.","suggestedEvidence":""},{"code":"LD.30","question":"The leaders prioritize and select a set of indicators that focus on the structure, process, and outcome of the services provided within the center.","suggestedEvidence":""},{"code":"LD.31","question":"The leaders develop and implement a comprehensive risk management program.","suggestedEvidence":""},{"code":"LD.32","question":"The leaders develop and implement an incident reporting policy.","suggestedEvidence":""},{"code":"LD.33","question":"The leaders oversee any contracts for clinical or operational services.","suggestedEvidence":""},{"code":"LD.34","question":"The leaders ensure the integrity and security of telemedicine, teleradiology and interpretation of other diagnostic remote contracted services.","suggestedEvidence":""},{"code":"LD.35","question":"The leaders implement policies and procedures to guide the efficient procurement of equipment either purchased or donated, medications and essential medical consumables in accordance with national laws and regulations.","suggestedEvidence":""},{"code":"LD.36","question":"The leaders ensure an aesthetic appeal for the center.","suggestedEvidence":""}]},{"code":"PC","title":"II Provision of Care","items":[{"code":"PC.1","question":"Patients have access to services based on their health needs and available services and are registered with the center for providing such services.","suggestedEvidence":""},{"code":"PC.2","question":"The center has a process to ensure the correct identification of patients. (C)","suggestedEvidence":""},{"code":"PC.3","question":"Patients are clinically assessed through an established assessment policy and procedure.","suggestedEvidence":""},{"code":"PC.4","question":"Physicians are provided with the results of requested investigations according to a time frame.","suggestedEvidence":""},{"code":"PC.5","question":"The center develops and implements a process for reporting critical test results whether on-site or outsourced.","suggestedEvidence":""},{"code":"PC.6","question":"A care plan is developed by the attending physician to meet the patient’s needs considering patient and family’s cultural and spiritual matters.","suggestedEvidence":""},{"code":"PC.7","question":"Consultations are available to meet the healthcare provider’s request and patient’s needs in a timely manner.","suggestedEvidence":""},{"code":"PC.8","question":"Staff members assist patients and, when appropriate, their families in fully participating in making informed decisions about their care, treatment and procedures.","suggestedEvidence":""},{"code":"PC.9","question":"Patients and, when applicable, their families are educated about their healthcare needs.","suggestedEvidence":""},{"code":"PC.10","question":"Informed consent is obtained from the patient or guardian.","suggestedEvidence":""},{"code":"PC.11","question":"Patients planned for a surgery/procedure give their informed consent to the surgery/procedure and the anesthesia/sedation.","suggestedEvidence":""},{"code":"PC.12","question":"The center has an effective process to safely provide care to patients who require Cardio Pulmonary Resuscitation (CPR).","suggestedEvidence":""},{"code":"PC.13","question":"Policies and procedures guide the transfer of patients in need of urgent admission to hospitals.","suggestedEvidence":""},{"code":"PC.14","question":"Ambulance services are available and meet the patient’s needs.","suggestedEvidence":""},{"code":"PC.15","question":"The center has an emergency services to deal with minor emergencies.","suggestedEvidence":""}]},{"code":"LB","title":"III Laboratory Services","items":[{"code":"LB.1","question":"Laboratory services are available or outsourced to meet the needs of the patient population served.","suggestedEvidence":""},{"code":"LB.2","question":"The laboratory has the right space and facilities relevant to the services provided.","suggestedEvidence":""},{"code":"LB.3","question":"The laboratory develops and implements a comprehensive safety program.","suggestedEvidence":""},{"code":"LB.4","question":"The laboratory develops and implements a comprehensive infection control program.","suggestedEvidence":""},{"code":"LB.5","question":"The laboratory has a clearly defined and implemented process describing its role in selecting and evaluating providers of reference laboratory services.","suggestedEvidence":""},{"code":"LB.6","question":"The laboratory has a clearly defined and implemented process for laboratory instrument and equipment management.","suggestedEvidence":""},{"code":"LB.7","question":"The laboratory develops and implements a policy for the documentation of specimen receipt and inspection.","suggestedEvidence":""},{"code":"LB.8","question":"The laboratory develops a policy and procedure for the quality control of test methods.","suggestedEvidence":""},{"code":"LB.9","question":"The laboratory develops a policy and procedure for Proficiency Testing (PT) sufficient for the extent, complexity and scope of services.","suggestedEvidence":""},{"code":"LB.10","question":"The laboratory defines the format and contents of laboratory reports.","suggestedEvidence":""},{"code":"LB.11","question":"The laboratory has a process for correcting or amending reported results.","suggestedEvidence":""},{"code":"LB.12","question":"The laboratory develops and implements a comprehensive process for Point-ofCare-Testing (POCT).","suggestedEvidence":""}]},{"code":"RD","title":"IV Radiology Services","items":[{"code":"RD.2","question":"The center has a radiation safety program.","suggestedEvidence":""},{"code":"RD.3","question":"There is implemented process to keep the radiology equipment in safe, functional condition.","suggestedEvidence":""}]},{"code":"DN","title":"V Dental Services","items":[{"code":"DN.1","question":"Dental staff have appropriate qualifications.","suggestedEvidence":""},{"code":"DN.2","question":"A comprehensive assessment is performed and documented for each patient.","suggestedEvidence":""},{"code":"DN.3","question":"The dentist documents the treatment plan in the patient’s medical record.","suggestedEvidence":""},{"code":"DN.4","question":"Infection control guidelines are available and implemented by dental staff.","suggestedEvidence":""},{"code":"DN.5","question":"Safety rules are applied in the dental laboratory.","suggestedEvidence":""}]},{"code":"MM","title":"VI Medication Management","items":[{"code":"MM.1","question":"Medication use processes are available to meet patient needs and in accordance with applicable laws and regulations.","suggestedEvidence":""},{"code":"MM.2","question":"The center has an updated and well-structured formulary.","suggestedEvidence":""},{"code":"MM.3","question":"The center has a process for the appropriate storage of medications.","suggestedEvidence":""},{"code":"MM.4","question":"The center has a process for ensuring the stability of medication available in multi-dose containers.","suggestedEvidence":""},{"code":"MM.5","question":"The center has a process for identifying and handling expired medications.","suggestedEvidence":""},{"code":"MM.6","question":"The center develops a policy and procedure for the safe prescribing of medications.","suggestedEvidence":""},{"code":"MM.7","question":"The center develops and implements guidelines for the correct prescribing of antibiotics.","suggestedEvidence":""},{"code":"MM.8","question":"The center develops a process to manage narcotics, psychotropic medications, and other controlled medications according to laws and regulations.","suggestedEvidence":""},{"code":"MM.9","question":"The center safely manages high-alert and look-alike, sound-alike (LASA) medications.","suggestedEvidence":""},{"code":"MM.10","question":"The center evaluates the appropriateness of prescriptions before dispensing.","suggestedEvidence":""},{"code":"MM.11","question":"Medication preparation areas comply with infection control measures and safe practices.","suggestedEvidence":""},{"code":"MM.12","question":"The center develops and implements a policy and procedure on medication error reporting.","suggestedEvidence":""},{"code":"MM.13","question":"The center monitors allergies to medications.","suggestedEvidence":""},{"code":"MM.14","question":"The center develops and implements a policy and procedure for the reporting of adverse drug reactions (ADR’s).","suggestedEvidence":""}]},{"code":"MOI","title":"VII Management of Information","items":[{"code":"MOI.1","question":"The leaders define in a plan the information that is shared among the staff and with other governmental and non-governmental entities and its format.","suggestedEvidence":""},{"code":"MOI.2","question":"The leaders develop standardized diagnosis codes, procedure codes and symbols, and minimize abbreviations.","suggestedEvidence":""},{"code":"MOI.3","question":"All patients seen in the center have unique medical records.","suggestedEvidence":""},{"code":"MOI.4","question":"The leaders develop a policy on the rules and regulations for writing in patients’ medical records.","suggestedEvidence":""},{"code":"MOI.5","question":"The leaders develop a process for completing and storing the patient medical record.","suggestedEvidence":""},{"code":"MOI.6","question":"The center has an implemented policy and procedure for the use of information technology.","suggestedEvidence":""},{"code":"MOI.7","question":"The center has an effective clinical documentation improvement (CDI) (C) program.","suggestedEvidence":""}]},{"code":"IPC","title":"VIII Infection Prevention and Control","items":[{"code":"IPC.1","question":"The center implements a coordinated program to reduce the risk of healthcareassociated infections.","suggestedEvidence":""},{"code":"IPC.2","question":"Infection prevention and control activities are integrated and coordinated by an interdisciplinary team.","suggestedEvidence":""},{"code":"IPC.3","question":"The leaders develop and ensure the implementation of infection control policies and procedures targeting the most important infection risk processes.","suggestedEvidence":""},{"code":"IPC.4","question":"Communicable diseases are tabulated and reported as required by laws and regulations.","suggestedEvidence":""},{"code":"IPC.5","question":"The leaders develop and implement a policy and procedure for healthcare associated infection prevention.","suggestedEvidence":""},{"code":"IPC.6","question":"The leaders design and ensure the implementation of an effective hand hygiene program.","suggestedEvidence":""},{"code":"IPC.7","question":"Centers providing sterilization services strictly follow rigorous (C) sterilization rules.","suggestedEvidence":""},{"code":"IPC.8","question":"Patients with communicable diseases and those who are colonized or infected with epidemiologically important organisms are separated from other patients, staff and visitors.","suggestedEvidence":""},{"code":"IPC.9","question":"Personal protective equipment is readily accessible and available and is used correctly by staff in all patient care areas.","suggestedEvidence":""},{"code":"IPC.10","question":"The leaders define in a policy the cleaning, decontamination and disinfection processes in all patient care areas.","suggestedEvidence":""},{"code":"IPC.11","question":"The leaders define in a policy the safe procedures for waste collection, (C) storage and disposal.","suggestedEvidence":""},{"code":"IPC.12","question":"The leaders develop and ensure the implementation of a program for the prevention and management of sharp injuries.","suggestedEvidence":""},{"code":"IPC.13","question":"Sharps are discarded in appropriate containers.","suggestedEvidence":""},{"code":"IPC.14","question":"Housekeeping has policies and procedures describing its functions.","suggestedEvidence":""}]},{"code":"FMS","title":"IX Facility Management and Safety","items":[{"code":"FMS.1","question":"The leaders establish and support a facility management and safety program.","suggestedEvidence":""},{"code":"FMS.2","question":"Interdisciplinary rounds are scheduled and conducted to ensure safety.","suggestedEvidence":""},{"code":"FMS.3","question":"The center’s environment is safe for patients, visitors and staff.","suggestedEvidence":""},{"code":"FMS.4","question":"The leaders develop and monitor the implementation of a fire prevention program.","suggestedEvidence":""},{"code":"FMS.5","question":"The center is secured and protects its users.","suggestedEvidence":""},{"code":"FMS.6","question":"The leaders develop a plan for the inspection, testing and maintenance of medical equipment.","suggestedEvidence":""},{"code":"FMS.7","question":"The leaders develop an emergency plan, and staff are trained on it.","suggestedEvidence":""},{"code":"FMS.9","question":"The leaders develop a policy and procedure for the safe use of various types of compressed gasses.","suggestedEvidence":""}]},{"code":"DPU","title":"X Day Procedure Unit","items":[{"code":"DPU.1","question":"All day surgeries and procedures are performed in the day procedure unit.","suggestedEvidence":""},{"code":"DPU.2","question":"Leaders develop and implement a policy and procedure to guide the care of patients in the day procedure unit.","suggestedEvidence":""},{"code":"DPU.3","question":"The patient is accepted into the unit by the nursing staff after a rigorous verification procedure.","suggestedEvidence":""},{"code":"DPU.4","question":"The procedure/surgery room is a functional operating room.","suggestedEvidence":""},{"code":"DPU.5","question":"The day procedure unit is fully equipped for managing difficult intubations.","suggestedEvidence":""},{"code":"DPU.6","question":"Patients booked for a surgery/procedure shall have a pre-sedation/anesthesia assessment performed by the anesthesiologist prior to the surgery.","suggestedEvidence":""},{"code":"DPU.7","question":"The center ensures the correct implementation of the policy on preventing wrong patient, wrong site and wrong procedure.","suggestedEvidence":""},{"code":"DPU.8","question":"The patient’s condition is continuously monitored during sedation or anesthesia, including local anesthesia and the information is documented in the patient medical record before the patient leaves the operating room.","suggestedEvidence":""},{"code":"DPU.9","question":"The unit has a recovery room.","suggestedEvidence":""},{"code":"DPU.10","question":"Each patient’s post-sedation/anesthesia physiological status is continuously monitored and documented in the patient’s medical record.","suggestedEvidence":""},{"code":"DPU.11","question":"An operative report is documented immediately after the surgery/procedure, before the patient leaves the recovery room and is signed by the surgeon.","suggestedEvidence":""},{"code":"DPU.12","question":"The patient is discharged home by an attending physician after the procedure.","suggestedEvidence":""}]},{"code":"DA","title":"XI Dermatology & Aesthetics Medicine","items":[{"code":"DA.1","question":"Dermatology and aesthetics services are managed by an experienced physician.","suggestedEvidence":""},{"code":"DA.2","question":"Physicians’ privileges outline the exact procedures to be done by each physician.","suggestedEvidence":""},{"code":"DA.3","question":"The unit performs periodic education and competency testing for clinical staff assisting in procedures.","suggestedEvidence":""},{"code":"DA.4","question":"The managing physician ensures the compliance of procedural rooms with all required safety rules.","suggestedEvidence":""},{"code":"DA.5","question":"The unit maintains a dated and timed list of the procedures performed.","suggestedEvidence":""},{"code":"DA.6","question":"Implemented evidence based clinical practice guidelines are developed by the unit physicians and approved by the service manager for all procedures performed in the unit.","suggestedEvidence":""}]}];
 
-export const CBAHI_DATA: Record<"general" | "dental", FacilityTypeConfig> = {
+export const MASTER_AMB_CHAPTER_CODES = MASTER_AMB_CHAPTERS.map((chapter) => chapter.code);
+export const MASTER_AMB_ITEM_CODES = MASTER_AMB_CHAPTERS.flatMap((chapter) => chapter.items.map((item) => item.code));
+
+export const DEFAULT_ASSESSMENT_VISIBILITY: AssessmentVisibilitySettings = {
   general: {
-    id: "general",
-    title: "تقييم المجمعات الطبية العامة",
-    description: "الفصول حسب دليل المراكز والمجمعات الطبية الخارجية: LD, PC, LB, RD, DN, MM, MOI, IPC, FMS, DPU, DA.",
-    chapters: generalChapters,
+    disabledChapterCodes: [],
+    disabledItemCodes: [],
   },
   dental: {
-    id: "dental",
-    title: "تقييم مراكز ومجمعات الأسنان",
-    description: "الفصول حسب دليل مراكز الأسنان: LD, PC, DL, MOI, IPC, FMS.",
-    chapters: dentalChapters,
+    disabledChapterCodes: ["LB","RD","MM","DPU","DA"],
+    disabledItemCodes: [],
   },
 };
+
+function dedupe(values: readonly string[]) {
+  return Array.from(new Set(values.filter(Boolean)));
+}
+
+function normalizeRule(rule: Partial<AssessmentVisibilityRule> | null | undefined): AssessmentVisibilityRule {
+  return {
+    disabledChapterCodes: dedupe(rule?.disabledChapterCodes ?? []),
+    disabledItemCodes: dedupe(rule?.disabledItemCodes ?? []),
+  };
+}
+
+export function normalizeAssessmentVisibilitySettings(
+  value?: Partial<Record<"general" | "dental", Partial<AssessmentVisibilityRule>>> | null,
+): AssessmentVisibilitySettings {
+  return {
+    general: normalizeRule({ ...DEFAULT_ASSESSMENT_VISIBILITY.general, ...value?.general }),
+    dental: normalizeRule({ ...DEFAULT_ASSESSMENT_VISIBILITY.dental, ...value?.dental }),
+  };
+}
+
+function resolveChapters(rule: AssessmentVisibilityRule) {
+  const disabledChapters = new Set(rule.disabledChapterCodes);
+  const disabledItems = new Set(rule.disabledItemCodes);
+
+  return MASTER_AMB_CHAPTERS
+    .filter((chapter) => !disabledChapters.has(chapter.code))
+    .map((chapter) => ({
+      ...chapter,
+      items: chapter.items.filter((item) => !disabledItems.has(item.code)),
+    }))
+    .filter((chapter) => chapter.items.length > 0);
+}
+
+export function resolveAssessmentData(
+  settings?: Partial<Record<"general" | "dental", Partial<AssessmentVisibilityRule>>> | null,
+): AssessmentDataSet {
+  const normalized = normalizeAssessmentVisibilitySettings(settings);
+  return {
+    general: {
+      id: "general",
+      title: "Ambulatory Medical Standards Assessment",
+      description: "Full assessment built from the CBAHI AMB standards book for ambulatory medical centers.",
+      chapters: resolveChapters(normalized.general),
+    },
+    dental: {
+      id: "dental",
+      title: "Dental Standards Assessment",
+      description: "Dental-focused assessment using the active CBAHI AMB chapters and questions configured in admin settings.",
+      chapters: resolveChapters(normalized.dental),
+    },
+  };
+}
+
+export const CBAHI_DATA: AssessmentDataSet = resolveAssessmentData(DEFAULT_ASSESSMENT_VISIBILITY);

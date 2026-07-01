@@ -6,10 +6,11 @@ import {
   BarChart3,
   Building2,
   CalendarCheck2,
+  ClipboardCheck,
   Columns3,
   FileText,
-  ClipboardCheck,
   LayoutDashboard,
+  Lock,
   UserRoundCog,
   Users,
 } from "lucide-react";
@@ -25,6 +26,7 @@ const mainItems = [
   { href: "/dashboard/offers", label: "العروض", icon: FileText },
   { href: "/dashboard/contracts", label: "العقود", icon: FileText },
   { href: "/admin/users", label: "الفريق", icon: Users },
+  { href: "/admin/assessment-settings", label: "إعدادات سباهي", icon: Lock },
   { href: "/reports", label: "التقارير", icon: BarChart3 },
 ] as const;
 
@@ -39,26 +41,34 @@ function isActive(pathname: string, href: string) {
 
 export function SidebarNav({ role }: { role: AppRole }) {
   const pathname = usePathname();
-  const renderItems = (items: typeof mainItems | typeof accountItems) => items
-    .filter((item) => canAccessPath(role, item.href))
-    .map(({ href, label, icon: Icon }) => {
-      const active = isActive(pathname, href);
-      return <Link
-        key={href}
-        href={href}
-        aria-current={active ? "page" : undefined}
-        className={`flex items-center gap-3 rounded-xl px-4 py-3 font-bold transition-colors ${active ? "bg-nebras-gold text-nebras-green shadow-sm" : "text-white hover:bg-white/10"}`}
-      >
-        <Icon aria-hidden size={20} />
-        <span>{label}</span>
-      </Link>;
-    });
 
-  return <nav aria-label="التنقل الرئيسي" className="space-y-6">
-    <div className="space-y-1">{renderItems(mainItems)}</div>
-    <div className="space-y-1 border-t border-white/15 pt-5">
-      <p className="px-4 pb-1 text-xs font-bold text-white/60">الحساب والإدارة</p>
-      {renderItems(accountItems)}
-    </div>
-  </nav>;
+  const renderItems = (items: typeof mainItems | typeof accountItems) =>
+    items
+      .filter((item) => canAccessPath(role, item.href))
+      .map(({ href, label, icon: Icon }) => {
+        const active = isActive(pathname, href);
+        return (
+          <Link
+            key={href}
+            href={href}
+            aria-current={active ? "page" : undefined}
+            className={`flex items-center gap-3 rounded-xl px-4 py-3 font-bold transition-colors ${
+              active ? "bg-nebras-gold text-nebras-green shadow-sm" : "text-white hover:bg-white/10"
+            }`}
+          >
+            <Icon aria-hidden size={20} />
+            <span>{label}</span>
+          </Link>
+        );
+      });
+
+  return (
+    <nav aria-label="التنقل الرئيسي" className="space-y-6">
+      <div className="space-y-1">{renderItems(mainItems)}</div>
+      <div className="space-y-1 border-t border-white/15 pt-5">
+        <p className="px-4 pb-1 text-xs font-bold text-white/60">الحساب والإدارة</p>
+        {renderItems(accountItems)}
+      </div>
+    </nav>
+  );
 }

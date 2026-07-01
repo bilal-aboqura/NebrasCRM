@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 import { resolvePublicLeadCompanyId } from "@/lib/actions/lead-capture";
-import { CBAHI_DATA } from "@/lib/data/cbahi-data";
+import { loadPublishedAssessmentData } from "@/lib/assessment/visibility";
 import { isRateLimited } from "@/lib/rate-limit/memory";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isValidSaudiPhone, normalizePhone } from "@/lib/utils/phone";
@@ -43,7 +43,7 @@ function requestIp() {
     || "unknown";
 }
 
-function validate(input: SharedAssessmentLeadInput) {
+async function validate(input: SharedAssessmentLeadInput) {
   const facilityName = clean(input.facilityName, 200);
   const contactName = clean(input.contactName, 120);
   const city = clean(input.city, 100);
@@ -57,8 +57,9 @@ function validate(input: SharedAssessmentLeadInput) {
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("البريد الإلكتروني غير صحيح.");
   if (input.facilityType !== "general" && input.facilityType !== "dental") throw new Error("نوع المنشأة غير صالح.");
 
+  const assessmentData = await loadPublishedAssessmentData();
   const standards = new Map(
-    CBAHI_DATA[input.facilityType].chapters.flatMap((chapter) =>
+    assessmentData[input.facilityType].chapters.flatMap((chapter) =>
       chapter.items.map((item) => [item.code, { ...item, chapter: chapter.title }] as const),
     ),
   );
@@ -221,7 +222,7 @@ export async function submitSharedAssessmentLead(
       return { success: false, message: "تم تجاوز عدد المحاولات المسموح. يرجى المحاولة لاحقًا." };
     }
 
-    const value = validate(input);
+    const value = await validate(input);
     const answerMap = new Map(value.answers.map((answer) => [answer.item_code, answer]));
     let points = 0;
     let applicable = 0;

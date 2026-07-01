@@ -56,7 +56,7 @@ const navItems = [
   { href: "#hero", label: "الرئيسية" },
   { href: "#about", label: "عن نبراسقو" },
   { href: "#services", label: "خدماتنا" },
-  { href: "/assessment", label: "تقييم سباهي" },
+  { href: "#lead-capture", label: "تقييم سباهي" },
   { href: "#contact", label: "تواصل معنا" },
 ] as const;
 
@@ -224,9 +224,9 @@ export default function MarketingLandingPage() {
               نرافق منشأتكم الصحية بخبرة عملية وحلول مصممة بعناية، من تقييم الجاهزية وبناء الأنظمة إلى التدريب والدعم المستمر حتى تحقيق الاعتماد بثقة.
             </p>
             <div data-reveal="start" data-reveal-delay="340" className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <Link href="/assessment" className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-nebras-gold px-7 py-3.5 font-bold text-nebras-green shadow-lg shadow-nebras-gold/20 transition hover:-translate-y-0.5 hover:shadow-xl sm:w-auto">
+              <a href="#lead-capture" className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-nebras-gold px-7 py-3.5 font-bold text-nebras-green shadow-lg shadow-nebras-gold/20 transition hover:-translate-y-0.5 hover:shadow-xl sm:w-auto">
                 ابدأ تقييم سباهي <ArrowLeft aria-hidden size={19} />
-              </Link>
+              </a>
               <a href="#lead-capture" className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-nebras-green px-7 py-3.5 font-bold text-white shadow-lg shadow-nebras-green/20 transition hover:-translate-y-0.5 hover:shadow-xl sm:w-auto">
                 احجز تقييم جاهزية مجاني <ArrowLeft aria-hidden size={19} />
               </a>

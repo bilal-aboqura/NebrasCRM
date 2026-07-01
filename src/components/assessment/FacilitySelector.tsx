@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getFacilitiesList } from "@/lib/actions/facilities";
 import { Building2, X, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { facilityTypeLabel } from "@/lib/utils/facilities";
 
 type FacilityOption = {
   id: string;
@@ -105,7 +106,7 @@ export default function FacilitySelector({ isOpen, onClose, onSelect, isSaving, 
                     <h3 className={`font-bold ${selectedId === fac.id ? "text-nebras-green" : "text-gray-800"}`}>
                       {fac.name_ar}
                     </h3>
-                    <p className="text-sm text-gray-500 mt-1">{fac.city_custom || fac.cities?.name_ar || "-"} - {fac.type}</p>
+                    <p className="text-sm text-gray-500 mt-1">{fac.city_custom || fac.cities?.name_ar || "-"} - {facilityTypeLabel(fac.type)}</p>
                   </div>
                   {selectedId === fac.id && (
                     <CheckCircle className="text-nebras-green" size={24} />

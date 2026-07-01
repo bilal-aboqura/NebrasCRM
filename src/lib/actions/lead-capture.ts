@@ -72,7 +72,7 @@ function clientIp(): string {
     || "unknown";
 }
 
-async function resolveCompanyId(admin: ReturnType<typeof createAdminClient>): Promise<string> {
+export async function resolvePublicLeadCompanyId(admin: ReturnType<typeof createAdminClient>): Promise<string> {
   const configuredId = process.env.DEFAULT_LEAD_COMPANY_ID?.trim();
   if (configuredId) {
     const { data, error } = await admin.from("companies")
@@ -106,7 +106,7 @@ export async function submitLeadAction(payload: LeadSubmissionPayload): Promise<
 
   try {
     const admin = createAdminClient();
-    const companyId = await resolveCompanyId(admin);
+    const companyId = await resolvePublicLeadCompanyId(admin);
     const normalizedPhone = normalizePhone(value.phone);
     const { data: existingData, error: duplicateError } = await admin.from("facilities")
       .select("id,is_active,notes")

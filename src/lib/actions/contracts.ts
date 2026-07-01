@@ -58,7 +58,10 @@ export interface Contract {
   facilityName?: string;
   facilityStatus?: string;
   contactName?: string | null;
+  contactPhone?: string | null;
+  contactEmail?: string | null;
   ownerName?: string | null;
+  companyName?: string;
 }
 
 const MANAGEMENT_ROLES = new Set(["super_admin", "company_admin", "supervisor"]);
@@ -94,8 +97,9 @@ function warningThreshold(row: Record<string, any>) {
 
 function mapContract(row: Record<string, any>): Contract {
   const facility = relation<{ name_ar?: string; status?: string; owner?: unknown }>(row.facilities);
-  const contact = relation<{ name_ar?: string }>(row.contacts);
+  const contact = relation<{ name_ar?: string; primary_phone?: string; email?: string }>(row.contacts);
   const owner = relation<{ display_name?: string }>(row.owner ?? facility?.owner);
+  const company = relation<{ name?: string; name_ar?: string; settings?: { contract_warning_threshold_days?: number } }>(row.companies);
   const status = row.status as ContractStatus;
   return {
     id: row.id, companyId: row.company_id, facilityId: row.facility_id, contactId: row.contact_id ?? null,
@@ -108,7 +112,8 @@ function mapContract(row: Record<string, any>): Contract {
     isActive: Boolean(row.is_active), archivedAt: row.archived_at ?? null, archivedBy: row.archived_by ?? null,
     notes: row.notes ?? null, createdAt: row.created_at, updatedAt: row.updated_at,
     facilityName: facility?.name_ar, facilityStatus: facility?.status, contactName: contact?.name_ar ?? null,
-    ownerName: owner?.display_name ?? null,
+    contactPhone: contact?.primary_phone ?? null, contactEmail: contact?.email ?? null,
+    ownerName: owner?.display_name ?? null, companyName: company?.name_ar ?? company?.name,
   };
 }
 
@@ -231,6 +236,26 @@ export async function getSignedDocumentUrl(id: string): Promise<ActionResponse<s
     await createAdminClient().from("facility_activity").insert({ company_id: companyId, facility_id: contract.facilityId, actor_id: context.userId, event_type: "contract_document_viewed", new_value: contract.referenceNumber });
     return { success: true, data: url };
   } catch (error) { return failure(error); }
+}
+
+export async function getContractForPrint(id: string): Promise<ActionResponse<Contract>> {
+  try {
+    const context = await requireAuth();
+    const companyId = activeCompany(context);
+    const { data, error } = await createAdminClient().from("contracts")
+      .select("*,facilities(name_ar,assigned_to,status),contacts(name_ar,primary_phone,email),companies(name,name_ar,settings)")
+      .eq("id", id).eq("company_id", companyId).eq("is_active", true).maybeSingle();
+    if (error) throw error;
+    if (!data) throw Object.assign(new Error("العقد غير موجود."), { code: "42501" });
+    const contract = mapContract(data);
+    const facility = relation<{ assigned_to?: string }>(data.facilities);
+    if (context.role === "sales_user" && facility?.assigned_to !== context.userId) {
+      throw Object.assign(new Error("غير مصرح لك بعرض هذا العقد."), { code: "42501" });
+    }
+    return { success: true, data: contract };
+  } catch (error) {
+    return failure(error);
+  }
 }
 
 export async function createContractAddendum(id: string): Promise<ActionResponse<Contract>> {

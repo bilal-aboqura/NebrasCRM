@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx";
+import { FACILITY_IMPORT_STATUS_HEADER_ALIASES } from "@/lib/utils/facilities";
 
 export const FACILITY_IMPORT_HEADERS = [
   "اسم المنشأة",
@@ -21,6 +22,7 @@ export interface RawFacilityImportRow {
   primaryPhone: string;
   secondaryPhone: string;
   leadSource: string;
+  status: string;
   notes: string;
 }
 
@@ -60,12 +62,14 @@ export function parseFacilitySpreadsheet(input: ArrayBuffer | Uint8Array, maxRow
     }
 
     const indexes = new Map(headers.map((header, index) => [header, index]));
+    const statusHeader = FACILITY_IMPORT_STATUS_HEADER_ALIASES.find((header) => headers.includes(header));
     const rows = matrix.slice(1).filter((row) => row.some((value) => text(value) !== ""));
     if (rows.length > maxRows) {
       throw new SpreadsheetParseError(`عدد الصفوف يتجاوز الحد الأقصى المسموح به (${maxRows} صف).`, "row_limit");
     }
 
     const cell = (row: unknown[], header: FacilityImportHeader) => text(row[indexes.get(header)!]);
+    const optionalCell = (row: unknown[], header: string | undefined) => (header ? text(row[indexes.get(header) ?? -1]) : "");
     return rows.map((row) => ({
       name: cell(row, "اسم المنشأة"),
       type: cell(row, "نوع المنشأة"),
@@ -74,6 +78,7 @@ export function parseFacilitySpreadsheet(input: ArrayBuffer | Uint8Array, maxRow
       primaryPhone: cell(row, "الهاتف الرئيسي"),
       secondaryPhone: cell(row, "الهاتف الفرعي"),
       leadSource: cell(row, "مصدر العميل"),
+      status: optionalCell(row, statusHeader),
       notes: cell(row, "ملاحظات"),
     }));
   } catch (error) {

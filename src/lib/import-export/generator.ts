@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx";
 import { FACILITY_IMPORT_HEADERS } from "./parser";
+import { FACILITY_IMPORT_STATUS_HEADER } from "@/lib/utils/facilities";
 
 export const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
@@ -21,9 +22,10 @@ export function generateExcel<T>(sheetName: string, rows: T[], columns: ExportCo
 }
 
 export function generateFacilityTemplate(): Buffer {
-  const sheet = XLSX.utils.aoa_to_sheet([Array.from(FACILITY_IMPORT_HEADERS)]);
+  const headers = [...FACILITY_IMPORT_HEADERS, FACILITY_IMPORT_STATUS_HEADER];
+  const sheet = XLSX.utils.aoa_to_sheet([headers]);
   sheet["!dir"] = "rtl";
-  sheet["!cols"] = FACILITY_IMPORT_HEADERS.map((header) => ({ wch: Math.max(18, header.length + 4) }));
+  sheet["!cols"] = headers.map((header) => ({ wch: Math.max(18, header.length + 4) }));
   const workbook = XLSX.utils.book_new();
   workbook.Workbook = { Views: [{ RTL: true }] };
   XLSX.utils.book_append_sheet(workbook, sheet, "استيراد المنشآت");

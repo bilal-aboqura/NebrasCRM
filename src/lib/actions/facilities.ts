@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth/context";
 import type { AuthContext } from "@/lib/auth/types";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { resolveFacilityStatus } from "@/lib/utils/facilities";
 import { normalizePhone } from "@/lib/utils/phone";
 
 export type FacilityType = "medical_complex" | "dental_complex" | "lab" | "radiology" | "hospital";
@@ -208,8 +209,11 @@ export async function updateFacility(id: string, input: UpdateFacilityInput): Pr
       changes.lead_source = input.lead_source;
     }
     if (input.status !== undefined) {
-      if (!STATUSES.has(input.status)) throw new Error("حالة المنشأة غير صالحة.");
-      changes.status = input.status;
+      const nextStatus = STATUSES.has(input.status)
+        ? input.status
+        : (resolveFacilityStatus(input.status) as FacilityStatus | "");
+      if (!nextStatus) throw new Error("حالة المنشأة غير صالحة.");
+      changes.status = nextStatus;
     }
     if (input.primary_phone !== undefined) {
       if (!normalizePhone(input.primary_phone)) throw new Error("رقم الهاتف الرئيسي غير صالح.");

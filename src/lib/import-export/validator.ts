@@ -1,8 +1,10 @@
+import { resolveFacilityStatus, resolveFacilityType } from "@/lib/utils/facilities";
 import { isValidSaudiPhone, normalizePhone } from "@/lib/utils/phone";
 import type { RawFacilityImportRow } from "./parser";
 
 export type ImportRowStatus = "valid" | "error" | "duplicate";
 export type ImportFacilityType = "medical_complex" | "dental_complex" | "lab" | "radiology" | "hospital";
+export type ImportFacilityStage = "new" | "contacted" | "interested" | "offer" | "negotiation" | "contract" | "lost";
 
 export interface GeographyOption {
   id: string;
@@ -20,6 +22,7 @@ export interface ValidatedImportData {
   primary_phone: string;
   secondary_phone: string | null;
   lead_source: "imported";
+  status: ImportFacilityStage;
   notes: string | null;
 }
 
@@ -29,15 +32,6 @@ export interface ValidatedImportRow {
   data: ValidatedImportData;
   errors: string[];
 }
-
-const TYPE_MAP: Record<string, ImportFacilityType> = {
-  "مجمع طبي": "medical_complex",
-  "مجمع لطب الأسنان": "dental_complex",
-  "مجمع أسنان": "dental_complex",
-  "مختبر": "lab",
-  "مركز أشعة": "radiology",
-  "مستشفى": "hospital",
-};
 
 export function validateFacilityImportRows(
   rows: RawFacilityImportRow[],
@@ -56,10 +50,12 @@ export function validateFacilityImportRows(
     const city = geography.cities.find((candidate) =>
       candidate.region_id === region?.id && candidate.name_ar.trim() === row.city.trim(),
     );
-    const type = TYPE_MAP[row.type.trim()] ?? "";
+    const type = resolveFacilityType(row.type.trim()) as ImportFacilityType | "";
+    const stage = resolveFacilityStatus(row.status) as ImportFacilityStage | "";
 
-    if (row.name.trim().length < 2) errors.push("اسم المنشأة مطلوب ولا يمكن تركه فارغاً.");
+    if (row.name.trim().length < 2) errors.push("اسم المنشأة مطلوب ولا يمكن تركه فارغًا.");
     if (!type) errors.push("نوع المنشأة غير مدعوم.");
+    if (row.status.trim() && !stage) errors.push("حالة المنشأة غير مدعومة.");
     if (!region) errors.push("المنطقة غير موجودة في النظام.");
     if (!city) errors.push("المدينة غير موجودة أو لا تتبع المنطقة المحددة.");
     if (!row.primaryPhone || !isValidSaudiPhone(row.primaryPhone)) errors.push("رقم الهاتف الرئيسي غير صالح.");
@@ -84,10 +80,10 @@ export function validateFacilityImportRows(
         primary_phone: normalizedPrimary,
         secondary_phone: normalizedSecondary || null,
         lead_source: "imported",
+        status: stage || "new",
         notes: row.notes.trim() || null,
       },
       errors,
     };
   });
 }
-

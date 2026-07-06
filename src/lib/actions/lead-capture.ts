@@ -29,7 +29,8 @@ export interface LeadSubmissionPayload {
 type FieldErrors = Partial<Record<keyof LeadSubmissionPayload, string[]>>;
 
 export type LeadSubmissionResult =
-  | { success: true; duplicate: boolean; recovered?: boolean; message: string }
+  | { success: true; duplicate: false; facilityId: string; recovered?: boolean; message: string }
+  | { success: true; duplicate: true; message: string }
   | { success: false; rateLimited?: boolean; errors?: FieldErrors; message?: string };
 
 type CompanyRow = { id: string };
@@ -149,7 +150,7 @@ export async function submitLeadAction(payload: LeadSubmissionPayload): Promise<
         new_value: "إعادة تفعيل المنشأة عبر نموذج الموقع",
       });
       if (activityError) throw activityError;
-      return { success: true, duplicate: false, recovered: true, message: SUCCESS_MESSAGE };
+      return { success: true, duplicate: false, facilityId: existing.id, recovered: true, message: SUCCESS_MESSAGE };
     }
 
     const { data, error } = await admin.from("facilities").insert({
@@ -180,7 +181,7 @@ export async function submitLeadAction(payload: LeadSubmissionPayload): Promise<
       new_value: "إنشاء المنشأة عبر نموذج الموقع",
     });
     if (activityError) throw activityError;
-    return { success: true, duplicate: false, message: SUCCESS_MESSAGE };
+    return { success: true, duplicate: false, facilityId: facility.id, message: SUCCESS_MESSAGE };
   } catch (error) {
     console.error("Public lead submission failed", error);
     return { success: false, message: SERVER_ERROR_MESSAGE };

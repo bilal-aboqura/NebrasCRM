@@ -3,9 +3,15 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { submitLeadAction } = vi.hoisted(() => ({ submitLeadAction: vi.fn() }));
+const { submitLeadAction, push } = vi.hoisted(() => ({
+  submitLeadAction: vi.fn(),
+  push: vi.fn(),
+}));
 
 vi.mock("@/lib/actions/lead-capture", () => ({ submitLeadAction }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push }),
+}));
 
 import { LeadCaptureForm } from "@/components/public/LeadCaptureForm";
 
@@ -18,6 +24,7 @@ function completeForm() {
 describe("public lead capture form", () => {
   beforeEach(() => {
     submitLeadAction.mockReset();
+    push.mockReset();
     window.dataLayer = [];
   });
 
@@ -37,19 +44,31 @@ describe("public lead capture form", () => {
     expect(submitLeadAction).not.toHaveBeenCalled();
   });
 
-  it("replaces the form with success and emits the GTM event", async () => {
-    submitLeadAction.mockResolvedValue({ success: true, duplicate: false, message: "تم استلام طلبك بنجاح" });
+  it("replaces the form with success, emits the GTM event, and redirects to the assessment", async () => {
+    submitLeadAction.mockResolvedValue({
+      success: true,
+      duplicate: false,
+      facilityId: "facility-new",
+      message: "تم استلام طلبك بنجاح",
+    });
+
     render(<LeadCaptureForm />);
     completeForm();
 
     fireEvent.click(screen.getByRole("button", { name: "احجز تقييمك المجاني" }));
 
-    expect(await screen.findByText("تم استلام طلبك")).toBeInTheDocument();
+    expect(await screen.findByText("تم استلام بيانات المنشأة")).toBeInTheDocument();
     expect(screen.queryByLabelText("اسم المنشأة")).not.toBeInTheDocument();
     expect(window.dataLayer).toContainEqual(expect.objectContaining({
       event: "lead_form_submitted",
       facilityType: "medical_complex",
     }));
+
+    await waitFor(() => {
+      expect(push).toHaveBeenCalledWith(expect.stringContaining("/assessment?"));
+      expect(push).toHaveBeenCalledWith(expect.stringContaining("facility_id=facility-new"));
+      expect(push).toHaveBeenCalledWith(expect.stringContaining("from=lead"));
+    });
   });
 
   it("shows the duplicate warning without emitting a GTM event", async () => {
@@ -61,5 +80,6 @@ describe("public lead capture form", () => {
 
     await waitFor(() => expect(screen.getByText("طلبك مسجل لدينا")).toBeInTheDocument());
     expect(window.dataLayer).toEqual([]);
+    expect(push).not.toHaveBeenCalled();
   });
 });

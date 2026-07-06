@@ -125,7 +125,10 @@ export default function AssessmentExperience({ assessmentData }: { assessmentDat
           </div>
 
           <div className="mx-auto w-full max-w-sm rounded-[2rem] border border-white/15 bg-white p-8 text-center text-nebras-green shadow-2xl">
-            <div className="mx-auto grid size-48 place-items-center rounded-full p-3" style={{ background: `conic-gradient(#c4a35a ${score * 3.6}deg, #eee4d2 0deg)` }}>
+            <div
+              className="mx-auto grid size-48 place-items-center rounded-full p-3"
+              style={{ background: `conic-gradient(#c4a35a ${score * 3.6}deg, #eee4d2 0deg)` }}
+            >
               <div className="grid size-full place-items-center rounded-full bg-white">
                 <strong className="text-5xl font-black">{score}%</strong>
               </div>
@@ -212,6 +215,17 @@ export default function AssessmentExperience({ assessmentData }: { assessmentDat
         <BrandLogo size="lg" className="mx-auto mb-4" />
         <h2 className="text-xl font-extrabold text-nebras-gold">NEBRASGOO · نبراس الجودة</h2>
         <p className="mt-2 text-white/60">منصة التقييم الذاتي لاعتماد سباهي للمنشآت الطبية الخارجية</p>
+        <p className="mt-3 text-sm text-white/45">
+          تم التطوير بواسطة{" "}
+          <a
+            href="https://bilalaboqura.com"
+            target="_blank"
+            rel="noreferrer"
+            className="font-bold text-nebras-gold transition hover:text-white"
+          >
+            Bilal Aboqura
+          </a>
+        </p>
       </footer>
     </main>
   );

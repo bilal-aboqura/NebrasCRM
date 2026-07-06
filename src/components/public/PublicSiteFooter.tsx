@@ -51,7 +51,18 @@ export function PublicSiteFooter() {
         </div>
       </div>
       <div className="border-t border-white/10 px-5 py-5 text-center text-sm text-white/45">
-        © {new Date().getFullYear()} NEBRASGOO. جميع الحقوق محفوظة.
+        <p>© {new Date().getFullYear()} NEBRASGOO. جميع الحقوق محفوظة.</p>
+        <p className="mt-2">
+          تم التطوير بواسطة{" "}
+          <a
+            href="https://bilalaboqura.com"
+            target="_blank"
+            rel="noreferrer"
+            className="font-bold text-nebras-gold transition hover:text-white"
+          >
+            Bilal Aboqura
+          </a>
+        </p>
       </div>
     </footer>
   );

@@ -56,7 +56,7 @@ export function LeadCaptureForm() {
     if (!redirectUrl) return;
     const timeout = window.setTimeout(() => {
       router.push(redirectUrl);
-    }, 1400);
+    }, 350);
     return () => window.clearTimeout(timeout);
   }, [redirectUrl, router]);
 
@@ -103,6 +103,7 @@ export function LeadCaptureForm() {
         });
         const params = new URLSearchParams({
           from: "lead",
+          facility_id: response.facilityId,
           type: mapFacilityTypeToAssessmentType(form.facilityType),
           facility_name: form.facilityName,
           city: form.city,

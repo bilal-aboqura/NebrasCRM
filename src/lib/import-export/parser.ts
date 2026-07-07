@@ -5,12 +5,13 @@ export const FACILITY_IMPORT_HEADERS = [
   "اسم المنشأة",
   "نوع المنشأة",
   "المدينة",
-  "المنطقة",
   "الهاتف الرئيسي",
   "الهاتف الفرعي",
   "مصدر العميل",
   "ملاحظات",
 ] as const;
+
+const LEGACY_REGION_HEADER = "المنطقة";
 
 export type FacilityImportHeader = (typeof FACILITY_IMPORT_HEADERS)[number];
 
@@ -39,6 +40,18 @@ function text(value: unknown) {
   return value == null ? "" : String(value).trim();
 }
 
+function normalizeHeader(value: unknown) {
+  return text(value).replace(/^\uFEFF/, "").replace(/\s+/g, " ");
+}
+
+function resolveIndex(headers: string[], aliases: readonly string[]) {
+  for (const alias of aliases) {
+    const index = headers.indexOf(alias);
+    if (index >= 0) return index;
+  }
+  return -1;
+}
+
 export function parseFacilitySpreadsheet(input: ArrayBuffer | Uint8Array, maxRows: number): RawFacilityImportRow[] {
   try {
     const bytes = input instanceof ArrayBuffer ? new Uint8Array(input) : input;
@@ -47,6 +60,7 @@ export function parseFacilitySpreadsheet(input: ArrayBuffer | Uint8Array, maxRow
     const workbook = XLSX.read(source, { type: isZipWorkbook ? "array" : "string", cellDates: false, raw: false });
     const sheetName = workbook.SheetNames[0];
     if (!sheetName) throw new SpreadsheetParseError(INVALID_FILE, "invalid_file");
+
     const matrix = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[sheetName], {
       header: 1,
       defval: "",
@@ -55,31 +69,51 @@ export function parseFacilitySpreadsheet(input: ArrayBuffer | Uint8Array, maxRow
     });
     if (!matrix.length) throw new SpreadsheetParseError(INVALID_FILE, "invalid_file");
 
-    const headers = matrix[0].map(text);
-    const missing = FACILITY_IMPORT_HEADERS.filter((header) => !headers.includes(header));
+    const headers = matrix[0].map(normalizeHeader);
+    const indexes = {
+      name: resolveIndex(headers, ["اسم المنشأة"]),
+      type: resolveIndex(headers, ["نوع المنشأة"]),
+      city: resolveIndex(headers, ["المدينة"]),
+      region: resolveIndex(headers, [LEGACY_REGION_HEADER]),
+      primaryPhone: resolveIndex(headers, ["الهاتف الرئيسي"]),
+      secondaryPhone: resolveIndex(headers, ["الهاتف الفرعي"]),
+      leadSource: resolveIndex(headers, ["مصدر العميل"]),
+      notes: resolveIndex(headers, ["ملاحظات"]),
+      status: resolveIndex(headers, FACILITY_IMPORT_STATUS_HEADER_ALIASES),
+    };
+
+    const missing = Object.entries(indexes)
+      .filter(([key, index]) => key !== "region" && key !== "status" && index < 0)
+      .map(([key]) => ({
+        name: "اسم المنشأة",
+        type: "نوع المنشأة",
+        city: "المدينة",
+        primaryPhone: "الهاتف الرئيسي",
+        secondaryPhone: "الهاتف الفرعي",
+        leadSource: "مصدر العميل",
+        notes: "ملاحظات",
+      }[key]!));
+
     if (missing.length) {
       throw new SpreadsheetParseError(`الأعمدة المطلوبة غير موجودة: ${missing.join("، ")}.`, "missing_columns");
     }
 
-    const indexes = new Map(headers.map((header, index) => [header, index]));
-    const statusHeader = FACILITY_IMPORT_STATUS_HEADER_ALIASES.find((header) => headers.includes(header));
     const rows = matrix.slice(1).filter((row) => row.some((value) => text(value) !== ""));
     if (rows.length > maxRows) {
       throw new SpreadsheetParseError(`عدد الصفوف يتجاوز الحد الأقصى المسموح به (${maxRows} صف).`, "row_limit");
     }
 
-    const cell = (row: unknown[], header: FacilityImportHeader) => text(row[indexes.get(header)!]);
-    const optionalCell = (row: unknown[], header: string | undefined) => (header ? text(row[indexes.get(header) ?? -1]) : "");
+    const cell = (row: unknown[], index: number) => (index >= 0 ? text(row[index]) : "");
     return rows.map((row) => ({
-      name: cell(row, "اسم المنشأة"),
-      type: cell(row, "نوع المنشأة"),
-      city: cell(row, "المدينة"),
-      region: cell(row, "المنطقة"),
-      primaryPhone: cell(row, "الهاتف الرئيسي"),
-      secondaryPhone: cell(row, "الهاتف الفرعي"),
-      leadSource: cell(row, "مصدر العميل"),
-      status: optionalCell(row, statusHeader),
-      notes: cell(row, "ملاحظات"),
+      name: cell(row, indexes.name),
+      type: cell(row, indexes.type),
+      city: cell(row, indexes.city),
+      region: cell(row, indexes.region),
+      primaryPhone: cell(row, indexes.primaryPhone),
+      secondaryPhone: cell(row, indexes.secondaryPhone),
+      leadSource: cell(row, indexes.leadSource),
+      status: cell(row, indexes.status),
+      notes: cell(row, indexes.notes),
     }));
   } catch (error) {
     if (error instanceof SpreadsheetParseError) throw error;

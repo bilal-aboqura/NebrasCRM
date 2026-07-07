@@ -18,7 +18,7 @@ import { getContractOptions, getFacilityContracts } from "@/lib/actions/contract
 import { getFacilityActivity, getFacilityDetail, getFacilityOptions } from "@/lib/actions/facilities";
 import { getFacilityFollowUps, getFollowUpOptions } from "@/lib/actions/followups";
 import { getFacilityOffers, getOfferOptions } from "@/lib/actions/offers";
-import { FACILITY_STATUS_LABELS, FACILITY_TYPE_LABELS } from "@/lib/utils/facilities";
+import { FACILITY_STATUS_LABELS, FACILITY_TYPE_LABELS, facilityLeadSourceLabel } from "@/lib/utils/facilities";
 import { buildWhatsAppUrl, DEFAULT_WHATSAPP_TEMPLATE } from "@/lib/utils/phone";
 
 export default async function FacilityDetailPage(
@@ -52,9 +52,9 @@ export default async function FacilityDetailPage(
 
   const facility = detail.data;
   const company = facility.companies as unknown as { name_ar?: string; whatsapp_template?: string } | null;
-  const region = facility.regions as unknown as { name_ar?: string } | null;
   const city = facility.cities as unknown as { name_ar?: string } | null;
   const owner = facility.owner as unknown as { display_name?: string; status?: string } | null;
+  const creator = facility.creator as unknown as { display_name?: string; role?: string } | null;
   const contacts = contactsResult.success ? contactsResult.data : [];
   const followUps = followUpsResult.success ? followUpsResult.data : [];
   const whatsappUrl = buildWhatsAppUrl(
@@ -108,7 +108,6 @@ export default async function FacilityDetailPage(
               <dt className="text-sm text-slate-500">الموقع</dt>
               <dd className="font-bold">
                 {facility.city_custom || city?.name_ar || "—"}
-                {region?.name_ar ? `، ${region.name_ar}` : ""}
               </dd>
             </div>
 
@@ -123,11 +122,14 @@ export default async function FacilityDetailPage(
             <div>
               <dt className="text-sm text-slate-500">مصدر العميل</dt>
               <dd className="font-bold">
-                {facility.lead_source === "manual"
-                  ? "إضافة يدوية"
-                  : facility.lead_source === "website_form"
-                    ? "نموذج الموقع"
-                    : "مستورد"}
+                {facilityLeadSourceLabel(facility.lead_source, creator?.display_name)}
+              </dd>
+            </div>
+
+            <div>
+              <dt className="text-sm text-slate-500">جهة الإضافة</dt>
+              <dd className="font-bold">
+                {facility.lead_source === "website_form" ? "المنشأة سجلت نفسها" : creator?.display_name ?? "الإدارة"}
               </dd>
             </div>
           </dl>

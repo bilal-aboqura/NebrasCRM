@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { CheckCircle2, Eye, EyeOff, Loader2, Save } from "lucide-react";
 import {
-  MASTER_AMB_CHAPTERS,
+  ASSESSMENT_MASTER_CHAPTERS,
   resolveAssessmentData,
   type AssessmentVisibilitySettings,
 } from "@/lib/data/cbahi-data";
@@ -82,7 +82,7 @@ export function AssessmentSettingsEditor({ initialSettings }: { initialSettings:
             <p className="font-bold text-nebras-gold">إدارة التقييم</p>
             <h1 className="text-3xl font-extrabold text-nebras-green">إعدادات معايير سباهي</h1>
             <p className="mt-2 text-slate-600">
-              افتح أو أقفل الأقسام والأسئلة الظاهرة في صفحة التقييم العامة لكل نوع منشأة.
+              افتح أو أقفل الفصول وعناصر التقييم الظاهرة في صفحة التقييم العامة لكل نوع منشأة.
             </p>
           </div>
           <button
@@ -124,7 +124,7 @@ export function AssessmentSettingsEditor({ initialSettings }: { initialSettings:
             >
               <p className="text-lg font-extrabold text-nebras-green">{FACILITY_LABELS[facilityType]}</p>
               <p className="mt-2 text-sm text-slate-600">
-                {config.chapters.length} أقسام مفعلة - {items} سؤالًا ظاهرًا
+                {config.chapters.length} أقسام مفعلة - {items} عنصر تقييم ظاهر
               </p>
             </button>
           );
@@ -136,16 +136,16 @@ export function AssessmentSettingsEditor({ initialSettings }: { initialSettings:
           <div>
             <h2 className="text-xl font-extrabold text-nebras-green">{FACILITY_LABELS[activeType]}</h2>
             <p className="mt-1 text-sm text-slate-600">
-              الحالي: {enabledChapters} أقسام مفعلة و{enabledItems} سؤالًا ظاهرًا
+              الحالي: {enabledChapters} أقسام مفعلة و{enabledItems} عنصر تقييم ظاهر
             </p>
           </div>
           <div className="rounded-full bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700">
-            الأقسام المقفلة: {activeRule.disabledChapterCodes.length} | الأسئلة المقفلة: {activeRule.disabledItemCodes.length}
+            الأقسام المقفلة: {activeRule.disabledChapterCodes.length} | العناصر المقفلة: {activeRule.disabledItemCodes.length}
           </div>
         </div>
 
         <div className="mt-5 space-y-4">
-          {MASTER_AMB_CHAPTERS.map((chapter) => {
+          {ASSESSMENT_MASTER_CHAPTERS[activeType].map((chapter) => {
             const chapterEnabled = !activeRule.disabledChapterCodes.includes(chapter.code);
             return (
               <article key={chapter.code} className="rounded-2xl border border-slate-200">
@@ -153,16 +153,14 @@ export function AssessmentSettingsEditor({ initialSettings }: { initialSettings:
                   <div>
                     <p className="font-extrabold text-nebras-green">{chapter.title}</p>
                     <p className="mt-1 text-sm text-slate-500">
-                      {chapter.code} - {chapter.items.length} سؤالًا
+                      {chapter.code} - {chapter.standards.length} معايير - {chapter.items.length} عنصر تقييم
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setChapterVisibility(chapter.code, !chapterEnabled)}
                     className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold ${
-                      chapterEnabled
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "bg-slate-100 text-slate-600"
+                      chapterEnabled ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"
                     }`}
                   >
                     {chapterEnabled ? <Eye size={16} /> : <EyeOff size={16} />}
@@ -170,36 +168,49 @@ export function AssessmentSettingsEditor({ initialSettings }: { initialSettings:
                   </button>
                 </div>
 
-                <div className={`space-y-3 p-4 ${chapterEnabled ? "" : "opacity-60"}`}>
-                  {chapter.items.map((item) => {
-                    const itemEnabled = chapterEnabled && !activeRule.disabledItemCodes.includes(item.code);
-                    return (
-                      <div key={item.code} className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="rounded bg-nebras-green/10 px-2 py-1 text-xs font-bold text-nebras-green">
-                              {item.code}
-                            </span>
-                            {itemEnabled && <CheckCircle2 size={15} className="text-emerald-600" />}
-                          </div>
-                          <p className="mt-2 text-sm leading-7 text-slate-700">{item.question}</p>
+                <div className={`space-y-4 p-4 ${chapterEnabled ? "" : "opacity-60"}`}>
+                  {chapter.standards.map((standard) => (
+                    <section key={standard.code} className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                      <div className="border-b border-slate-200 bg-white px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <span className="rounded bg-nebras-gold/15 px-2 py-1 text-xs font-bold text-nebras-gold">
+                            {standard.code}
+                          </span>
+                          <p className="text-sm font-bold leading-7 text-slate-800">{standard.title}</p>
                         </div>
-                        <button
-                          type="button"
-                          disabled={!chapterEnabled}
-                          onClick={() => setItemVisibility(item.code, !itemEnabled)}
-                          className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-60 ${
-                            itemEnabled
-                              ? "bg-emerald-100 text-emerald-800"
-                              : "bg-white text-slate-600"
-                          }`}
-                        >
-                          {itemEnabled ? <Eye size={16} /> : <EyeOff size={16} />}
-                          {itemEnabled ? "السؤال ظاهر" : "السؤال مخفي"}
-                        </button>
                       </div>
-                    );
-                  })}
+
+                      <div className="space-y-3 p-4">
+                        {standard.items.map((item) => {
+                          const itemEnabled = chapterEnabled && !activeRule.disabledItemCodes.includes(item.code);
+                          return (
+                            <div key={item.code} className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-slate-100 bg-white px-4 py-3">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="rounded bg-nebras-green/10 px-2 py-1 text-xs font-bold text-nebras-green">
+                                    {item.code}
+                                  </span>
+                                  {itemEnabled && <CheckCircle2 size={15} className="text-emerald-600" />}
+                                </div>
+                                <p className="mt-2 text-sm leading-7 text-slate-700">{item.question}</p>
+                              </div>
+                              <button
+                                type="button"
+                                disabled={!chapterEnabled}
+                                onClick={() => setItemVisibility(item.code, !itemEnabled)}
+                                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-60 ${
+                                  itemEnabled ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"
+                                }`}
+                              >
+                                {itemEnabled ? <Eye size={16} /> : <EyeOff size={16} />}
+                                {itemEnabled ? "العنصر ظاهر" : "العنصر مخفي"}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  ))}
                 </div>
               </article>
             );

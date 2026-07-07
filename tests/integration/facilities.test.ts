@@ -4,18 +4,29 @@ type Response = { data?: unknown; error?: unknown; count?: number | null };
 const responses = new Map<string, Response[]>();
 const calls: Array<{ table: string; method: string; args: unknown[] }> = [];
 let authContext = {
-  userId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd", email: "sales@example.com", fullName: "مندوب مبيعات",
-  role: "sales_user", companyId: "11111111-1111-4111-8111-111111111111",
-  activeCompanyId: "11111111-1111-4111-8111-111111111111", companyName: "شركة أ", status: "active",
+  userId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+  email: "sales@example.com",
+  fullName: "مندوب مبيعات",
+  role: "sales_user",
+  companyId: "11111111-1111-4111-8111-111111111111",
+  activeCompanyId: "11111111-1111-4111-8111-111111111111",
+  companyName: "شركة أ",
+  status: "active",
 };
 
-function nextResponse(table: string): Response { return responses.get(table)?.shift() ?? { data: null, error: null }; }
+function nextResponse(table: string): Response {
+  return responses.get(table)?.shift() ?? { data: null, error: null };
+}
+
 function builder(table: string): object {
   return new Proxy({}, {
     get(_object, property) {
       if (property === "then") return (resolve: (value: Response) => void) => resolve(nextResponse(table));
       if (property === "single" || property === "maybeSingle") return () => Promise.resolve(nextResponse(table));
-      return (...args: unknown[]) => { calls.push({ table, method: String(property), args }); return builder(table); };
+      return (...args: unknown[]) => {
+        calls.push({ table, method: String(property), args });
+        return builder(table);
+      };
     },
   });
 }
@@ -26,11 +37,18 @@ vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ from: (tabl
 
 import { archiveFacility, createFacility, getFacilitiesList, updateFacility } from "@/lib/actions/facilities";
 
-const validInput = { name_ar: "مجمع الاختبار الطبي", type: "medical_complex" as const, region_id: "region-a", city_id: "city-a", primary_phone: "050 123 4567", lead_source: "manual" as const };
+const validInput = {
+  name_ar: "مجمع الاختبار الطبي",
+  type: "medical_complex" as const,
+  city_id: "city-a",
+  primary_phone: "050 123 4567",
+  lead_source: "manual" as const,
+};
 
 describe("facility server actions", () => {
   beforeEach(() => {
-    calls.length = 0; responses.clear();
+    calls.length = 0;
+    responses.clear();
     authContext = { ...authContext, role: "sales_user", userId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd" };
   });
 
@@ -38,14 +56,22 @@ describe("facility server actions", () => {
     responses.set("cities", [{ data: { id: "city-a", region_id: "region-a", name_en: "Riyadh" }, error: null }]);
     responses.set("facilities", [{ data: { id: "facility-a", name_ar: validInput.name_ar }, error: null }]);
     responses.set("facility_activity", [{ error: null }]);
+
     expect((await createFacility({ ...validInput, assigned_to: "another-user" })).success).toBe(true);
+
     const insert = calls.find((call) => call.table === "facilities" && call.method === "insert");
-    expect(insert?.args[0]).toMatchObject({ company_id: authContext.companyId, assigned_to: authContext.userId, primary_phone_normalized: "966501234567" });
+    expect(insert?.args[0]).toMatchObject({
+      company_id: authContext.companyId,
+      assigned_to: authContext.userId,
+      primary_phone_normalized: "966501234567",
+      region_id: "region-a",
+    });
   });
 
   it("returns a non-disclosing Arabic collision message for duplicate phones", async () => {
     responses.set("cities", [{ data: { id: "city-a", region_id: "region-a", name_en: "Riyadh" }, error: null }]);
     responses.set("facilities", [{ data: null, error: { code: "23505", message: "idx_facilities_phone_unique_per_company" } }]);
+
     const result = await createFacility(validInput);
     expect(result).toEqual({ success: false, error: expect.stringContaining("مسجل بالفعل") });
     expect(result.success || result.error).not.toContain("facility-a");
@@ -76,6 +102,7 @@ describe("facility server actions", () => {
     ]);
     responses.set("profiles", [{ data: { id: "sales-new" }, error: null }]);
     responses.set("facility_activity", [{ error: null }]);
+
     const result = await updateFacility("facility-a", { assigned_to: "sales-new", status: "interested" });
     expect(result.success).toBe(true);
     expect(calls).toEqual(expect.arrayContaining([

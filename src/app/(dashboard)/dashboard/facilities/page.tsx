@@ -20,7 +20,6 @@ export default async function FacilitiesPage({ searchParams }: { searchParams: R
       search: param("search"),
       status: param("status") as FacilityStatus,
       type: param("type") as FacilityType,
-      region_id: param("region"),
       city_id: param("city"),
       assigned_to: param("owner"),
       show_archived: showArchived,
@@ -30,7 +29,18 @@ export default async function FacilitiesPage({ searchParams }: { searchParams: R
 
   const records = result.success ? result.data.records : [];
   const meta = result.success ? result.data.meta : { page: 1, pages: 1, total: 0 };
-  const cities = options.cities.filter((city) => !param("region") || city.region_id === param("region"));
+  const regionNames = new Map(options.regions.map((region) => [region.id, region.name_ar]));
+  const cityNameCounts = new Map<string, number>();
+  options.cities
+    .filter((city) => city.name_en !== "Other")
+    .forEach((city) => cityNameCounts.set(city.name_ar, (cityNameCounts.get(city.name_ar) ?? 0) + 1));
+  const cities = options.cities.filter((city) => city.name_en !== "Other");
+
+  const cityLabel = (city: (typeof options.cities)[number]) => {
+    const duplicate = (cityNameCounts.get(city.name_ar) ?? 0) > 1;
+    const region = regionNames.get(city.region_id);
+    return duplicate && region ? `${city.name_ar} - ${region}` : city.name_ar;
+  };
 
   const queryFor = (nextPage: number) => {
     const query = new URLSearchParams();
@@ -57,7 +67,7 @@ export default async function FacilitiesPage({ searchParams }: { searchParams: R
         </div>
       </div>
 
-      <form className="grid gap-3 rounded-2xl bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+      <form className="grid gap-3 rounded-2xl bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
         <label className="relative sm:col-span-2">
           <span className="sr-only">بحث</span>
           <Search className="absolute right-3 top-3 text-slate-400" size={18} />
@@ -83,17 +93,10 @@ export default async function FacilitiesPage({ searchParams }: { searchParams: R
           ))}
         </select>
 
-        <select name="region" defaultValue={param("region")} className={control} aria-label="المنطقة">
-          <option value="">كل المناطق</option>
-          {options.regions.map((region) => (
-            <option key={region.id} value={region.id}>{region.name_ar}</option>
-          ))}
-        </select>
-
         <select name="city" defaultValue={param("city")} className={control} aria-label="المدينة">
           <option value="">كل المدن</option>
           {cities.map((city) => (
-            <option key={city.id} value={city.id}>{city.name_ar}</option>
+            <option key={city.id} value={city.id}>{cityLabel(city)}</option>
           ))}
         </select>
 
@@ -128,6 +131,7 @@ export default async function FacilitiesPage({ searchParams }: { searchParams: R
               <th className="p-4">المنشأة</th>
               <th className="p-4">النوع</th>
               <th className="p-4">المدينة</th>
+              <th className="p-4">المصدر</th>
               <th className="p-4">الهاتف</th>
               <th className="p-4">المسؤول</th>
               <th className="p-4">الحالة</th>

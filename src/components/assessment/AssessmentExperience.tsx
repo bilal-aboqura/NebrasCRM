@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, Mail, Phone, RotateCcw, ShieldCheck } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
 import AssessmentPanel from "@/components/assessment/AssessmentPanel";
@@ -10,12 +10,22 @@ import FacilityTypeSelector from "@/components/assessment/FacilityTypeSelector";
 import GapReportSection from "@/components/assessment/GapReportSection";
 import ScoringSidebar from "@/components/assessment/ScoringSidebar";
 import { useCbahisession } from "@/hooks/use-cbahi-session";
+import { saveAssessment } from "@/lib/actions/assessment-actions";
 import { getFacilityDetail } from "@/lib/actions/facilities";
+import { savePublicFacilityAssessment } from "@/lib/actions/shared-assessment-leads";
+import type { AppRole } from "@/lib/auth/types";
 import type { AssessmentDataSet } from "@/lib/data/cbahi-data";
+import type { AssessmentAnswer } from "@/lib/types/assessment";
 
 type PrelinkedFacility = { id: string; name_ar: string; type: string };
 
-export default function AssessmentExperience({ assessmentData }: { assessmentData: AssessmentDataSet }) {
+export default function AssessmentExperience({
+  assessmentData,
+  viewerRole,
+}: {
+  assessmentData: AssessmentDataSet;
+  viewerRole: AppRole | null;
+}) {
   const { state, setFacilityType, setAnswer, setNote, setChapterFilter, setShowReport, reset, scoreBreakdown } =
     useCbahisession(assessmentData);
   const searchParams = useSearchParams();
@@ -25,7 +35,44 @@ export default function AssessmentExperience({ assessmentData }: { assessmentDat
   const typeParam = searchParams.get("type") as "general" | "dental" | null;
   const [prelinkedFacility, setPrelinkedFacility] = useState<PrelinkedFacility | null>(null);
   const [entryReady, setEntryReady] = useState(false);
+  const [isSavingAssessment, setIsSavingAssessment] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const lastAutoSavedKeyRef = useRef("");
   const score = Math.round(scoreBreakdown.score);
+  const sourceLabel = state.facilityType === "general" ? "كتاب CBAHI AMB" : "كتاب معايير الأسنان CBAHI 2022";
+  const facilityLabel = state.facilityType === "general" ? "المنشآت الطبية الخارجية" : "منشآت الأسنان";
+  const targetFacilityId = prelinkedFacility?.id ?? (fromLead ? facilityId : null);
+  const targetFacilityName = prelinkedFacility?.name_ar ?? (fromLead ? leadFacilityName : null);
+
+  const assessmentAnswers: AssessmentAnswer[] = useMemo(
+    () =>
+      Object.entries(state.answers)
+        .filter(([, value]) => value !== "")
+        .map(([item_code, value]) => ({
+          item_code,
+          status:
+            value === "1"
+              ? "Met"
+              : value === "0.5"
+                ? "Partially Met"
+                : value === "0"
+                  ? "Not Met"
+                  : "Not Applicable",
+          notes: state.notes[item_code],
+        })),
+    [state.answers, state.notes],
+  );
+
+  const autoSaveKey = useMemo(
+    () =>
+      JSON.stringify({
+        facilityId: targetFacilityId,
+        facilityType: state.facilityType,
+        answers: assessmentAnswers,
+      }),
+    [assessmentAnswers, state.facilityType, targetFacilityId],
+  );
 
   useEffect(() => {
     if (!facilityId && !fromLead) {
@@ -54,6 +101,62 @@ export default function AssessmentExperience({ assessmentData }: { assessmentDat
     // Query parameters initialize the session once when navigation changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facilityId, fromLead, typeParam]);
+
+  async function handleSaveAssessment() {
+    if (!targetFacilityId) return;
+
+    setIsSavingAssessment(true);
+    setSaveError(null);
+    setSaveMessage(null);
+
+    try {
+      const result = viewerRole
+        ? await saveAssessment({
+          facilityId: targetFacilityId,
+          facilityTypeAssessed: state.facilityType,
+          answers: assessmentAnswers,
+        })
+        : await savePublicFacilityAssessment({
+          facilityId: targetFacilityId,
+          facilityType: state.facilityType,
+          answers: assessmentAnswers.map((answer) => ({
+            itemCode: answer.item_code,
+            value:
+              answer.status === "Met"
+                ? "1"
+                : answer.status === "Partially Met"
+                  ? "0.5"
+                  : answer.status === "Not Met"
+                    ? "0"
+                    : "na",
+            notes: answer.notes,
+          })),
+        });
+
+      if (!result.success) {
+        setSaveError(("error" in result ? result.error : result.message) || "تعذر حفظ التقييم على المنشأة.");
+        lastAutoSavedKeyRef.current = "";
+        return;
+      }
+
+      setSaveMessage(`تم حفظ تقييم سباهي داخل ملف المنشأة: ${targetFacilityName ?? "المنشأة"}`);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "تعذر حفظ التقييم على المنشأة.");
+      lastAutoSavedKeyRef.current = "";
+    } finally {
+      setIsSavingAssessment(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!state.showReport || !targetFacilityId || scoreBreakdown.answeredCount === 0 || isSavingAssessment) return;
+    if (lastAutoSavedKeyRef.current === autoSaveKey) return;
+
+    lastAutoSavedKeyRef.current = autoSaveKey;
+    void handleSaveAssessment();
+    // We intentionally auto-save once per unique report payload.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSaveKey, isSavingAssessment, scoreBreakdown.answeredCount, state.showReport, targetFacilityId]);
 
   if (!entryReady) {
     return (
@@ -112,7 +215,7 @@ export default function AssessmentExperience({ assessmentData }: { assessmentDat
               <span className="block text-nebras-gold">لاعتماد سباهي</span>
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-9 text-white/75">
-              أداة عملية مبنية على معايير كتاب CBAHI AMB، وتساعدك على معرفة مستوى الجاهزية والفجوات قبل بدء رحلة الاعتماد.
+              أداة عملية مبنية على معايير {sourceLabel}، وتساعدك على معرفة مستوى الجاهزية والفجوات قبل بدء رحلة الاعتماد.
             </p>
             <div className="mt-8 flex flex-wrap gap-3 print:hidden">
               <a href="#start" className="inline-flex items-center gap-2 rounded-full bg-nebras-gold px-7 py-3.5 font-extrabold text-nebras-green shadow-lg">
@@ -194,6 +297,10 @@ export default function AssessmentExperience({ assessmentData }: { assessmentDat
             answers={state.answers}
             notes={state.notes}
             onBack={() => setShowReport(false)}
+            isSavingAssessment={isSavingAssessment}
+            saveError={saveError}
+            saveMessage={saveMessage}
+            linkedFacilityName={targetFacilityName ?? null}
           />
         </section>
       )}
@@ -205,7 +312,7 @@ export default function AssessmentExperience({ assessmentData }: { assessmentDat
           </h2>
           <ul className="mt-5 grid gap-3 leading-8 text-slate-600">
             <li>هذه الأداة للتقييم الذاتي الأولي وليست بديلًا عن دليل سباهي الرسمي أو زيارة التقييم الميدانية.</li>
-            <li>تم تحميل الأسئلة من معايير كتاب CBAHI AMB، مع إمكانية تفعيل أو إخفاء الأقسام والأسئلة من لوحة الإدارة.</li>
+            <li>يتم تحميل أسئلة {facilityLabel} من {sourceLabel} فقط، مع إمكانية تفعيل أو إخفاء الأقسام والأسئلة من لوحة الإدارة.</li>
             <li>عند إرسال النتيجة تُنشأ متابعة فعلية للمنشأة داخل CRM مع بيانات التواصل لتسهيل الرجوع إليها والتواصل معها.</li>
           </ul>
         </div>

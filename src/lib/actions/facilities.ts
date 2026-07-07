@@ -13,7 +13,7 @@ export type FacilityStatus = "new" | "contacted" | "interested" | "offer" | "neg
 export type CreateFacilityInput = {
   name_ar: string;
   type: FacilityType;
-  region_id: string;
+  region_id?: string;
   city_id: string;
   city_custom?: string;
   primary_phone: string;
@@ -66,7 +66,7 @@ function validateCreate(input: CreateFacilityInput) {
   if (input.name_ar.trim().length < 2) throw new Error("اسم المنشأة مطلوب.");
   if (!TYPES.has(input.type)) throw new Error("نوع المنشأة غير صالح.");
   if (!SOURCES.has(input.lead_source)) throw new Error("مصدر العميل غير صالح.");
-  if (!input.region_id || !input.city_id) throw new Error("المنطقة والمدينة مطلوبتان.");
+  if (!input.city_id) throw new Error("المدينة مطلوبة.");
   if (!normalizePhone(input.primary_phone)) throw new Error("رقم الهاتف الرئيسي غير صالح.");
 }
 
@@ -78,10 +78,11 @@ async function validateOwner(companyId: string, ownerId: string | null | undefin
   return data.id as string;
 }
 
-async function validateGeography(regionId: string, cityId: string, customCity?: string) {
-  const { data } = await createAdminClient().from("cities").select("id,region_id,name_en").eq("id", cityId).eq("region_id", regionId).maybeSingle();
-  if (!data) throw new Error("المدينة المحددة لا تتبع المنطقة المختارة.");
+async function validateGeography(cityId: string, customCity?: string) {
+  const { data } = await createAdminClient().from("cities").select("id,region_id,name_en").eq("id", cityId).maybeSingle();
+  if (!data) throw new Error("المدينة المحددة غير موجودة.");
   if (data.name_en === "Other" && !customCity?.trim()) throw new Error("يرجى كتابة اسم المدينة الأخرى.");
+  return data;
 }
 
 export async function getFacilityOptions() {
@@ -101,14 +102,14 @@ export async function createFacility(input: CreateFacilityInput): Promise<Facili
     validateCreate(input);
     const context = await requireAuth();
     const companyId = activeCompany(context);
-    await validateGeography(input.region_id, input.city_id, input.city_custom);
+    const city = await validateGeography(input.city_id, input.city_custom);
     const assignedTo = context.role === "sales_user" ? context.userId : await validateOwner(companyId, input.assigned_to);
     const admin = createAdminClient();
     const { data, error } = await admin.from("facilities").insert({
       company_id: companyId,
       name_ar: input.name_ar.trim(),
       type: input.type,
-      region_id: input.region_id,
+      region_id: city.region_id,
       city_id: input.city_id,
       city_custom: input.city_custom?.trim() || null,
       primary_phone: input.primary_phone.trim(),
@@ -120,7 +121,13 @@ export async function createFacility(input: CreateFacilityInput): Promise<Facili
       created_by: context.userId,
     }).select("*").single();
     if (error) throw error;
-    const { error: activityError } = await admin.from("facility_activity").insert({ company_id: companyId, facility_id: data.id, actor_id: context.userId, event_type: "created", new_value: data.name_ar });
+    const { error: activityError } = await admin.from("facility_activity").insert({
+      company_id: companyId,
+      facility_id: data.id,
+      actor_id: context.userId,
+      event_type: "created",
+      new_value: data.name_ar,
+    });
     if (activityError) throw activityError;
     revalidatePath("/dashboard/facilities");
     return { success: true, data };
@@ -136,12 +143,12 @@ export async function getFacilitiesList(params: GetFacilitiesInput = {}) {
     const page = Math.max(1, Math.floor(params.page ?? 1));
     const limit = Math.min(15, Math.max(1, Math.floor(params.limit ?? 15)));
     let query = createAdminClient().from("facilities")
-      .select("id,name_ar,type,primary_phone,secondary_phone,status,is_active,created_at,city_custom,assigned_to,regions(name_ar),cities(name_ar),owner:profiles!facilities_assigned_to_fkey(display_name,status)", { count: "exact" })
+      .select("id,name_ar,type,primary_phone,secondary_phone,status,is_active,created_at,city_custom,assigned_to,lead_source,created_by,regions(name_ar),cities(name_ar),owner:profiles!facilities_assigned_to_fkey(display_name,status),creator:profiles!facilities_created_by_fkey(display_name,role)", { count: "exact" })
       .eq("company_id", companyId);
     if (context.role === "sales_user") query = query.eq("assigned_to", context.userId).eq("is_active", true);
     else query = query.eq("is_active", params.show_archived ? false : true);
     const search = params.search?.trim();
-    if (search) query = query.or(`name_ar.ilike.%${search.replace(/[,%]/g, "") }%,primary_phone.ilike.%${search.replace(/[,%]/g, "")}%,secondary_phone.ilike.%${search.replace(/[,%]/g, "")}%`);
+    if (search) query = query.or(`name_ar.ilike.%${search.replace(/[,%]/g, "")}%,primary_phone.ilike.%${search.replace(/[,%]/g, "")}%,secondary_phone.ilike.%${search.replace(/[,%]/g, "")}%`);
     if (params.status && STATUSES.has(params.status)) query = query.eq("status", params.status);
     if (params.type && TYPES.has(params.type)) query = query.eq("type", params.type);
     if (params.region_id) query = query.eq("region_id", params.region_id);
@@ -162,7 +169,7 @@ export async function getFacilityDetail(id: string) {
     const context = await requireAuth();
     const companyId = activeCompany(context);
     let query = createAdminClient().from("facilities")
-      .select("*,regions(name_ar),cities(name_ar,name_en),owner:profiles!facilities_assigned_to_fkey(id,display_name,status),companies(name_ar,whatsapp_template)")
+      .select("*,regions(name_ar),cities(name_ar,name_en),owner:profiles!facilities_assigned_to_fkey(id,display_name,status),creator:profiles!facilities_created_by_fkey(id,display_name,role),companies(name_ar,whatsapp_template)")
       .eq("id", id).eq("company_id", companyId);
     if (context.role === "sales_user") query = query.eq("assigned_to", context.userId);
     const { data, error } = await query.maybeSingle();
@@ -193,7 +200,9 @@ export async function updateFacility(id: string, input: UpdateFacilityInput): Pr
     if (context.role === "sales_user") currentQuery = currentQuery.eq("assigned_to", context.userId).eq("is_active", true);
     const { data: current } = await currentQuery.maybeSingle();
     if (!current) throw new Error(UNAUTHORIZED);
-    if (context.role === "sales_user" && Object.prototype.hasOwnProperty.call(input, "assigned_to") && input.assigned_to !== current.assigned_to) throw new Error(UNAUTHORIZED);
+    if (context.role === "sales_user" && Object.prototype.hasOwnProperty.call(input, "assigned_to") && input.assigned_to !== current.assigned_to) {
+      throw new Error(UNAUTHORIZED);
+    }
 
     const changes: Record<string, unknown> = {};
     if (input.name_ar !== undefined) {
@@ -223,11 +232,11 @@ export async function updateFacility(id: string, input: UpdateFacilityInput): Pr
     if (input.secondary_phone !== undefined) changes.secondary_phone = input.secondary_phone.trim() || null;
     if (input.notes !== undefined) changes.notes = input.notes.trim() || null;
     if (input.city_custom !== undefined) changes.city_custom = input.city_custom.trim() || null;
-    const regionId = input.region_id ?? current.region_id;
+
     const cityId = input.city_id ?? current.city_id;
     if (input.region_id !== undefined || input.city_id !== undefined || input.city_custom !== undefined) {
-      await validateGeography(regionId, cityId, input.city_custom ?? current.city_custom);
-      changes.region_id = regionId;
+      const city = await validateGeography(cityId, input.city_custom ?? current.city_custom);
+      changes.region_id = city.region_id;
       changes.city_id = cityId;
     }
     if (Object.prototype.hasOwnProperty.call(input, "assigned_to") && isManagement(context)) {
@@ -236,10 +245,18 @@ export async function updateFacility(id: string, input: UpdateFacilityInput): Pr
 
     const { data, error } = await admin.from("facilities").update(changes).eq("id", id).eq("company_id", companyId).select("*").single();
     if (error) throw error;
+
     const activity = [];
-    if (data.status !== current.status) activity.push({ company_id: companyId, facility_id: id, actor_id: context.userId, event_type: "status_change", old_value: current.status, new_value: data.status });
-    if (data.assigned_to !== current.assigned_to) activity.push({ company_id: companyId, facility_id: id, actor_id: context.userId, event_type: "owner_change", old_value: current.assigned_to, new_value: data.assigned_to });
-    if (!activity.length) activity.push({ company_id: companyId, facility_id: id, actor_id: context.userId, event_type: "edited", old_value: null, new_value: data.name_ar });
+    if (data.status !== current.status) {
+      activity.push({ company_id: companyId, facility_id: id, actor_id: context.userId, event_type: "status_change", old_value: current.status, new_value: data.status });
+    }
+    if (data.assigned_to !== current.assigned_to) {
+      activity.push({ company_id: companyId, facility_id: id, actor_id: context.userId, event_type: "owner_change", old_value: current.assigned_to, new_value: data.assigned_to });
+    }
+    if (!activity.length) {
+      activity.push({ company_id: companyId, facility_id: id, actor_id: context.userId, event_type: "edited", old_value: null, new_value: data.name_ar });
+    }
+
     const { error: activityError } = await admin.from("facility_activity").insert(activity);
     if (activityError) throw activityError;
     revalidatePath("/dashboard/facilities");
@@ -264,8 +281,12 @@ async function setFacilityActive(id: string, active: boolean): Promise<FacilityA
     if (error) throw error;
     if (!data) throw new Error("المنشأة غير موجودة أو حالتها لم تتغير.");
     const { error: activityError } = await admin.from("facility_activity").insert({
-      company_id: companyId, facility_id: id, actor_id: context.userId,
-      event_type: active ? "recovered" : "archived", old_value: String(!active), new_value: String(active),
+      company_id: companyId,
+      facility_id: id,
+      actor_id: context.userId,
+      event_type: active ? "recovered" : "archived",
+      old_value: String(!active),
+      new_value: String(active),
     });
     if (activityError) throw activityError;
     revalidatePath("/dashboard/facilities");

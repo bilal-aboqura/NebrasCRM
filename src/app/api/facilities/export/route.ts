@@ -24,7 +24,7 @@ export async function GET(request: Request) {
 
     for (let page = 0; ; page += 1) {
       let query = admin.from("facilities").select(
-        "name_ar,type,primary_phone,secondary_phone,lead_source,status,notes,created_at,city_custom,cities(name_ar),regions(name_ar),owner:profiles!facilities_assigned_to_fkey(display_name)",
+        "name_ar,type,primary_phone,secondary_phone,lead_source,status,notes,created_at,city_custom,cities(name_ar),owner:profiles!facilities_assigned_to_fkey(display_name)",
       ).eq("company_id", companyId);
 
       query = context.role === "sales_user"
@@ -63,7 +63,6 @@ export async function GET(request: Request) {
       { header: "اسم المنشأة", value: (row) => String(row.name_ar ?? ""), width: 28 },
       { header: "نوع المنشأة", value: (row) => FACILITY_TYPE_LABELS[String(row.type) as keyof typeof FACILITY_TYPE_LABELS] ?? String(row.type ?? "") },
       { header: "المدينة", value: (row) => String(row.city_custom ?? relation<{ name_ar?: string }>(row.cities)?.name_ar ?? "") },
-      { header: "المنطقة", value: (row) => relation<{ name_ar?: string }>(row.regions)?.name_ar ?? "" },
       { header: "الهاتف الرئيسي", value: (row) => String(row.primary_phone ?? "") },
       { header: "الهاتف الفرعي", value: (row) => String(row.secondary_phone ?? "") },
       { header: "مصدر العميل", value: (row) => row.lead_source === "imported" ? "مستورد" : row.lead_source === "website_form" ? "نموذج الموقع" : "يدوي" },

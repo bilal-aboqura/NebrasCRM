@@ -11,9 +11,17 @@ const state = vi.hoisted(() => ({
 function builder(table: string): object {
   return new Proxy({}, {
     get(_target, property) {
-      if (property === "then") return (resolve: (value: unknown) => void) => resolve(state.responses.get(table)?.shift() ?? { data: null, error: null });
-      if (property === "single" || property === "maybeSingle") return () => Promise.resolve(state.responses.get(table)?.shift() ?? { data: null, error: null });
-      return (...args: unknown[]) => { state.calls.push({ table, method: String(property), args }); return builder(table); };
+      if (property === "then") {
+        return (resolve: (value: unknown) => void) =>
+          resolve(state.responses.get(table)?.shift() ?? { data: null, error: null });
+      }
+      if (property === "single" || property === "maybeSingle") {
+        return () => Promise.resolve(state.responses.get(table)?.shift() ?? { data: null, error: null });
+      }
+      return (...args: unknown[]) => {
+        state.calls.push({ table, method: String(property), args });
+        return builder(table);
+      };
     },
   });
 }
@@ -43,11 +51,12 @@ describe("facility import preview", () => {
     state.responses.set("cities", [{ data: [{ id: "city-a", region_id: "region-a", name_ar: "الرياض", name_en: "Riyadh" }], error: null }]);
     state.responses.set("facilities", [{ data: [{ primary_phone_normalized: "966509999999" }], error: null }]);
     state.responses.set("import_batches", [{ data: { id: "batch-a" }, error: null }]);
+
     const file = facilitySpreadsheet([
-      ["منشأة سليمة", "مجمع طبي", "الرياض", "الرياض", "0501111111", "", "", ""],
-      ["", "مستشفى", "الرياض", "الرياض", "0502222222", "", "", ""],
-      ["منشأة موجودة", "مختبر", "الرياض", "الرياض", "0509999999", "", "", ""],
-      ["منشأة مكررة", "مجمع طبي", "الرياض", "الرياض", "0501111111", "", "", ""],
+      ["منشأة سليمة", "مجمع طبي", "الرياض", "0501111111", "", "", ""],
+      ["", "مستشفى", "الرياض", "0502222222", "", "", ""],
+      ["منشأة موجودة", "مختبر", "الرياض", "0509999999", "", "", ""],
+      ["منشأة مكررة", "مجمع طبي", "الرياض", "0501111111", "", "", ""],
     ]);
 
     const response = await POST(upload(file));
@@ -59,19 +68,61 @@ describe("facility import preview", () => {
     expect(state.calls).toContainEqual(expect.objectContaining({ table: "facilities", method: "eq", args: ["company_id", TEST_CONTEXT.companyId] }));
   });
 
-  it("parses UTF-8 CSV files with the template headers", () => {
-    const csv = "اسم المنشأة,نوع المنشأة,المدينة,المنطقة,الهاتف الرئيسي,الهاتف الفرعي,مصدر العميل,ملاحظات\nمختبر CSV,مختبر,الرياض,الرياض,0501234567,,,تجربة";
-    expect(parseFacilitySpreadsheet(new TextEncoder().encode(csv), 1000)).toEqual([
+  it("parses UTF-8 CSV files with the current template headers and legacy region header", () => {
+    const currentCsv = "اسم المنشأة,نوع المنشأة,المدينة,الهاتف الرئيسي,الهاتف الفرعي,مصدر العميل,ملاحظات\nمختبر CSV,مختبر,الرياض,0501234567,,,تجربة";
+    expect(parseFacilitySpreadsheet(new TextEncoder().encode(currentCsv), 1000)).toEqual([
       expect.objectContaining({ name: "مختبر CSV", type: "مختبر", primaryPhone: "0501234567", notes: "تجربة" }),
     ]);
+
+    const legacyCsv = "اسم المنشأة,نوع المنشأة,المدينة,المنطقة,الهاتف الرئيسي,الهاتف الفرعي,مصدر العميل,ملاحظات\nمختبر قديم,مختبر,الرياض,الرياض,0501234568,,,قديمة";
+    expect(parseFacilitySpreadsheet(new TextEncoder().encode(legacyCsv), 1000)).toEqual([
+      expect.objectContaining({ name: "مختبر قديم", city: "الرياض", region: "الرياض", primaryPhone: "0501234568" }),
+    ]);
+  });
+
+  it("accepts city labels from the template when the same city name exists in more than one region", async () => {
+    state.responses.set("system_settings", [{ data: { value: "1000" }, error: null }]);
+    state.responses.set("regions", [{
+      data: [
+        { id: "region-a", name_ar: "الرياض" },
+        { id: "region-b", name_ar: "مكة" },
+      ],
+      error: null,
+    }]);
+    state.responses.set("cities", [{
+      data: [
+        { id: "city-a", region_id: "region-a", name_ar: "الدوادمي", name_en: "Dawadmi East" },
+        { id: "city-b", region_id: "region-b", name_ar: "الدوادمي", name_en: "Dawadmi West" },
+      ],
+      error: null,
+    }]);
+    state.responses.set("facilities", [{ data: [], error: null }]);
+    state.responses.set("import_batches", [{ data: { id: "batch-city-label" }, error: null }]);
+
+    const file = facilitySpreadsheet([
+      ["منشأة مميزة", "مجمع أسنان", "الدوادمي - مكة", "0501111111", "", "", ""],
+    ]);
+
+    const response = await POST(upload(file));
+    expect(response.status).toBe(200);
+
+    const body = await response.json();
+    expect(body.summary).toEqual({ total: 1, valid: 1, errors: 0, duplicates: 0 });
+    expect(body.rows[0]).toEqual(expect.objectContaining({
+      status: "valid",
+      data: expect.objectContaining({
+        city_id: "city-b",
+        region_id: "region-b",
+      }),
+    }));
   });
 
   it("enforces the configured maximum row count", async () => {
     state.responses.set("system_settings", [{ data: { value: "2" }, error: null }]);
     const file = facilitySpreadsheet([
-      ["أ", "مجمع طبي", "الرياض", "الرياض", "0501111111"],
-      ["ب", "مجمع طبي", "الرياض", "الرياض", "0502222222"],
-      ["ج", "مجمع طبي", "الرياض", "الرياض", "0503333333"],
+      ["أ", "مجمع طبي", "الرياض", "0501111111", "", "", ""],
+      ["ب", "مجمع طبي", "الرياض", "0502222222", "", "", ""],
+      ["ج", "مجمع طبي", "الرياض", "0503333333", "", "", ""],
     ]);
     const response = await POST(upload(file));
     expect(response.status).toBe(400);

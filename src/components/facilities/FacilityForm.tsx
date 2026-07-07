@@ -25,16 +25,33 @@ export function FacilityForm({ regions, cities, owners, canAssign, currentUserId
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
-  const [regionId, setRegionId] = useState(facility?.region_id ?? "");
   const [cityId, setCityId] = useState(facility?.city_id ?? "");
-  const availableCities = useMemo(() => cities.filter((city) => city.region_id === regionId), [cities, regionId]);
+
+  const regionNames = useMemo(() => new Map(regions.map((region) => [region.id, region.name_ar])), [regions]);
+  const cityNameCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    cities
+      .filter((city) => city.name_en !== "Other")
+      .forEach((city) => counts.set(city.name_ar, (counts.get(city.name_ar) ?? 0) + 1));
+    return counts;
+  }, [cities]);
+
+  const availableCities = useMemo(
+    () => cities.filter((city) => city.name_en !== "Other" || city.id === cityId),
+    [cities, cityId],
+  );
   const selectedCity = cities.find((city) => city.id === cityId);
+
+  function cityLabel(city: City) {
+    const duplicate = (cityNameCounts.get(city.name_ar) ?? 0) > 1;
+    const region = regionNames.get(city.region_id);
+    return duplicate && region ? `${city.name_ar} - ${region}` : city.name_ar;
+  }
 
   function submit(formData: FormData) {
     const input: CreateFacilityInput & { status?: FacilityStatus } = {
       name_ar: String(formData.get("name_ar") ?? ""),
       type: String(formData.get("type")) as CreateFacilityInput["type"],
-      region_id: String(formData.get("region_id") ?? ""),
       city_id: String(formData.get("city_id") ?? ""),
       city_custom: String(formData.get("city_custom") ?? ""),
       primary_phone: String(formData.get("primary_phone") ?? ""),
@@ -111,31 +128,12 @@ export function FacilityForm({ regions, cities, owners, canAssign, currentUserId
                 </select>
               </label>
 
-              <label>
-                المنطقة
-                <select
-                  name="region_id"
-                  required
-                  value={regionId}
-                  onChange={(event) => {
-                    setRegionId(event.target.value);
-                    setCityId("");
-                  }}
-                  className={fieldClass}
-                >
-                  <option value="">اختر المنطقة</option>
-                  {regions.map((region) => (
-                    <option key={region.id} value={region.id}>{region.name_ar}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
+              <label className="md:col-span-2">
                 المدينة
                 <select name="city_id" required value={cityId} onChange={(event) => setCityId(event.target.value)} className={fieldClass}>
                   <option value="">اختر المدينة</option>
                   {availableCities.map((city) => (
-                    <option key={city.id} value={city.id}>{city.name_ar}</option>
+                    <option key={city.id} value={city.id}>{cityLabel(city)}</option>
                   ))}
                 </select>
               </label>

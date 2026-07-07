@@ -12,7 +12,10 @@ function builder(): object {
   return new Proxy({}, {
     get(_target, property) {
       if (property === "then") return (resolve: (value: unknown) => void) => resolve(state.responses.shift() ?? { data: [], error: null });
-      return (...args: unknown[]) => { state.calls.push({ method: String(property), args }); return builder(); };
+      return (...args: unknown[]) => {
+        state.calls.push({ method: String(property), args });
+        return builder();
+      };
     },
   });
 }
@@ -25,11 +28,22 @@ import { GET } from "@/app/api/facilities/export/route";
 describe("facilities export", () => {
   beforeEach(() => {
     state.context = { ...TEST_CONTEXT, role: "sales_user" };
-    state.responses = [{ data: [{
-      name_ar: "مختبر النور", type: "lab", primary_phone: "0501234567", secondary_phone: null,
-      lead_source: "manual", status: "new", notes: null, created_at: "2026-06-21T10:00:00Z",
-      city_custom: null, cities: { name_ar: "الرياض" }, regions: { name_ar: "الرياض" }, owner: { display_name: "مندوب الاختبار" },
-    }], error: null }];
+    state.responses = [{
+      data: [{
+        name_ar: "مختبر النور",
+        type: "lab",
+        primary_phone: "0501234567",
+        secondary_phone: null,
+        lead_source: "manual",
+        status: "new",
+        notes: null,
+        created_at: "2026-06-21T10:00:00Z",
+        city_custom: null,
+        cities: { name_ar: "الرياض" },
+        owner: { display_name: "مندوب الاختبار" },
+      }],
+      error: null,
+    }];
     state.calls.length = 0;
   });
 
@@ -44,11 +58,13 @@ describe("facilities export", () => {
       expect.objectContaining({ method: "eq", args: ["city_id", "city-a"] }),
     ]));
     expect(state.calls.filter((call) => call.method === "eq" && call.args[0] === "assigned_to")).toHaveLength(1);
+
     const workbook = XLSX.read(await response.arrayBuffer(), { type: "array" });
     const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[workbook.SheetNames[0]]);
     expect(rows).toHaveLength(1);
     expect(rows[0]["اسم المنشأة"]).toBe("مختبر النور");
+    expect(rows[0]["المدينة"]).toBe("الرياض");
+    expect(rows[0]["المنطقة"]).toBeUndefined();
     expect(workbook.Workbook?.Views?.[0]?.RTL).toBe(true);
   });
 });
-

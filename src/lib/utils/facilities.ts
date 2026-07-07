@@ -92,3 +92,14 @@ export function facilityStatusLabel(status: string) {
 export function facilityTypeLabel(type: string) {
   return FACILITY_TYPE_LABELS[type as FacilityTypeCode] ?? type;
 }
+
+export function facilityLeadSourceLabel(source: string, creatorName?: string | null) {
+  if (source === "website_form") return "سجلت نفسها عبر نموذج الموقع";
+  if (source === "imported") return "تمت إضافتها عبر استيراد Excel";
+  if (source === "manual") {
+    return creatorName?.trim()
+      ? `تمت إضافتها يدويًا بواسطة ${creatorName.trim()}`
+      : "تمت إضافتها يدويًا بواسطة الإدارة";
+  }
+  return source;
+}

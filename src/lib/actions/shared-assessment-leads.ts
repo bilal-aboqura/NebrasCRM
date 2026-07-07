@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { resolvePublicLeadCompanyId } from "@/lib/actions/lead-capture";
 import { loadPublishedAssessmentData } from "@/lib/assessment/visibility";
@@ -7,6 +8,7 @@ import { isRateLimited } from "@/lib/rate-limit/memory";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isValidSaudiPhone, normalizePhone } from "@/lib/utils/phone";
 import type { FacilityType } from "@/hooks/use-cbahi-session";
+import type { AssessmentAnswer, ReadinessTier } from "@/lib/types/assessment";
 
 export type SharedAssessmentAnswer = {
   itemCode: string;
@@ -26,6 +28,10 @@ export type SharedAssessmentLeadInput = {
 
 export type SharedAssessmentLeadResult =
   | { success: true; leadId: string; score: number }
+  | { success: false; message: string };
+
+export type PublicAssessmentSaveResult =
+  | { success: true; score: number }
   | { success: false; message: string };
 
 const VALUES = new Set(["1", "0.5", "0", "na"]);
@@ -83,6 +89,41 @@ function readinessTierLabel(tier: "high" | "medium" | "low") {
 
 function assessmentFacilityType(facilityType: FacilityType) {
   return facilityType === "dental" ? "dental_complex" : "medical_complex";
+}
+
+function mapSharedAnswerStatus(value: SharedAssessmentAnswer["value"]): AssessmentAnswer["status"] {
+  switch (value) {
+    case "1":
+      return "Met";
+    case "0.5":
+      return "Partially Met";
+    case "0":
+      return "Not Met";
+    default:
+      return "Not Applicable";
+  }
+}
+
+async function resolveAssessmentActorId(companyId: string) {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("profiles")
+    .select("id,role,status")
+    .eq("company_id", companyId)
+    .eq("status", "active")
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+
+  const profiles = (data ?? []) as Array<{ id: string; role: string; status: string }>;
+  const preferredRoles = ["company_admin", "supervisor", "sales_user", "super_admin"];
+  for (const role of preferredRoles) {
+    const match = profiles.find((profile) => profile.role === role);
+    if (match) return match.id;
+  }
+
+  if (profiles[0]) return profiles[0].id;
+  throw new Error("Unable to find an active user to attach the external assessment.");
 }
 
 function assessmentNoteBlock(input: {
@@ -214,6 +255,102 @@ async function upsertFacilityFromAssessment(input: {
   return data.id as string;
 }
 
+async function saveFacilityAssessmentFromPublicLead(input: {
+  companyId: string;
+  facilityId: string;
+  facilityType: FacilityType;
+  score: number;
+  tier: ReadinessTier;
+  answers: Array<{ item_code: string; status: SharedAssessmentAnswer["value"]; notes: string | null }>;
+}) {
+  const admin = createAdminClient();
+  const actorId = await resolveAssessmentActorId(input.companyId);
+  const normalizedAnswers: AssessmentAnswer[] = input.answers.map((answer) => ({
+    item_code: answer.item_code,
+    status: mapSharedAnswerStatus(answer.status),
+    notes: answer.notes ?? undefined,
+  }));
+
+  const { error } = await admin.from("assessments").insert({
+    company_id: input.companyId,
+    facility_id: input.facilityId,
+    assessed_by: actorId,
+    facility_type_assessed: input.facilityType,
+    overall_score: input.score,
+    readiness_tier: input.tier,
+    answers: normalizedAnswers,
+  });
+  if (error) throw error;
+
+  const { error: activityError } = await admin.from("facility_activity").insert({
+    company_id: input.companyId,
+    facility_id: input.facilityId,
+    actor_id: actorId,
+    event_type: "assessment_saved",
+    new_value: `${input.score}% | ${input.tier} | تقييم ذاتي خارجي`,
+  });
+  if (activityError) throw activityError;
+
+  revalidatePath(`/dashboard/facilities/${input.facilityId}`);
+}
+
+export async function savePublicFacilityAssessment(input: {
+  facilityId: string;
+  facilityType: FacilityType;
+  answers: SharedAssessmentAnswer[];
+}): Promise<PublicAssessmentSaveResult> {
+  try {
+    const facilityId = clean(input.facilityId, 80);
+    if (!facilityId) throw new Error("معرف المنشأة غير صالح.");
+    if (input.facilityType !== "general" && input.facilityType !== "dental") {
+      throw new Error("نوع التقييم غير صالح.");
+    }
+
+    const value = await validate({
+      facilityName: "placeholder",
+      contactName: "placeholder",
+      city: "placeholder",
+      phone: "0500000000",
+      email: "",
+      facilityType: input.facilityType,
+      answers: input.answers,
+    });
+
+    let points = 0;
+    let applicable = 0;
+    for (const answer of value.answers) {
+      if (answer.status === "na") continue;
+      applicable++;
+      if (answer.status === "1") points++;
+      else if (answer.status === "0.5") points += 0.5;
+    }
+
+    const score = applicable ? Math.round((points / applicable) * 100) : 0;
+    const tier: ReadinessTier = score >= 85 ? "high" : score >= 65 ? "medium" : "low";
+    const admin = createAdminClient();
+    const { data: facility, error: facilityError } = await admin
+      .from("facilities")
+      .select("id,company_id,is_active")
+      .eq("id", facilityId)
+      .maybeSingle();
+    if (facilityError) throw facilityError;
+    if (!facility || !facility.is_active) throw new Error("المنشأة غير موجودة أو غير نشطة.");
+
+    await saveFacilityAssessmentFromPublicLead({
+      companyId: facility.company_id as string,
+      facilityId,
+      facilityType: input.facilityType,
+      score,
+      tier,
+      answers: value.answers,
+    });
+
+    return { success: true, score };
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : "تعذر حفظ التقييم." };
+  }
+}
+
 export async function submitSharedAssessmentLead(
   input: SharedAssessmentLeadInput,
 ): Promise<SharedAssessmentLeadResult> {
@@ -256,6 +393,7 @@ export async function submitSharedAssessmentLead(
     const tier = score >= 85 ? "high" : score >= 65 ? "medium" : "low";
 
     const admin = createAdminClient();
+    const companyId = await resolvePublicLeadCompanyId(admin);
     const { data, error } = await admin.from("shared_assessment_leads").insert({
       facility_name: value.facilityName,
       contact_name: value.contactName,
@@ -273,7 +411,7 @@ export async function submitSharedAssessmentLead(
     }).select("id").single();
     if (error || !data) throw error ?? new Error("Unable to save assessment lead.");
 
-    await upsertFacilityFromAssessment({
+    const facilityId = await upsertFacilityFromAssessment({
       facilityName: value.facilityName,
       contactName: value.contactName,
       city: value.city,
@@ -282,6 +420,14 @@ export async function submitSharedAssessmentLead(
       facilityType: input.facilityType,
       score,
       tier,
+    });
+    await saveFacilityAssessmentFromPublicLead({
+      companyId,
+      facilityId,
+      facilityType: input.facilityType,
+      score,
+      tier,
+      answers: value.answers,
     });
 
     return { success: true, leadId: data.id as string, score };

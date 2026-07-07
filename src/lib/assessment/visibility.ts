@@ -1,6 +1,6 @@
 import {
-  MASTER_AMB_CHAPTER_CODES,
-  MASTER_AMB_ITEM_CODES,
+  ASSESSMENT_MASTER_CHAPTER_CODES,
+  ASSESSMENT_MASTER_ITEM_CODES,
   normalizeAssessmentVisibilitySettings,
   resolveAssessmentData,
   type AssessmentDataSet,
@@ -21,12 +21,12 @@ export function sanitizeAssessmentVisibilitySettings(
   const normalized = normalizeAssessmentVisibilitySettings(value);
   return {
     general: {
-      disabledChapterCodes: filterKnownCodes(normalized.general.disabledChapterCodes, MASTER_AMB_CHAPTER_CODES),
-      disabledItemCodes: filterKnownCodes(normalized.general.disabledItemCodes, MASTER_AMB_ITEM_CODES),
+      disabledChapterCodes: filterKnownCodes(normalized.general.disabledChapterCodes, ASSESSMENT_MASTER_CHAPTER_CODES.general),
+      disabledItemCodes: filterKnownCodes(normalized.general.disabledItemCodes, ASSESSMENT_MASTER_ITEM_CODES.general),
     },
     dental: {
-      disabledChapterCodes: filterKnownCodes(normalized.dental.disabledChapterCodes, MASTER_AMB_CHAPTER_CODES),
-      disabledItemCodes: filterKnownCodes(normalized.dental.disabledItemCodes, MASTER_AMB_ITEM_CODES),
+      disabledChapterCodes: filterKnownCodes(normalized.dental.disabledChapterCodes, ASSESSMENT_MASTER_CHAPTER_CODES.dental),
+      disabledItemCodes: filterKnownCodes(normalized.dental.disabledItemCodes, ASSESSMENT_MASTER_ITEM_CODES.dental),
     },
   };
 }

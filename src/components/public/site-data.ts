@@ -13,6 +13,7 @@ export const publicEmail = {
 export const publicNavItems = [
   { href: "/#hero", label: "الرئيسية" },
   { href: "/#about", label: "عن نبراس" },
+  { href: "/vision", label: "رؤيتنا وقيمنا" },
   { href: "/#services", label: "خدماتنا" },
   { href: "/success-stories", label: "قصص النجاح" },
   { href: "/#lead-capture", label: "تقييم مجاني" },

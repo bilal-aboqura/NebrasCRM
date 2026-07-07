@@ -5,6 +5,7 @@ const state = vi.hoisted(() => ({
   calls: [] as Array<{ table: string; method: string; args: unknown[] }>,
   responses: new Map<string, Array<{ data: unknown; error: unknown }>>(),
   isRateLimited: vi.fn(),
+  revalidatePath: vi.fn(),
 }));
 
 function nextResponse(table: string) {
@@ -35,6 +36,9 @@ vi.mock("@/lib/supabase/admin", () => ({
     from: (table: string) => builder(table),
   }),
 }));
+vi.mock("next/cache", () => ({
+  revalidatePath: state.revalidatePath,
+}));
 
 import { submitSharedAssessmentLead } from "@/lib/actions/shared-assessment-leads";
 
@@ -43,6 +47,7 @@ describe("shared assessment lead submission", () => {
     state.calls.length = 0;
     state.responses.clear();
     state.isRateLimited.mockReset().mockReturnValue(false);
+    state.revalidatePath.mockReset();
   });
 
   test("recalculates the score, stores the shared lead, and creates a CRM facility follow-up", async () => {
@@ -53,7 +58,11 @@ describe("shared assessment lead submission", () => {
     answers[1] = { itemCode: codes[1], value: "na" };
 
     state.responses.set("shared_assessment_leads", [{ data: { id: "lead-1" }, error: null }]);
-    state.responses.set("companies", [{ data: { id: "company-a" }, error: null }]);
+    state.responses.set("companies", [
+      { data: { id: "company-a" }, error: null },
+      { data: { id: "company-a" }, error: null },
+    ]);
+    state.responses.set("profiles", [{ data: [{ id: "user-admin", role: "company_admin", status: "active" }], error: null }]);
     state.responses.set("facilities", [
       { data: null, error: null },
       { data: { id: "facility-1" }, error: null },
@@ -89,6 +98,7 @@ describe("shared assessment lead submission", () => {
         unanswered: 0,
       },
     });
+    expect(state.revalidatePath).toHaveBeenCalledWith("/dashboard/assessment-leads");
 
     const facilityInsert = state.calls.find((call) => call.table === "facilities" && call.method === "insert");
     expect(facilityInsert?.args[0]).toMatchObject({

@@ -34,6 +34,26 @@ export type PublicAssessmentSaveResult =
   | { success: true; score: number }
   | { success: false; message: string };
 
+type NormalizedSharedAnswer = {
+  item_code: string;
+  status: SharedAssessmentAnswer["value"];
+  notes: string | null;
+};
+
+type SharedAssessmentSummary = {
+  answeredCount: number;
+  counts: {
+    available: number;
+    partial: number;
+    unavailable: number;
+    not_applicable: number;
+    unanswered: number;
+  };
+  topGaps: Array<{ code: string; question: string; chapter: string; status: string }>;
+  score: number;
+  tier: ReadinessTier;
+};
+
 const VALUES = new Set(["1", "0.5", "0", "na"]);
 
 function clean(value: unknown, max: number) {
@@ -83,6 +103,48 @@ async function validate(input: SharedAssessmentLeadInput) {
   return { facilityName, contactName, city, phone, email: email || null, answers, standards };
 }
 
+function summarizeSharedAssessment(
+  standards: Map<string, { question: string; chapter: string }>,
+  answers: NormalizedSharedAnswer[],
+): SharedAssessmentSummary {
+  let points = 0;
+  let applicable = 0;
+  const counts = { available: 0, partial: 0, unavailable: 0, not_applicable: 0, unanswered: 0 };
+  const gaps: Array<{ code: string; question: string; chapter: string; status: string }> = [];
+
+  for (const answer of answers) {
+    const standard = standards.get(answer.item_code);
+    if (!standard) continue;
+    if (answer.status === "na") {
+      counts.not_applicable++;
+      continue;
+    }
+    applicable++;
+    if (answer.status === "1") {
+      points++;
+      counts.available++;
+    } else if (answer.status === "0.5") {
+      points += 0.5;
+      counts.partial++;
+      gaps.push({ code: answer.item_code, question: standard.question, chapter: standard.chapter, status: "partial" });
+    } else if (answer.status === "0") {
+      counts.unavailable++;
+      gaps.push({ code: answer.item_code, question: standard.question, chapter: standard.chapter, status: "unavailable" });
+    }
+  }
+
+  const score = applicable ? Math.round((points / applicable) * 100) : 0;
+  const tier: ReadinessTier = score >= 85 ? "high" : score >= 65 ? "medium" : "low";
+
+  return {
+    answeredCount: answers.length,
+    counts,
+    topGaps: gaps.slice(0, 25),
+    score,
+    tier,
+  };
+}
+
 function readinessTierLabel(tier: "high" | "medium" | "low") {
   return tier === "high" ? "عالية" : tier === "medium" ? "متوسطة" : "منخفضة";
 }
@@ -102,6 +164,99 @@ function mapSharedAnswerStatus(value: SharedAssessmentAnswer["value"]): Assessme
     default:
       return "Not Applicable";
   }
+}
+
+function mapAssessmentAnswerToSharedValue(value: AssessmentAnswer["status"]): SharedAssessmentAnswer["value"] {
+  switch (value) {
+    case "Met":
+      return "1";
+    case "Partially Met":
+      return "0.5";
+    case "Not Met":
+      return "0";
+    default:
+      return "na";
+  }
+}
+
+async function insertSharedAssessmentRecord(input: SharedAssessmentLeadInput) {
+  const value = await validate(input);
+  const summary = summarizeSharedAssessment(value.standards, value.answers);
+  const admin = createAdminClient();
+  const { data, error } = await admin.from("shared_assessment_leads").insert({
+    facility_name: value.facilityName,
+    contact_name: value.contactName,
+    city: value.city,
+    phone: value.phone,
+    phone_normalized: normalizePhone(value.phone),
+    email: value.email,
+    facility_type_assessed: input.facilityType,
+    overall_score: summary.score,
+    readiness_tier: summary.tier,
+    answered_count: summary.answeredCount,
+    counts: summary.counts,
+    answers: value.answers,
+    top_gaps: summary.topGaps,
+  }).select("id").single();
+  if (error || !data) throw error ?? new Error("Unable to save assessment lead.");
+
+  revalidatePath("/dashboard/assessment-leads");
+  return { leadId: data.id as string, summary, normalized: value };
+}
+
+export async function saveFacilityAssessmentToSharedRegistry(input: {
+  facilityId: string;
+  facilityType: FacilityType;
+  answers: AssessmentAnswer[];
+}) {
+  const admin = createAdminClient();
+  const { data: facility, error: facilityError } = await admin
+    .from("facilities")
+    .select("id,name_ar,city_custom,primary_phone,cities(name_ar)")
+    .eq("id", input.facilityId)
+    .maybeSingle();
+  if (facilityError) throw facilityError;
+  if (!facility) throw new Error("المنشأة غير موجودة.");
+
+  const { data: primaryContact, error: primaryContactError } = await admin
+    .from("contacts")
+    .select("name_ar,email")
+    .eq("facility_id", input.facilityId)
+    .eq("is_archived", false)
+    .eq("is_primary", true)
+    .maybeSingle();
+  if (primaryContactError) throw primaryContactError;
+
+  let contactName = (primaryContact as { name_ar?: string } | null)?.name_ar?.trim() ?? "";
+  let email = (primaryContact as { email?: string | null } | null)?.email ?? null;
+
+  if (!contactName) {
+    const { data: firstContact, error: firstContactError } = await admin
+      .from("contacts")
+      .select("name_ar,email")
+      .eq("facility_id", input.facilityId)
+      .eq("is_archived", false)
+      .maybeSingle();
+    if (firstContactError) throw firstContactError;
+    contactName = (firstContact as { name_ar?: string } | null)?.name_ar?.trim() ?? "";
+    email = email ?? ((firstContact as { email?: string | null } | null)?.email ?? null);
+  }
+
+  await insertSharedAssessmentRecord({
+    facilityName: ((facility as { name_ar?: string }).name_ar ?? "منشأة") as string,
+    contactName: contactName || ((facility as { name_ar?: string }).name_ar ?? "المنشأة") as string,
+    city: ((facility as { city_custom?: string | null; cities?: { name_ar?: string } | null }).city_custom
+      || (facility as { city_custom?: string | null; cities?: { name_ar?: string } | null }).cities?.name_ar
+      || "غير محددة") as string,
+    phone: ((facility as { primary_phone?: string }).primary_phone ?? "") as string,
+    email: email ?? undefined,
+    facilityType: input.facilityType,
+    answers: input.answers.map((answer) => ({
+      itemCode: answer.item_code,
+      value: mapAssessmentAnswerToSharedValue(answer.status),
+      notes: answer.notes,
+    })),
+  });
 }
 
 async function resolveAssessmentActorId(companyId: string) {
@@ -344,6 +499,15 @@ export async function savePublicFacilityAssessment(input: {
       tier,
       answers: value.answers,
     });
+    await saveFacilityAssessmentToSharedRegistry({
+      facilityId,
+      facilityType: input.facilityType,
+      answers: value.answers.map((answer) => ({
+        item_code: answer.item_code,
+        status: mapSharedAnswerStatus(answer.status),
+        notes: answer.notes ?? undefined,
+      })),
+    });
 
     return { success: true, score };
   } catch (error) {
@@ -359,78 +523,30 @@ export async function submitSharedAssessmentLead(
       return { success: false, message: "تم تجاوز عدد المحاولات المسموح. يرجى المحاولة لاحقًا." };
     }
 
-    const value = await validate(input);
-    const answerMap = new Map(value.answers.map((answer) => [answer.item_code, answer]));
-    let points = 0;
-    let applicable = 0;
-    const counts = { available: 0, partial: 0, unavailable: 0, not_applicable: 0, unanswered: 0 };
-    const gaps: Array<{ code: string; question: string; chapter: string; status: string }> = [];
-
-    for (const [code, standard] of value.standards) {
-      const answer = answerMap.get(code);
-      if (answer?.status === "na") {
-        counts.not_applicable++;
-        continue;
-      }
-      applicable++;
-      if (answer?.status === "1") {
-        points++;
-        counts.available++;
-      } else if (answer?.status === "0.5") {
-        points += 0.5;
-        counts.partial++;
-        gaps.push({ code, question: standard.question, chapter: standard.chapter, status: "partial" });
-      } else if (answer?.status === "0") {
-        counts.unavailable++;
-        gaps.push({ code, question: standard.question, chapter: standard.chapter, status: "unavailable" });
-      } else {
-        counts.unanswered++;
-        gaps.push({ code, question: standard.question, chapter: standard.chapter, status: "unanswered" });
-      }
-    }
-
-    const score = applicable ? Math.round((points / applicable) * 100) : 0;
-    const tier = score >= 85 ? "high" : score >= 65 ? "medium" : "low";
-
+    const { leadId, summary, normalized } = await insertSharedAssessmentRecord(input);
     const admin = createAdminClient();
     const companyId = await resolvePublicLeadCompanyId(admin);
-    const { data, error } = await admin.from("shared_assessment_leads").insert({
-      facility_name: value.facilityName,
-      contact_name: value.contactName,
-      city: value.city,
-      phone: value.phone,
-      phone_normalized: normalizePhone(value.phone),
-      email: value.email,
-      facility_type_assessed: input.facilityType,
-      overall_score: score,
-      readiness_tier: tier,
-      answered_count: value.answers.length,
-      counts,
-      answers: value.answers,
-      top_gaps: gaps.slice(0, 25),
-    }).select("id").single();
-    if (error || !data) throw error ?? new Error("Unable to save assessment lead.");
 
     const facilityId = await upsertFacilityFromAssessment({
-      facilityName: value.facilityName,
-      contactName: value.contactName,
-      city: value.city,
-      phone: value.phone,
-      email: value.email,
+      facilityName: normalized.facilityName,
+      contactName: normalized.contactName,
+      city: normalized.city,
+      phone: normalized.phone,
+      email: normalized.email,
       facilityType: input.facilityType,
-      score,
-      tier,
+      score: summary.score,
+      tier: summary.tier,
     });
     await saveFacilityAssessmentFromPublicLead({
       companyId,
       facilityId,
       facilityType: input.facilityType,
-      score,
-      tier,
-      answers: value.answers,
+      score: summary.score,
+      tier: summary.tier,
+      answers: normalized.answers,
     });
 
-    return { success: true, leadId: data.id as string, score };
+    return { success: true, leadId, score: summary.score };
   } catch (error) {
     console.error("Shared assessment lead submission failed", error);
     return { success: false, message: error instanceof Error ? error.message : "تعذر إرسال النتيجة حاليًا." };

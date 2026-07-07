@@ -4,7 +4,7 @@ import { supabaseEnv } from "@/lib/supabase/env";
 import { canAccessPath } from "@/lib/auth/rbac-guards";
 import type { AppRole } from "@/lib/auth/types";
 
-const PUBLIC_PATHS = ["/assessment", "/success-stories", "/login", "/reset", "/invite", "/api/auth/login"];
+const PUBLIC_PATHS = ["/assessment", "/success-stories", "/vision", "/login", "/reset", "/invite", "/api/auth/login"];
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });

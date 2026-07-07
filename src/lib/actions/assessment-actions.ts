@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getAuthContext } from "@/lib/auth/context";
+import { saveFacilityAssessmentToSharedRegistry } from "@/lib/actions/shared-assessment-leads";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { AuthContext } from "@/lib/auth/types";
 import type {
@@ -137,6 +138,11 @@ export async function saveAssessment(input: SaveAssessmentInput) {
       new_value: `${score}% | ${tier} | ${context.fullName}`,
     });
     if (activityError) throw activityError;
+    await saveFacilityAssessmentToSharedRegistry({
+      facilityId: input.facilityId,
+      facilityType: input.facilityTypeAssessed,
+      answers: input.answers,
+    });
     revalidatePath(`/dashboard/facilities/${input.facilityId}`);
     return { success: true as const, assessment: toAssessment(data as AssessmentRow) };
   } catch (error) {

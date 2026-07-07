@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import type { AuthContext } from "@/lib/auth/types";
+import { CBAHI_DATA } from "@/lib/data/cbahi-data";
 import type { AssessmentAnswer } from "@/lib/types/assessment";
 
 const mocks = vi.hoisted(() => ({
@@ -24,6 +25,9 @@ type TestDatabase = {
   facilities: Row[];
   assessments: Row[];
   facility_activity: Row[];
+  contacts: Row[];
+  shared_assessment_leads: Row[];
+  system_settings: Row[];
 };
 
 class Query implements PromiseLike<{ data: unknown; error: null }> {
@@ -160,9 +164,23 @@ describe("assessment persistence server actions", () => {
         company_id: "company-a",
         assigned_to: "user-sales",
         is_active: true,
+        name_ar: "مجمع ألف",
+        city_custom: "الرياض",
+        primary_phone: "0501234567",
       }],
       assessments: [],
       facility_activity: [],
+      contacts: [{
+        id: "contact-a",
+        facility_id: "facility-a",
+        company_id: "company-a",
+        name_ar: "أحمد خالد",
+        email: "ahmed@example.com",
+        is_primary: true,
+        is_archived: false,
+      }],
+      shared_assessment_leads: [],
+      system_settings: [],
     };
     mocks.getAuthContext.mockReset().mockResolvedValue(auth());
     mocks.createAdminClient.mockReset().mockReturnValue(createAdmin(database));
@@ -170,11 +188,12 @@ describe("assessment persistence server actions", () => {
   });
 
   test("recalculates score and tier before persisting", async () => {
+    const codes = CBAHI_DATA.general.chapters.flatMap((chapter) => chapter.items.map((item) => item.code));
     const answers: AssessmentAnswer[] = [
-      { item_code: "A1", status: "Met" },
-      { item_code: "A2", status: "Met" },
-      { item_code: "A3", status: "Not Met" },
-      { item_code: "A4", status: "Not Applicable" },
+      { item_code: codes[0], status: "Met" },
+      { item_code: codes[1], status: "Met" },
+      { item_code: codes[2], status: "Not Met" },
+      { item_code: codes[3], status: "Not Applicable" },
     ];
 
     const result = await saveAssessment({
@@ -191,6 +210,15 @@ describe("assessment persistence server actions", () => {
     expect(database.facility_activity[0]).toMatchObject({
       facility_id: "facility-a",
       event_type: "assessment_saved",
+    });
+    expect(database.shared_assessment_leads[0]).toMatchObject({
+      facility_name: "مجمع ألف",
+      contact_name: "أحمد خالد",
+      city: "الرياض",
+      phone: "0501234567",
+      overall_score: 67,
+      readiness_tier: "medium",
+      facility_type_assessed: "general",
     });
   });
 

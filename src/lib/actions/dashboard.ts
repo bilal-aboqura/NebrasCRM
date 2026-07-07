@@ -37,6 +37,8 @@ const ACTIVITY_LABELS: Record<string, string> = {
   offer_sent: "تم إرسال عرض سعر",
   offer_accepted: "تم قبول عرض السعر",
   offer_rejected: "تم رفض عرض السعر",
+  offer_document_uploaded: "تم رفع مستند العرض",
+  offer_document_viewed: "تم عرض مستند العرض",
   contract_created: "تم إنشاء عقد",
   contract_activated: "تم تفعيل عقد",
   contract_completed: "تم إكمال عقد",

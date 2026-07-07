@@ -13,5 +13,15 @@ const row = { id: "offer-a", company_id: "company-a", facility_id: "facility-a",
 describe("offer drafts", () => {
   beforeEach(() => { state.rpc.mockReset(); state.fetch.mockReset(); state.rpc.mockResolvedValue({ data: { id: "offer-a" }, error: null }); state.fetch.mockResolvedValue({ data: row, error: null }); });
   it("sends only raw inputs to the atomic server calculation", async () => { const result = await createOffer(valid); expect(result.success).toBe(true); expect(state.rpc).toHaveBeenCalledWith("create_offer_atomic", expect.objectContaining({ p_company_id: "company-a", p_input: expect.not.objectContaining({ grand_total: expect.anything() }) })); });
+  it("allows saving a draft even when line items and title are still blank", async () => {
+    const result = await createOffer({ ...valid, title: "", validUntil: "", discountValue: 0, lineItems: [{ description: "", amount: 0, ordering: 0 }] });
+    expect(result.success).toBe(true);
+    expect(state.rpc).toHaveBeenCalledWith("create_offer_atomic", expect.objectContaining({
+      p_input: expect.objectContaining({
+        title: "مسودة عرض سعر",
+        line_items: [],
+      }),
+    }));
+  });
   it("rejects a fixed discount above subtotal before persistence", async () => { const result = await createOffer({ ...valid, discountValue: 1001 }); expect(result.success).toBe(false); expect(state.rpc).not.toHaveBeenCalled(); });
 });

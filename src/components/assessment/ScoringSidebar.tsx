@@ -10,7 +10,18 @@ interface ScoringSidebarProps {
 }
 
 export default function ScoringSidebar({ scoreBreakdown, onReset, onGenerateReport }: ScoringSidebarProps) {
-  const { score, pointsEarned, applicableItems, totalItems, answeredCount, tierLabel, tierDescription, tier } = scoreBreakdown;
+  const {
+    score,
+    pointsEarned,
+    applicableItems,
+    totalItems,
+    answeredCount,
+    unansweredCount,
+    isComplete,
+    tierLabel,
+    tierDescription,
+    tier,
+  } = scoreBreakdown;
   const progressPercent = Math.round((answeredCount / totalItems) * 100) || 0;
   const scorePercent = Math.round(score);
 
@@ -77,12 +88,18 @@ export default function ScoringSidebar({ scoreBreakdown, onReset, onGenerateRepo
             <span className="font-bold text-nebras-ink">{applicableItems}</span>
           </div>
         </div>
+
+        {!isComplete && answeredCount > 0 && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            أكمل جميع البنود أولاً قبل إصدار التقرير أو حفظ التقييم. المتبقي: {unansweredCount}
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-3">
         <button
           onClick={onGenerateReport}
-          disabled={answeredCount === 0}
+          disabled={!isComplete}
           className="flex w-full items-center justify-center gap-2 rounded-lg bg-nebras-green px-4 py-3 font-bold text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-300"
         >
           <FileText size={18} />

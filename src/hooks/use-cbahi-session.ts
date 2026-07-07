@@ -18,6 +18,8 @@ export interface ScoreBreakdown {
   applicableItems: number;
   totalItems: number;
   answeredCount: number;
+  unansweredCount: number;
+  isComplete: boolean;
   gaps: { code: string; question: string; value: string; chapter: string }[];
   tier: "high" | "medium" | "low";
   tierLabel: string;
@@ -91,6 +93,8 @@ export function useCbahisession(assessmentData: AssessmentDataSet = CBAHI_DATA) 
 
         if (val === "na") {
           // not applicable: excluded from numerator and denominator
+        } else if (val === "") {
+          gaps.push({ code: item.code, question: item.question, value: "unanswered", chapter: chapter.title });
         } else {
           applicableItems++;
           if (val === "1") pointsEarned += 1.0;
@@ -99,8 +103,6 @@ export function useCbahisession(assessmentData: AssessmentDataSet = CBAHI_DATA) 
             gaps.push({ code: item.code, question: item.question, value: "0.5", chapter: chapter.title });
           } else if (val === "0") {
             gaps.push({ code: item.code, question: item.question, value: "0", chapter: chapter.title });
-          } else if (val === "") {
-            gaps.push({ code: item.code, question: item.question, value: "unanswered", chapter: chapter.title });
           }
         }
       });
@@ -110,6 +112,8 @@ export function useCbahisession(assessmentData: AssessmentDataSet = CBAHI_DATA) 
     const limitedGaps = gaps.slice(0, 25);
 
     const score = applicableItems > 0 ? (pointsEarned / applicableItems) * 100 : 0;
+    const unansweredCount = totalItems - answeredCount;
+    const isComplete = totalItems > 0 && unansweredCount === 0;
 
     let tier: "high" | "medium" | "low" = "low";
     let tierLabel = "جاهزية منخفضة";
@@ -131,6 +135,8 @@ export function useCbahisession(assessmentData: AssessmentDataSet = CBAHI_DATA) 
       applicableItems,
       totalItems,
       answeredCount,
+      unansweredCount,
+      isComplete,
       gaps: limitedGaps,
       tier,
       tierLabel,

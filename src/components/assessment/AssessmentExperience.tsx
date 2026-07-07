@@ -149,14 +149,14 @@ export default function AssessmentExperience({
   }
 
   useEffect(() => {
-    if (!state.showReport || !targetFacilityId || scoreBreakdown.answeredCount === 0 || isSavingAssessment) return;
+    if (!state.showReport || !targetFacilityId || !scoreBreakdown.isComplete || isSavingAssessment) return;
     if (lastAutoSavedKeyRef.current === autoSaveKey) return;
 
     lastAutoSavedKeyRef.current = autoSaveKey;
     void handleSaveAssessment();
     // We intentionally auto-save once per unique report payload.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoSaveKey, isSavingAssessment, scoreBreakdown.answeredCount, state.showReport, targetFacilityId]);
+  }, [autoSaveKey, isSavingAssessment, scoreBreakdown.isComplete, state.showReport, targetFacilityId]);
 
   if (!entryReady) {
     return (

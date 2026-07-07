@@ -73,10 +73,27 @@ describe("CBAHI Self-Assessment Session Hook", () => {
 
     const breakdown = result.current.scoreBreakdown;
     expect(breakdown.pointsEarned).toBe(1.5);
-    expect(breakdown.applicableItems).toBe(totalItems - 1);
-    expect(breakdown.score).toBe((1.5 / (totalItems - 1)) * 100);
+    expect(breakdown.applicableItems).toBe(3);
+    expect(breakdown.score).toBe(50);
     expect(breakdown.answeredCount).toBe(4);
     expect(breakdown.totalItems).toBe(totalItems);
+    expect(breakdown.unansweredCount).toBe(totalItems - 4);
+    expect(breakdown.isComplete).toBe(false);
+  });
+
+  it("should mark the assessment complete only after all items are answered", () => {
+    const { result } = renderHook(() => useCbahisession());
+
+    act(() => {
+      CBAHI_DATA.general.chapters.forEach((chapter) => {
+        chapter.items.forEach((item) => {
+          result.current.setAnswer(item.code, "1");
+        });
+      });
+    });
+
+    expect(result.current.scoreBreakdown.isComplete).toBe(true);
+    expect(result.current.scoreBreakdown.unansweredCount).toBe(0);
   });
 
   it("should categorize tiers correctly", () => {

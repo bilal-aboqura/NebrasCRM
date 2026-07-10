@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Archive, CopyPlus, Download, Printer, ShieldCheck } from "lucide-react";
 import { ContractEditorModal } from "@/components/contracts/ContractEditorModal";
+import { InvoicesPanel } from "@/components/contracts/InvoicesPanel";
 import { TerminateContractModal } from "@/components/contracts/TerminateContractModal";
 import { archiveContract, completeContract, createContractAddendum, getSignedDocumentUrl, type Contract } from "@/lib/actions/contracts";
 import type { FacilityStatus } from "@/lib/actions/facilities";
@@ -176,6 +177,9 @@ export function ContractsSection({
                       </button>
                     )}
                   </div>
+
+                  {/* Invoices / Installments panel */}
+                  <InvoicesPanel contractId={contract.id} contractValue={contract.value} />
                 </div>
               ))}
             </section>

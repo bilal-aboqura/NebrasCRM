@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Archive, CheckCircle, Info, Loader2, MinusCircle, X, XCircle } from "lucide-react";
+import { Archive, CheckCircle, Download, Info, Loader2, MinusCircle, X, XCircle } from "lucide-react";
 import { CBAHI_DATA } from "@/lib/data/cbahi-data";
 import type { Assessment } from "@/lib/types/assessment";
 import { archiveAssessment } from "@/lib/actions/assessment-actions";
+// jspdf-autotable is imported dynamically inside handleDownloadPDF
 
 interface SavedAssessmentModalProps {
   assessment: Assessment | null;
@@ -74,6 +75,142 @@ export default function SavedAssessmentModal({
     }
   };
 
+  const handleDownloadPDF = async () => {
+    // Dynamically import both — must use the named export for reliable bundling
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable"),
+    ]);
+
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const dateStr = new Date(assessment.createdAt).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+    // ── Header band ──────────────────────────────────────────────────────────
+    doc.setFillColor(15, 52, 96);
+    doc.rect(0, 0, pageW, 28, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Assessment Details - ${data.title}`, pageW / 2, 11, { align: "center" });
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Date: ${dateStr}   |   Overall Score: ${assessment.overallScore}%`, pageW / 2, 20, { align: "center" });
+
+    // ── Summary stats ────────────────────────────────────────────────────────
+    const allAnswers = assessment.answers;
+    const counts = {
+      total: allAnswers.length,
+      met: allAnswers.filter((a) => a.status === "Met").length,
+      partial: allAnswers.filter((a) => a.status === "Partially Met").length,
+      notMet: allAnswers.filter((a) => a.status === "Not Met").length,
+      na: allAnswers.filter((a) => a.status === "Not Applicable").length,
+    };
+
+    // Use standalone autoTable(doc, options) — avoids prototype-patch issues in Next.js
+    autoTable(doc, {
+      startY: 33,
+      head: [["Total Items", "Met (Compliant)", "Partially Met", "Not Met", "Not Applicable"]],
+      body: [[counts.total, counts.met, counts.partial, counts.notMet, counts.na]],
+      theme: "grid",
+      headStyles: { fillColor: [200, 162, 50], textColor: 255, fontStyle: "bold", halign: "center" },
+      bodyStyles: { halign: "center", fontSize: 11 },
+      margin: { left: 10, right: 10 },
+    });
+
+    // ── Detailed items ───────────────────────────────────────────────────────
+    // jsPDF's built-in Helvetica font has NO Arabic glyph support.
+    // Use English-only labels here; colour-code cells to preserve visual meaning.
+    const pdfStatusLabel = (s: string) => {
+      if (s === "Met") return "Met";
+      if (s === "Partially Met") return "Partially Met";
+      if (s === "Not Met") return "Not Met";
+      if (s === "Not Applicable") return "N/A";
+      return "Unknown";
+    };
+    const statusFill = (s: string): [number, number, number] => {
+      if (s === "Met") return [220, 252, 231];      // green-100
+      if (s === "Partially Met") return [254, 243, 199]; // amber-100
+      if (s === "Not Met") return [254, 226, 226];  // red-100
+      return [241, 245, 249];                        // slate-100 (N/A / unknown)
+    };
+    const statusInk = (s: string): [number, number, number] => {
+      if (s === "Met") return [22, 101, 52];         // green-800
+      if (s === "Partially Met") return [120, 53, 15]; // amber-900
+      if (s === "Not Met") return [153, 27, 27];    // red-800
+      return [100, 116, 139];                        // slate-500 (N/A / unknown)
+    };
+
+    const rowStatuses: string[] = [];
+    const rows: string[][] = [];
+    data.chapters.forEach((chapter) => {
+      chapter.standards.forEach((standard) => {
+        standard.items.forEach((item) => {
+          const answer = answersMap.get(item.code);
+          if (!answer) return;
+          rowStatuses.push(answer.status);
+          rows.push([
+            item.code,
+            item.question,
+            item.suggestedEvidence ?? "",
+            pdfStatusLabel(answer.status),
+            answer.notes ?? "",
+            chapter.title,
+            standard.code,
+          ]);
+        });
+      });
+    });
+
+    // Capture the finalY after the summary table
+    const summaryFinalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable?.finalY ?? 55;
+
+    autoTable(doc, {
+      startY: summaryFinalY + 6,
+      head: [["Code", "Question", "Suggested Evidence", "Status", "Notes", "Chapter", "Standard"]],
+      body: rows,
+      theme: "striped",
+      headStyles: { fillColor: [15, 52, 96], textColor: 255, fontStyle: "bold", fontSize: 8 },
+      bodyStyles: { fontSize: 7, valign: "top", overflow: "linebreak" },
+      columnStyles: {
+        0: { cellWidth: 18 },
+        1: { cellWidth: 70 },
+        2: { cellWidth: 55 },
+        3: { cellWidth: 28, halign: "center", fontStyle: "bold" },
+        4: { cellWidth: 38 },
+        5: { cellWidth: 42 },
+        6: { cellWidth: 18 },
+      },
+      margin: { left: 10, right: 10 },
+      willDrawCell: (hookData) => {
+        if (hookData.section === "body" && hookData.column.index === 3) {
+          const s = rowStatuses[hookData.row.index] ?? "";
+          hookData.cell.styles.fillColor = statusFill(s);
+          hookData.cell.styles.textColor = statusInk(s);
+        }
+      },
+      didDrawPage: (hookData) => {
+        doc.setFontSize(7);
+        doc.setTextColor(150);
+        doc.text(
+          `Page ${hookData.pageNumber} | NebrasCRM - CBAHI Assessment Report`,
+          pageW / 2,
+          pageH - 4,
+          { align: "center" },
+        );
+      },
+    });
+
+    const safeDate = new Date(assessment.createdAt).toISOString().slice(0, 10);
+    const fileName = `CBAHI_Assessment_${data.title.replace(/\s+/g, "_")}_${safeDate}.pdf`;
+    doc.save(fileName);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
       <div className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
@@ -88,6 +225,13 @@ export default function SavedAssessmentModal({
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleDownloadPDF}
+              className="flex items-center gap-2 rounded-lg bg-nebras-green/10 px-3 py-1.5 text-sm font-bold text-nebras-green transition-colors hover:bg-nebras-green/20"
+            >
+              <Download size={16} />
+              تحميل PDF
+            </button>
             {canManage && assessment.isActive && (
               <button
                 onClick={handleArchive}

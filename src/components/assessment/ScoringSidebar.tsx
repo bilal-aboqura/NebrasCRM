@@ -90,8 +90,8 @@ export default function ScoringSidebar({ scoreBreakdown, onReset, onGenerateRepo
         </div>
 
         {!isComplete && answeredCount > 0 && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-            أكمل جميع البنود أولاً قبل إصدار التقرير أو حفظ التقييم. المتبقي: {unansweredCount}
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
+            <strong>تقرير جزئي:</strong> سيشمل التقرير {answeredCount} بندًا تمت الإجابة عليه، ويمكنك الاستمرار لاحقًا. المتبقي: {unansweredCount} بندًا.
           </div>
         )}
       </div>
@@ -99,7 +99,7 @@ export default function ScoringSidebar({ scoreBreakdown, onReset, onGenerateRepo
       <div className="flex flex-col gap-3">
         <button
           onClick={onGenerateReport}
-          disabled={!isComplete}
+          disabled={answeredCount === 0}
           className="flex w-full items-center justify-center gap-2 rounded-lg bg-nebras-green px-4 py-3 font-bold text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-300"
         >
           <FileText size={18} />

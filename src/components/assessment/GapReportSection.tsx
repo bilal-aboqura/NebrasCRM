@@ -60,7 +60,7 @@ export default function GapReportSection({
 
       {(isSavingAssessment || saveMessage || saveError || linkedFacilityName) && (
         <div
-          className={`rounded-xl border p-4 text-sm ${
+          className={`rounded-xl border p-4 text-sm whitespace-pre-line ${
             saveError ? "border-red-200 bg-red-50 text-red-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"
           }`}
         >
@@ -69,6 +69,20 @@ export default function GapReportSection({
             : isSavingAssessment
               ? `جارٍ حفظ هذا التقييم داخل ملف المنشأة: ${linkedFacilityName ?? "المنشأة"}`
               : saveMessage ?? (linkedFacilityName ? `سيتم حفظ هذا التقييم داخل ملف المنشأة: ${linkedFacilityName}` : "")}
+        </div>
+      )}
+
+      {!scoreBreakdown.isComplete && scoreBreakdown.answeredCount > 0 && (
+        <div className="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
+          <AlertTriangle size={18} className="mt-0.5 shrink-0 text-blue-500" />
+          <div>
+            <strong>تقرير جزئي — لم يكتمل التقييم بعد</strong>
+            <p className="mt-1 text-blue-700">
+              تمت الإجابة على <strong>{scoreBreakdown.answeredCount}</strong> بندًا من أصل{" "}
+              <strong>{scoreBreakdown.totalItems}</strong>. النتيجة الحالية تعكس البنود المجاب عنها فقط.{" "}
+              يمكنك العودة وإكمال باقي البنود للحصول على تقرير شامل.
+            </p>
+          </div>
         </div>
       )}
 

@@ -135,28 +135,28 @@ export default function AssessmentExperience({
 
       if (!result.success) {
         setSaveError(("error" in result ? result.error : result.message) || "تعذر حفظ التقييم على المنشأة.");
-        lastAutoSavedKeyRef.current = "";
+        // Do NOT reset lastAutoSavedKeyRef here — prevents infinite retry loop on error.
         return;
       }
 
-      setSaveMessage(`تم حفظ تقييم سباهي داخل ملف المنشأة: ${targetFacilityName ?? "المنشأة"}`);
+      setSaveMessage(`تم حفظ تقييم سباهي داخل ملف المنشأة: ${targetFacilityName ?? "المنشأة"}\nوسيتم التواصل معك من قبل مستشار الاعتماد لدينا.`);
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "تعذر حفظ التقييم على المنشأة.");
-      lastAutoSavedKeyRef.current = "";
+      // Do NOT reset lastAutoSavedKeyRef here — prevents infinite retry loop on error.
     } finally {
       setIsSavingAssessment(false);
     }
   }
 
   useEffect(() => {
-    if (!state.showReport || !targetFacilityId || !scoreBreakdown.isComplete || isSavingAssessment) return;
+    if (!state.showReport || !targetFacilityId || assessmentAnswers.length === 0) return;
     if (lastAutoSavedKeyRef.current === autoSaveKey) return;
 
     lastAutoSavedKeyRef.current = autoSaveKey;
     void handleSaveAssessment();
-    // We intentionally auto-save once per unique report payload.
+    // Deps intentionally omit isSavingAssessment — the ref guards against double-saves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoSaveKey, isSavingAssessment, scoreBreakdown.isComplete, state.showReport, targetFacilityId]);
+  }, [autoSaveKey, state.showReport, targetFacilityId]);
 
   if (!entryReady) {
     return (

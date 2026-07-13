@@ -23,6 +23,14 @@ describe("CBAHI Self-Assessment Session Hook", () => {
     expect(englishRadiology?.title).toBe("The center implements a radiation safety program.");
   });
 
+  it("provides an Arabic operating translation for dental standards", () => {
+    const arabicData = localizeAssessmentData(CBAHI_DATA, "ar");
+    const standard = arabicData.dental.chapters.flatMap((chapter) => chapter.standards).find((entry) => entry.code === "PC.16");
+
+    expect(standard?.title).toBe("يقوم المركز بتطوير برنامج السلامة الإشعاعية.");
+    expect(standard?.items[0]?.question).toContain("الإشعاعات المؤينة");
+  });
+
   it("should load dental standards using grouped sections and questions from the dental source", () => {
     expect(CBAHI_DATA.dental.chapters).toHaveLength(6);
 

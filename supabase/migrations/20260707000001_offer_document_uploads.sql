@@ -1,3 +1,28 @@
+-- Older cloud installations can be missing this helper even when the
+-- application migrations expect it. The storage policies below depend on it.
+create or replace function public.jwt_company_id()
+returns uuid
+language sql stable
+as $$
+  select nullif(
+    coalesce(
+      auth.jwt() ->> 'company_id',
+      auth.jwt() -> 'user_metadata' ->> 'company_id'
+    ),
+    ''
+  )::uuid
+$$;
+
+create or replace function public.jwt_role()
+returns public.app_role
+language sql stable
+as $$
+  select coalesce(
+    auth.jwt() ->> 'user_role',
+    auth.jwt() -> 'user_metadata' ->> 'role'
+  )::public.app_role
+$$;
+
 alter type public.facility_activity_type add value if not exists 'offer_document_uploaded';
 alter type public.facility_activity_type add value if not exists 'offer_document_viewed';
 

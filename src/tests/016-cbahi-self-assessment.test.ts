@@ -26,6 +26,18 @@ describe("CBAHI Self-Assessment Session Hook", () => {
     ]);
   });
 
+  it("keeps standard headings separate from explanatory text and neighboring standards", () => {
+    const standards = CBAHI_DATA.general.chapters.flatMap((chapter) => chapter.standards);
+    const titleFor = (code: string) => standards.find((standard) => standard.code === code)?.title;
+
+    expect(titleFor("RD.2")).toBe("The center implements a radiation safety program.");
+    expect(titleFor("IPC.7")).toBe("The center ensures safe cleaning, disinfection, and sterilization processes.");
+    expect(titleFor("LD.13")).toBe("The center implements a credentialing process for clinical staff.");
+    expect(titleFor("LD.14")).toBe("The center has a policy and procedure for granting clinical privileges to medical staff.");
+    expect(titleFor("PC.2")).toBe("Patients are identified using at least two identifiers.");
+    expect(titleFor("IPC.11")).toBe("The leaders develop and ensure the implementation of a healthcare waste management program.");
+  });
+
   it("should initialize with default state", () => {
     const { result } = renderHook(() => useCbahisession());
 

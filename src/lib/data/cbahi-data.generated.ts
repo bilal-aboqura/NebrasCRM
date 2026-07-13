@@ -315,7 +315,7 @@ export const MASTER_AMB_CHAPTER_DEFINITIONS = [
       },
       {
         "code": "LD.13",
-        "title": "source directly or through a third party with documented evidence. LD.13.4. The center ensures the registration of healthcare professionals with the Saudi Commission for Health Specialties and licensing by the Ministry of Health in accordance with laws and regulations. LD.13.5. The credentialing process guides the appointment of healthcare staff to their appropriate job assignment and is repeated every two (2) years to ensure that staff are still capable of performing their job functions. LD.13.6. Information about staff credentials, privileges, competencies, orientation, training, education, and evaluation are kept securely in an updated personnel file. Explanation The center must make all efforts to ensure the placement of new staff in the right position initially, and every two years thereafter. This process of credentialing applies to all clinical staff licensed to provide patient care (physicians, nurses, physiotherapists, technicians). The credentialing process involves collecting all the information related to the staff (education, training, experience, competencies, and licensure), verifying it from the primary source, and evaluating it to ensure the staff fits in his/her assigned position. The center ensures that all healthcare professionals are registered with the Saudi Commission and licensed by the MOH according to rules and regulations. All staff who are credentialed and approved to work in the center should have a record of their credentials kept safely with the administration. The process is repeated every two years to ensure that staff remain authorized and capable of providing the same job functions. All medical staff members have current delineated clinical privileges.",
+        "title": "The center implements a credentialing process for clinical staff.",
         "items": [
           {
             "code": "LD.13.1",
@@ -351,7 +351,7 @@ export const MASTER_AMB_CHAPTER_DEFINITIONS = [
       },
       {
         "code": "LD.14",
-        "title": "LD.15. All new employees attend a mandatory orientation program.",
+        "title": "The center has a policy and procedure for granting clinical privileges to medical staff.",
         "items": [
           {
             "code": "LD.14.1",
@@ -1021,7 +1021,7 @@ export const MASTER_AMB_CHAPTER_DEFINITIONS = [
       },
       {
         "code": "PC.2",
-        "title": "PC.4. Physicians are provided with the results of requested investigations according to a time frame.",
+        "title": "Patients are identified using at least two identifiers.",
         "items": [
           {
             "code": "PC.2.1",
@@ -1885,7 +1885,7 @@ export const MASTER_AMB_CHAPTER_DEFINITIONS = [
       },
       {
         "code": "RD.2",
-        "title": "Explanation Patients, staff, and the environment should be protected from radiation by a well-constructed radiation safety program. The program includes all areas utilizing ionizing radiation, such as the dental panorama and mobile x-rays. Radiology rooms should be tested initially to ensure the absence of a radiation leak. Equipment should be tested periodically to ensure the absence of a leak. The same testing should be done for the dental panorama (if present). Warning signs should be clearly posted. Women in childbearing periods should undergo a pregnancy test if they have missed a period. Staff exposure to radiation should be monitored using thermoluminescence dosimeters that are examined periodically, and staff should receive replacement cards during the test time. Radiation protection aprons should also be tested periodically for their integrity. RD.3. There is implemented process to keep the radiology equipment in safe, functional condition.",
+        "title": "The center implements a radiation safety program.",
         "items": [
           {
             "code": "RD.2.1",
@@ -2763,7 +2763,7 @@ export const MASTER_AMB_CHAPTER_DEFINITIONS = [
       },
       {
         "code": "IPC.7",
-        "title": "takes place outside this area. IPC.7.3. A policy and procedure on the safe reprocessing of single-use items have been implemented. IPC.7.4. Personal protective equipment is available and used during decontamination: heavy-duty gloves, waterproof aprons, facemasks, goggles, and face shields. IPC.7.5. Sterilizers are in good working order, and instructions for their use are available. IPC.7.6. Proper sterilization parameters are recorded. IPC.7.7. Sterilization records are retained for one year. IPC.7.8. Chemical indicators are used in every package. Biological indicators are used at least weekly. Records of results are kept for one year. Explanation Infection risk is minimized through proper cleaning, disinfection, and sterilization of surgical supplies and other invasive or noninvasive patient care equipment. To ensure the proper method of collection, decontamination, cleaning, and sterilization, these services must be centralized and maintained. CSSD staff must set clearly written policies and procedures that guide collection and transportation, decontamination and disinfection, cleaning and sterilization, the storage of sterile items, and a mechanism for the recall of sterile items in the event that the sterilization process fails. The policy must be scientifically sound, and reviewed and approved by the infection prevention and control, quality, and administration. When this service is outsourced, the center should ensure that the contractor complies with all required safety standards. Re-sterilization of single-use items should be carried out according to an evidence-based policy that ensures safe sterilization without affecting the integrity of the item's use and that specifies the number of re- sterilization cycles and the point at which the item cannot be further re-sterilized. IPC.8. Patients with communicable diseases and those who are colonized or infected with epidemiologically important organisms are separated from other patients, staff and visitors.",
+        "title": "The center ensures safe cleaning, disinfection, and sterilization processes.",
         "items": [
           {
             "code": "IPC.7.1",
@@ -2882,7 +2882,7 @@ export const MASTER_AMB_CHAPTER_DEFINITIONS = [
       },
       {
         "code": "IPC.11",
-        "title": "IPC.12. The leaders develop and ensure the implementation of a program for the prevention and management of sharp injuries.",
+        "title": "The leaders develop and ensure the implementation of a healthcare waste management program.",
         "items": [
           {
             "code": "IPC.11.1",

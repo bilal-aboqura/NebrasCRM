@@ -15,6 +15,7 @@ import { getFacilityDetail } from "@/lib/actions/facilities";
 import { savePublicFacilityAssessment } from "@/lib/actions/shared-assessment-leads";
 import type { AppRole } from "@/lib/auth/types";
 import type { AssessmentDataSet } from "@/lib/data/cbahi-data";
+import { localizeAssessmentData, type AssessmentLanguage } from "@/lib/data/cbahi-localization";
 import type { AssessmentAnswer } from "@/lib/types/assessment";
 
 type PrelinkedFacility = { id: string; name_ar: string; type: string };
@@ -26,8 +27,10 @@ export default function AssessmentExperience({
   assessmentData: AssessmentDataSet;
   viewerRole: AppRole | null;
 }) {
+  const [language, setLanguage] = useState<AssessmentLanguage>("ar");
+  const localizedAssessmentData = useMemo(() => localizeAssessmentData(assessmentData, language), [assessmentData, language]);
   const { state, setFacilityType, setAnswer, setNote, setChapterFilter, setShowReport, reset, scoreBreakdown } =
-    useCbahisession(assessmentData);
+    useCbahisession(localizedAssessmentData);
   const searchParams = useSearchParams();
   const facilityId = searchParams.get("facility_id");
   const fromLead = searchParams.get("from") === "lead";
@@ -252,8 +255,23 @@ export default function AssessmentExperience({
             <span className="h-px flex-1 bg-[#e7ddc9]" />
           </div>
 
+          <div className="mb-5 flex flex-wrap items-center justify-center gap-2" role="group" aria-label="Assessment standards language">
+            <span className="text-sm font-bold text-slate-600">لغة المعايير:</span>
+            {(["ar", "en"] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={language === value}
+                onClick={() => setLanguage(value)}
+                className={`rounded-full border px-4 py-2 text-sm font-bold transition ${language === value ? "border-nebras-green bg-nebras-green text-white" : "border-nebras-green/20 bg-white text-nebras-green hover:bg-nebras-cream"}`}
+              >
+                {value === "ar" ? "العربية" : "English"}
+              </button>
+            ))}
+          </div>
+
           <FacilityTypeSelector
-            assessmentData={assessmentData}
+            assessmentData={localizedAssessmentData}
             currentType={state.facilityType}
             onChange={setFacilityType}
             hasAnswers={scoreBreakdown.answeredCount > 0}
@@ -277,11 +295,12 @@ export default function AssessmentExperience({
         <section id="dashboard" className="scroll-mt-24 mx-auto grid max-w-7xl gap-7 px-5 py-12 lg:grid-cols-[320px_1fr] lg:items-start lg:px-8">
           <ScoringSidebar scoreBreakdown={scoreBreakdown} onReset={reset} onGenerateReport={() => setShowReport(true)} />
           <AssessmentPanel
-            assessmentData={assessmentData}
+            assessmentData={localizedAssessmentData}
             facilityType={state.facilityType}
             answers={state.answers}
             notes={state.notes}
             activeChapterFilter={state.activeChapterFilter}
+            language={language}
             setAnswer={setAnswer}
             setNote={setNote}
             setChapterFilter={setChapterFilter}

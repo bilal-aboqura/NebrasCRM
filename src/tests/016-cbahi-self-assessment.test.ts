@@ -4,10 +4,25 @@ import { describe, it, expect } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { useCbahisession } from "@/hooks/use-cbahi-session";
 import { CBAHI_DATA } from "@/lib/data/cbahi-data";
+import { localizeAssessmentData } from "@/lib/data/cbahi-localization";
 
 const generalCodes = CBAHI_DATA.general.chapters.flatMap((chapter) => chapter.items.map((item) => item.code));
 
 describe("CBAHI Self-Assessment Session Hook", () => {
+  it("uses the Arabic standards document without changing answer codes", () => {
+    const arabicData = localizeAssessmentData(CBAHI_DATA, "ar");
+    const englishData = localizeAssessmentData(CBAHI_DATA, "en");
+    const findStandard = (data: typeof CBAHI_DATA, code: string) =>
+      data.general.chapters.flatMap((chapter) => chapter.standards).find((standard) => standard.code === code);
+
+    const arabicRadiology = findStandard(arabicData, "RD.2");
+    const englishRadiology = findStandard(englishData, "RD.2");
+
+    expect(arabicRadiology?.title).toBe("لدي المركز برنامج للسلامة من الإشعاع.");
+    expect(arabicRadiology?.items.map((item) => item.code)).toEqual(englishRadiology?.items.map((item) => item.code));
+    expect(englishRadiology?.title).toBe("The center implements a radiation safety program.");
+  });
+
   it("should load dental standards using grouped sections and questions from the dental source", () => {
     expect(CBAHI_DATA.dental.chapters).toHaveLength(6);
 

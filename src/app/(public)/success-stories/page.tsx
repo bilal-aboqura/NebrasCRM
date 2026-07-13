@@ -27,7 +27,7 @@ const images = {
   hero: "https://storage.googleapis.com/uxpilot-auth.appspot.com/gen_115dd73367_e14f400058aca523.png",
   one: "https://storage.googleapis.com/uxpilot-auth.appspot.com/gen_388caa4262_dc0361b22a99e250.png",
   two: "https://storage.googleapis.com/uxpilot-auth.appspot.com/gen_df0f996cd9_802c93ccf8935e0a.png",
-  three: "https://storage.googleapis.com/uxpilot-auth.appspot.com/gen_ee69a768aa_c04cb3e7b438a695.png",
+  three: "/images/healthcare-facility-no-signage.png",
 } as const;
 
 const strengths = [

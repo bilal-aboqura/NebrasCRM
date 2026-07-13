@@ -48,7 +48,7 @@ const stats = [
   { value: "+120", label: "منشأة مدعومة", icon: BriefcaseMedical },
   { value: "+35", label: "مشروع اعتماد", icon: BadgeCheck },
   { value: "+12", label: "سنة خبرة", icon: TimerReset },
-  { value: "97%", label: "نسبة نجاح", icon: ShieldCheck },
+  { value: "100%", label: "نسبة نجاح", icon: ShieldCheck },
 ] as const;
 
 const advantages = [
@@ -202,7 +202,7 @@ export default function MarketingLandingPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-5 text-center">
                   <div>
-                    <p className="text-4xl font-black text-nebras-gold">97%</p>
+                    <p className="text-4xl font-black text-nebras-gold">100%</p>
                     <p className="mt-1 text-xs text-white/70">نسبة النجاح</p>
                   </div>
                   <div>
@@ -366,7 +366,7 @@ export default function MarketingLandingPage() {
           <div data-reveal="end" className="relative">
             <Image src={images.certificate} alt="شهادة اعتماد CBAHI" width={760} height={620} className="h-[520px] w-full rounded-2xl object-cover shadow-2xl" />
             <div className="absolute -right-4 top-6 rounded-xl bg-nebras-gold px-4 py-3 text-nebras-green shadow-xl">
-              <p className="text-2xl font-black">97%</p>
+              <p className="text-2xl font-black">100%</p>
               <p className="text-xs font-bold">نسبة نجاح</p>
             </div>
             <div className="absolute -bottom-5 left-8 rounded-xl border border-nebras-gold/25 bg-nebras-green/85 px-5 py-4 shadow-xl backdrop-blur">

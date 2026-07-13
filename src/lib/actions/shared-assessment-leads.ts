@@ -54,6 +54,11 @@ type SharedAssessmentSummary = {
   tier: ReadinessTier;
 };
 
+type SharedAssessmentRecordMatch = {
+  id: string;
+  answers: unknown;
+};
+
 const VALUES = new Set(["1", "0.5", "0", "na"]);
 
 function clean(value: unknown, max: number) {
@@ -145,6 +150,58 @@ function summarizeSharedAssessment(
   };
 }
 
+function normalizeAnswersForComparison(answers: NormalizedSharedAnswer[]) {
+  return answers
+    .map((answer) => ({
+      item_code: answer.item_code,
+      status: answer.status,
+      notes: answer.notes ?? null,
+    }))
+    .sort((left, right) => left.item_code.localeCompare(right.item_code));
+}
+
+function answersMatch(left: NormalizedSharedAnswer[], right: unknown) {
+  if (!Array.isArray(right)) return false;
+
+  const normalizedRight = right
+    .map((answer) => {
+      if (!answer || typeof answer !== "object") return null;
+      const candidate = answer as Record<string, unknown>;
+      const itemCode = typeof candidate.item_code === "string" ? candidate.item_code : null;
+      const status = typeof candidate.status === "string" ? candidate.status : null;
+      const notes = typeof candidate.notes === "string" ? candidate.notes : candidate.notes == null ? null : null;
+      if (!itemCode || !status) return null;
+      return { item_code: itemCode, status, notes };
+    })
+    .filter((answer): answer is NormalizedSharedAnswer => answer !== null)
+    .sort((left, rightAnswer) => left.item_code.localeCompare(rightAnswer.item_code));
+
+  return JSON.stringify(normalizeAnswersForComparison(left)) === JSON.stringify(normalizedRight);
+}
+
+async function findDuplicateSharedAssessment(input: {
+  facilityName: string;
+  phoneNormalized: string;
+  facilityType: FacilityType;
+  score: number;
+  answeredCount: number;
+  answers: NormalizedSharedAnswer[];
+}) {
+  const admin = createAdminClient();
+  const { data, error } = await admin.from("shared_assessment_leads")
+    .select("id,answers")
+    .eq("phone_normalized", input.phoneNormalized)
+    .eq("facility_type_assessed", input.facilityType)
+    .eq("overall_score", input.score)
+    .eq("answered_count", input.answeredCount)
+    .eq("facility_name", input.facilityName)
+    .order("created_at", { ascending: false })
+    .limit(10);
+  if (error) throw error;
+
+  return ((data ?? []) as SharedAssessmentRecordMatch[]).find((record) => answersMatch(input.answers, record.answers)) ?? null;
+}
+
 function readinessTierLabel(tier: "high" | "medium" | "low") {
   return tier === "high" ? "عالية" : tier === "medium" ? "متوسطة" : "منخفضة";
 }
@@ -182,13 +239,27 @@ function mapAssessmentAnswerToSharedValue(value: AssessmentAnswer["status"]): Sh
 async function insertSharedAssessmentRecord(input: SharedAssessmentLeadInput) {
   const value = await validate(input);
   const summary = summarizeSharedAssessment(value.standards, value.answers);
+  const phoneNormalized = normalizePhone(value.phone);
+  const duplicate = await findDuplicateSharedAssessment({
+    facilityName: value.facilityName,
+    phoneNormalized,
+    facilityType: input.facilityType,
+    score: summary.score,
+    answeredCount: summary.answeredCount,
+    answers: value.answers,
+  });
+  if (duplicate) {
+    revalidatePath("/dashboard/assessment-leads");
+    return { leadId: duplicate.id, summary, normalized: value };
+  }
+
   const admin = createAdminClient();
   const { data, error } = await admin.from("shared_assessment_leads").insert({
     facility_name: value.facilityName,
     contact_name: value.contactName,
     city: value.city,
     phone: value.phone,
-    phone_normalized: normalizePhone(value.phone),
+    phone_normalized: phoneNormalized,
     email: value.email,
     facility_type_assessed: input.facilityType,
     overall_score: summary.score,

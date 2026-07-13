@@ -55,14 +55,24 @@ function flattenStandardItems(standards: AssessmentStandard[]) {
 }
 
 function hydrateChapter(definition: ChapterDefinition): Chapter {
+  // Some imported source pages repeat a fragment of the preceding standard.
+  // Keep the first complete occurrence of each item code so an assessment can
+  // never present the same requirement twice.
+  const seenItemCodes = new Set<string>();
   const standards = definition.standards.map((standard) => ({
     code: standard.code,
     title: standard.title,
-    items: standard.items.map((item) => ({
-      ...item,
-      standardCode: standard.code,
-      standardTitle: standard.title,
-    })),
+    items: standard.items
+      .filter((item) => {
+        if (seenItemCodes.has(item.code)) return false;
+        seenItemCodes.add(item.code);
+        return true;
+      })
+      .map((item) => ({
+        ...item,
+        standardCode: standard.code,
+        standardTitle: standard.title,
+      })),
   }));
 
   return {

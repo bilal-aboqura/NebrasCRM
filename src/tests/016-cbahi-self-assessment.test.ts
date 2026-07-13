@@ -49,6 +49,22 @@ describe("CBAHI Self-Assessment Session Hook", () => {
     ]);
   });
 
+  it("keeps dental items unique and rejects broken fragments from imported source pages", () => {
+    const dentalItems = CBAHI_DATA.dental.chapters.flatMap((chapter) => chapter.items);
+    const itemCodes = dentalItems.map((item) => item.code);
+    const pc9 = dentalItems.filter((item) => item.standardCode === "PC.9");
+    const arabicData = localizeAssessmentData(CBAHI_DATA, "ar");
+    const arabicPc9 = arabicData.dental.chapters
+      .flatMap((chapter) => chapter.items)
+      .find((item) => item.code === "PC.9.1");
+
+    expect(new Set(itemCodes).size).toBe(itemCodes.length);
+    expect(pc9.map((item) => item.code)).toEqual(["PC.9.1", "PC.9.2", "PC.9.3", "PC.9.4", "PC.9.5"]);
+    expect(pc9[0]?.question).toContain("nitrous oxide/oxygen mixing device");
+    expect(arabicPc9?.question).toContain("جهاز خلط أكسيد النيتروز/الأكسجين");
+    expect(dentalItems.some((item) => /\b(?:LD|PC|DL|MOI|IPC)\.\d+\./.test(item.question))).toBe(false);
+  });
+
   it("keeps standard headings separate from explanatory text and neighboring standards", () => {
     const standards = CBAHI_DATA.general.chapters.flatMap((chapter) => chapter.standards);
     const titleFor = (code: string) => standards.find((standard) => standard.code === code)?.title;

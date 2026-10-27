@@ -19,7 +19,7 @@ function failure(error: unknown): { success: false; error: string } {
 
 async function requireAdministrator() {
   const context = await requireAuth();
-  if (context.role !== "super_admin" && context.role !== "company_admin") throw new Error("غير مصرح لك بإدارة الحسابات.");
+  if (context.status !== "active" || (context.role !== "super_admin" && context.role !== "company_admin")) throw new Error("غير مصرح لك بإدارة الحسابات.");
   return context;
 }
 
@@ -94,25 +94,57 @@ export async function inviteUser(input: InviteInput): Promise<ActionResult<{ use
 }
 
 export async function toggleUserStatus(userId: string, status: "active" | "inactive"): Promise<ActionResult> {
-  const context = await requireAdministrator();
   try {
+    const context = await requireAdministrator();
+    if (status !== "active" && status !== "inactive") throw new Error("حالة المستخدم غير صالحة.");
     const admin = createAdminClient();
-    const { data: target } = await admin.from("profiles").select("id,company_id,role").eq("id", userId).single();
-    if (!target) throw new Error("المستخدم غير موجود.");
-    assertCanManageUser(context, { ...target, role: target.role as AppRole });
-    const { error } = await admin.from("profiles").update({ status }).eq("id", userId);
+    const { error } = await admin.rpc("manage_user_account", {
+      p_actor_id: context.userId, p_target_id: userId,
+      p_operation: status === "active" ? "reactivate" : "deactivate",
+    });
     if (error) throw new Error(error.message);
-    if (status === "inactive") {
-      const { error: revokeError } = await admin.rpc("revoke_user_sessions", { target_user_id: userId });
-      if (revokeError) throw new Error(revokeError.message);
-    }
-    await writeAudit({ actorUserId: context.userId, actorCompanyId: context.companyId, eventType: "profile_update", targetCompanyId: target.company_id, outcome: "success", details: { status: { old: status === "active" ? "inactive" : "active", new: status } } });
     revalidatePath("/admin/users");
     return { success: true };
-  } catch (error) {
-    await writeAudit({ actorUserId: context.userId, actorCompanyId: context.companyId, eventType: "unauthorized_admin_attempt", outcome: "failure" });
-    return failure(error);
-  }
+  } catch (error) { return failure(error); }
+}
+
+export async function deleteUser(userId: string): Promise<ActionResult> {
+  try {
+    const context = await requireAdministrator();
+    const { error } = await createAdminClient().rpc("manage_user_account", {
+      p_actor_id: context.userId, p_target_id: userId, p_operation: "delete",
+    });
+    if (error) throw new Error(error.message);
+    revalidatePath("/admin/users");
+    return { success: true };
+  } catch (error) { return failure(error); }
+}
+
+export async function createUserAccessLink(userId: string): Promise<ActionResult<{ url: string; message: string }>> {
+  try {
+    const context = await requireAdministrator();
+    const admin = createAdminClient();
+    const { data: target, error: targetError } = await admin.from("profiles")
+      .select("id,company_id,role,status,deleted_at").eq("id", userId).single();
+    if (targetError || !target) throw new Error("المستخدم غير موجود.");
+    assertCanManageUser(context, { ...target, role: target.role as AppRole });
+    if (target.deleted_at || target.status === "inactive") throw new Error("أعد تفعيل المستخدم أولاً لإنشاء رابط استعادة كلمة المرور.");
+    const token = randomBytes(32).toString("base64url");
+    const tokenHash = createHash("sha256").update(token).digest("hex");
+    const pending = target.status === "pending";
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (!baseUrl) throw new Error("يرجى ضبط رابط التطبيق NEXT_PUBLIC_APP_URL لإنشاء روابط الحسابات.");
+    const { error } = await admin.rpc("issue_user_access_link", {
+      p_actor_id: context.userId, p_target_id: userId, p_token_hash: tokenHash,
+      p_purpose: pending ? "invitation" : "password_reset",
+    });
+    if (error) throw new Error(error.message);
+    return {
+      success: true,
+      url: `${baseUrl.replace(/\/$/, "")}/${pending ? "invite" : "reset"}?token=${encodeURIComponent(token)}`,
+      message: pending ? "رابط التفعيل صالح لمدة 24 ساعة ولمرة واحدة. أُلغيت الروابط السابقة." : "رابط استعادة كلمة المرور صالح لمدة ساعة ولمرة واحدة. أُلغيت الروابط السابقة.",
+    };
+  } catch (error) { return failure(error); }
 }
 
 export async function completeInvitation(token: string, password: string): Promise<ActionResult<{ message: string }>> {
@@ -124,12 +156,17 @@ export async function completeInvitation(token: string, password: string): Promi
     const { data: invitation } = await admin.from("user_invitations").update({ used_at: claimedAt })
       .eq("token_hash", tokenHash).is("used_at", null).gt("expires_at", claimedAt).select("id,user_id").single();
     if (!invitation) throw new Error("رابط الدعوة هذا منتهي الصلاحية أو غير صالح.");
+    const { data: profile } = await admin.from("profiles").select("id")
+      .eq("id", invitation.user_id).eq("status", "pending").is("deleted_at", null).single();
+    if (!profile) throw new Error("الحساب غير متاح للتفعيل. يرجى التواصل مع المسؤول.");
     const { error } = await admin.auth.admin.updateUserById(invitation.user_id, { password, email_confirm: true });
     if (error) {
       await admin.from("user_invitations").update({ used_at: null }).eq("id", invitation.id).eq("used_at", claimedAt);
       throw new Error(error.message);
     }
-    await admin.from("profiles").update({ status: "active" }).eq("id", invitation.user_id);
+    const { data: activated, error: activationError } = await admin.from("profiles").update({ status: "active" })
+      .eq("id", invitation.user_id).eq("status", "pending").is("deleted_at", null).select("id").single();
+    if (activationError || !activated) throw new Error("تعذر تفعيل الحساب. يرجى التواصل مع المسؤول.");
     return { success: true, message: "تم تفعيل الحساب بنجاح." };
   } catch (error) { return failure(error); }
 }

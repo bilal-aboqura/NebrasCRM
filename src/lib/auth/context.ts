@@ -17,7 +17,9 @@ export const getAuthContext = cache(async (): Promise<AuthContext | null> => {
     .select("company_id,email,display_name,role,status,companies(name,status)")
     .eq("id", user.id)
     .single();
-  if (!profile || !profile.role) return null;
+  if (!profile || !profile.role || profile.status !== "active") return null;
+  const company = profile.companies as unknown as { status?: string } | null;
+  if (profile.role !== "super_admin" && company?.status !== "active") return null;
 
   let activeCompanyId = profile.company_id as string | null;
   let companyName = ((profile.companies as unknown as { name?: string } | null)?.name ?? "") as string;

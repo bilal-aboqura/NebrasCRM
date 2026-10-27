@@ -36,7 +36,7 @@ const images = {
   consultant: "https://storage.googleapis.com/uxpilot-auth.appspot.com/gen_115dd73367_e14f400058aca523.png",
   checklist: "https://storage.googleapis.com/uxpilot-auth.appspot.com/gen_388caa4262_dc0361b22a99e250.png",
   audit: "https://storage.googleapis.com/uxpilot-auth.appspot.com/gen_df0f996cd9_802c93ccf8935e0a.png",
-  facility: "https://storage.googleapis.com/uxpilot-auth.appspot.com/gen_ee69a768aa_c04cb3e7b438a695.png",
+  facility: "/images/healthcare-facility-no-signage.png",
   certificate: "https://storage.googleapis.com/uxpilot-auth.appspot.com/gen_9cf34b29ab_f479d2392e32d795.png",
   city: "https://storage.googleapis.com/uxpilot-auth.appspot.com/gen_53700853d2_bb3e2cff7fa3e587.png",
   avatar1: "https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-1.jpg",

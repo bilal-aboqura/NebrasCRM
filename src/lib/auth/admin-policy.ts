@@ -13,7 +13,7 @@ export function resolveInvitationScope(context: Pick<AuthContext, "role" | "comp
 }
 
 export function assertCanManageUser(context: Pick<AuthContext, "userId" | "role" | "companyId">, target: { id: string; role: AppRole; company_id: string | null }) {
-  if (context.userId === target.id) throw new Error("لا يمكنك إلغاء تفعيل حسابك.");
+  if (context.userId === target.id) throw new Error("لا يمكنك تنفيذ هذا الإجراء على حسابك من إدارة المستخدمين.");
   if (context.role === "super_admin") return;
   if (context.role !== "company_admin" || target.company_id !== context.companyId || target.role === "super_admin") {
     throw new Error("غير مصرح لك بإدارة هذا المستخدم.");

@@ -34,7 +34,7 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isPublic = pathname === "/" || PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
   if (!user && !isPublic) return NextResponse.redirect(new URL("/login?reason=session_expired", request.url));
-  if (user && (pathname === "/login" || pathname === "/reset")) return NextResponse.redirect(new URL("/dashboard", request.url));
+  if (user && (pathname === "/login" || (pathname === "/reset" && !request.nextUrl.searchParams.has("token")))) return NextResponse.redirect(new URL("/dashboard", request.url));
 
   if (user && !isPublic) {
     const { data: profile } = await supabase.from("profiles").select("status,role,companies(status)").eq("id", user.id).single();

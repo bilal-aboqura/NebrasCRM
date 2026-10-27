@@ -7,6 +7,8 @@ describe("normalizePhone", () => {
     ["+966 50 123 4567", "966501234567"],
     ["00966-11-456-7890", "966114567890"],
     ["0114567890", "966114567890"],
+    ["٠٥٠١٢٣٤٥٦٧", "966501234567"],
+    ["۰۵۰۱۲۳۴۵۶۷", "966501234567"],
   ])("normalizes %s", (input, expected) => expect(normalizePhone(input)).toBe(expected));
 
   it("returns an empty value when no digits are supplied", () => {

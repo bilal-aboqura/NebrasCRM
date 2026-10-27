@@ -272,23 +272,10 @@ async function setFacilityActive(id: string, active: boolean): Promise<FacilityA
     const context = await requireAuth();
     if (!isManagement(context)) throw new Error(ARCHIVE_UNAUTHORIZED);
     const companyId = activeCompany(context);
-    const admin = createAdminClient();
-    const { data, error } = await admin.from("facilities").update({
-      is_active: active,
-      archived_at: active ? null : new Date().toISOString(),
-      archived_by: active ? null : context.userId,
-    }).eq("id", id).eq("company_id", companyId).eq("is_active", !active).select("id").maybeSingle();
-    if (error) throw error;
-    if (!data) throw new Error("المنشأة غير موجودة أو حالتها لم تتغير.");
-    const { error: activityError } = await admin.from("facility_activity").insert({
-      company_id: companyId,
-      facility_id: id,
-      actor_id: context.userId,
-      event_type: active ? "recovered" : "archived",
-      old_value: String(!active),
-      new_value: String(active),
+    const { error } = await createAdminClient().rpc("set_facility_active_atomic", {
+      p_company_id: companyId, p_facility_id: id, p_actor_id: context.userId, p_active: active,
     });
-    if (activityError) throw activityError;
+    if (error) throw new Error(error.message);
     revalidatePath("/dashboard/facilities");
     revalidatePath(`/dashboard/facilities/${id}`);
     return { success: true, data: { is_active: active } };

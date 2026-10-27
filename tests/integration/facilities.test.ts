@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 type Response = { data?: unknown; error?: unknown; count?: number | null };
 const responses = new Map<string, Response[]>();
 const calls: Array<{ table: string; method: string; args: unknown[] }> = [];
+const rpc = vi.fn();
 let authContext = {
   userId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
   email: "sales@example.com",
@@ -33,7 +34,7 @@ function builder(table: string): object {
 
 vi.mock("@/lib/auth/context", () => ({ requireAuth: async () => authContext }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ from: (table: string) => builder(table) }) }));
+vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ from: (table: string) => builder(table), rpc }) }));
 
 import { archiveFacility, createFacility, getFacilitiesList, updateFacility } from "@/lib/actions/facilities";
 
@@ -49,6 +50,8 @@ describe("facility server actions", () => {
   beforeEach(() => {
     calls.length = 0;
     responses.clear();
+    rpc.mockReset();
+    rpc.mockResolvedValue({ error: null });
     authContext = { ...authContext, role: "sales_user", userId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd" };
   });
 
@@ -117,5 +120,20 @@ describe("facility server actions", () => {
     expect(result.success).toBe(false);
     expect(result.success || result.error).toContain("للمشرفين والمدراء");
     expect(calls).toHaveLength(0);
+  });
+
+  it("archives with the authenticated actor and tenant in one database transaction", async () => {
+    authContext.role = "supervisor";
+    expect(await archiveFacility("facility-a")).toEqual({ success: true, data: { is_active: false } });
+    expect(rpc).toHaveBeenCalledWith("set_facility_active_atomic", {
+      p_company_id: authContext.companyId, p_facility_id: "facility-a", p_actor_id: authContext.userId, p_active: false,
+    });
+    expect(calls).toHaveLength(0);
+  });
+
+  it("surfaces archive failures without reporting success", async () => {
+    authContext.role = "company_admin";
+    rpc.mockResolvedValue({ error: { message: "تعذر حفظ سجل الأرشفة" } });
+    expect(await archiveFacility("facility-a")).toEqual({ success: false, error: "تعذر حفظ سجل الأرشفة" });
   });
 });

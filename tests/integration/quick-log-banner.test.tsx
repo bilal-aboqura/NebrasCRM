@@ -23,6 +23,12 @@ describe("quick-log interaction context", () => {
     expect(localStorage.getItem(QUICK_LOG_KEY)).toBeNull();
   });
 
+  it("does not break communication links when browser storage is blocked", () => {
+    const blocked = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("storage blocked"); });
+    expect(() => rememberPendingCommunication({ facilityId: "facility-a", channel: "whatsapp" })).not.toThrow();
+    blocked.mockRestore();
+  });
+
   it("reveals the banner when the CRM window regains focus", () => {
     Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });
     localStorage.setItem(QUICK_LOG_KEY, JSON.stringify({ facilityId: "facility-a", contactName: "أحمد", channel: "call", clickedAt: Date.now() }));

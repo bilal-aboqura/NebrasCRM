@@ -12,7 +12,8 @@ export type PendingCommunication = { facilityId: string; contactId?: string; con
 
 export function rememberPendingCommunication(context: Omit<PendingCommunication, "clickedAt">) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(QUICK_LOG_KEY, JSON.stringify({ ...context, clickedAt: Date.now() }));
+  try { localStorage.setItem(QUICK_LOG_KEY, JSON.stringify({ ...context, clickedAt: Date.now() })); }
+  catch { return; }
   window.dispatchEvent(new Event(QUICK_LOG_EVENT));
 }
 

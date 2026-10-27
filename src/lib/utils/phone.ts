@@ -2,7 +2,7 @@ export const DEFAULT_WHATSAPP_TEMPLATE =
   "السلام عليكم ورحمة الله وبركاته، نود التواصل معكم بخصوص خدمات اعتماد سباهي من شركة [اسم الشركة]";
 
 export function normalizePhone(phone: string): string {
-  let digits = phone.replace(/\D/g, "");
+  let digits = phone.replace(/[٠-٩۰-۹]/g, (digit) => String(digit.charCodeAt(0) - (digit >= "۰" ? 0x06f0 : 0x0660))).replace(/\D/g, "");
   if (digits.startsWith("00")) digits = digits.slice(2);
   if (digits.startsWith("966")) return digits;
   digits = digits.replace(/^0+/, "");
